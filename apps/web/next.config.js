@@ -2,7 +2,11 @@
 const nextConfig = {
   transpilePackages: ["@rayalaseema/ui", "@rayalaseema/db"],
   images: {
-    domains: ["res.cloudinary.com", "localhost"],
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "http", hostname: "localhost" },
+    ],
   },
 };
 
