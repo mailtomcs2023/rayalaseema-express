@@ -37,8 +37,9 @@ function formatTimeAgo(dateString: string) {
   return `${Math.floor(hours / 24)} రోజుల క్రితం`;
 }
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
-  const cat = categoryMap[params.slug] || {
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const cat = categoryMap[slug] || {
     name: "వార్తలు",
     nameEn: "News",
     color: "#FF2C2C",

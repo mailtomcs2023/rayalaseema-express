@@ -13,8 +13,9 @@ const districtNames: Record<string, string> = {
   chittoor: "చిత్తూరు",
 };
 
-export default function DistrictPage({ params }: { params: { slug: string } }) {
-  const name = districtNames[params.slug] || params.slug;
+export default async function DistrictPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const name = districtNames[slug] || slug;
 
   return (
     <div className="min-h-screen bg-gray-50">
