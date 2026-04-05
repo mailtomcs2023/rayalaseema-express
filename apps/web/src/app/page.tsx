@@ -14,125 +14,61 @@ import {
 import { MovieGallery, TrendingReels } from "@/components/movie-gallery";
 import { YettetaCartoon } from "@/components/yetteta-cartoon";
 import { WebStories } from "@/components/web-stories";
-import {
-  sliderItems,
-  breakingNewsItems,
-  politicsArticles,
-  crimeArticles,
-  sportsArticles,
-  businessArticles,
-  educationArticles,
-  entertainmentArticles,
-  agricultureArticles,
-  districtArticles,
-  nationalArticles,
-  photoGallery,
-} from "@/lib/mock-data";
+import { getHomepageData } from "@/lib/db-queries";
+import { photoGallery } from "@/lib/mock-data";
 
-// Latest news for sidebar - Rayalaseema focused
-const latestNewsItems = [
-  { id: "ln1", title: "కర్నూలు జిల్లాలో భారీ వర్షాలు - పంటలు నీట మునిగాయి", slug: "kurnool-heavy-rains-crops" },
-  { id: "ln2", title: "తిరుపతి రైల్వే స్టేషన్ ఆధునికీకరణ పనులు ప్రారంభం", slug: "tirupati-railway-modernization" },
-  { id: "ln3", title: "అనంతపురం: రేయాన్ కర్మాగారంలో వేతన సమస్యపై కార్మికుల ఆందోళన", slug: "anantapur-rayon-factory-wages" },
-  { id: "ln4", title: "వై.యస్.ఆర్ జిల్లా కలెక్టర్ ఆకస్మిక తనిఖీలు - అధికారులకు షాక్", slug: "ysr-collector-surprise-inspections" },
-  { id: "ln5", title: "నంద్యాల-కర్నూలు హైవే విస్తరణ ప్రణాళికకు ఆమోదం", slug: "nandyal-kurnool-highway-expansion" },
-  { id: "ln6", title: "చిత్తూరు: పుంగనూరు ఆవుల సంరక్షణకు కేంద్ర నిధులు", slug: "chittoor-punganur-cow-conservation" },
-  { id: "ln7", title: "శ్రీ సత్యసాయి జిల్లాలో డ్రోన్ల ద్వారా పంటల సర్వే", slug: "sri-sathya-sai-drone-crop-survey" },
-  { id: "ln8", title: "అన్నమయ్య: మదనపల్లెలో కొత్త ఐటీ ట్రైనింగ్ సెంటర్ ఏర్పాటు", slug: "annamayya-madanapalle-it-center" },
-  { id: "ln9", title: "కర్నూలు ఎయిర్‌పోర్ట్ నుండి హైదరాబాద్ డైరెక్ట్ ఫ్లైట్ - త్వరలో", slug: "kurnool-airport-hyderabad-flight" },
-  { id: "ln10", title: "తుంగభద్ర బోర్డు సమావేశం - నీటి పంపకం వివాదం కొనసాగింపు", slug: "tungabhadra-board-meeting-water" },
-  { id: "ln11", title: "కడప స్టీల్ ప్లాంట్ ఏర్పాటుపై మరోసారి డిమాండ్ తీవ్రం", slug: "kadapa-steel-plant-demand" },
-  { id: "ln12", title: "రాయలసీమ యూనివర్సిటీకి NAAC A++ గ్రేడ్ - అధికారిక ప్రకటన", slug: "rayalaseema-university-naac-grade" },
-];
-
-// News grid items - Rayalaseema district focused
-const newsGridItems = [
-  {
-    id: "ng1",
-    title: "కర్నూలు: తుంగభద్ర డ్యామ్ నుండి నీటి విడుదల - కాలువలకు కొత్త నీరు",
-    slug: "kurnool-tungabhadra-dam-water-release",
-    summary: "తుంగభద్ర డ్యామ్ నుండి కుడి, ఎడమ కాలువలకు నీటి విడుదల ప్రారంభం",
-    featuredImage: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300&h=200&fit=crop",
-    label: "కర్నూలు",
-    isLive: true,
-  },
-  {
-    id: "ng2",
-    title: "తిరుపతి: శ్రీవారి దర్శనానికి 48 గంటల వేచి ఉండాలి - భక్తుల తీవ్ర ఇబ్బందులు",
-    slug: "tirupati-48-hours-waiting-darshan",
-    summary: "బ్రహ్మోత్సవాల సీజన్‌లో తిరుమలలో భక్తుల రద్దీ తీవ్రం",
-    featuredImage: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=300&h=200&fit=crop",
-    label: "తిరుపతి",
-  },
-  {
-    id: "ng3",
-    title: "అనంతపురం: కియా మోటార్స్ ప్లాంట్‌లో 2,000 కొత్త ఉద్యోగాలు - దరఖాస్తు ప్రారంభం",
-    slug: "anantapur-kia-motors-2000-jobs",
-    summary: "పెనుకొండ కియా ప్లాంట్ విస్తరణతో స్థానికులకు భారీ ఉపాధి",
-    featuredImage: "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=300&h=200&fit=crop",
-    label: "అనంతపురం",
-  },
-  {
-    id: "ng4",
-    title: "వై.యస్.ఆర్: శేషాచలంలో రక్తచందనం స్మగ్లర్ల ఏరివేత - టాస్క్‌ఫోర్స్ ఆపరేషన్",
-    slug: "ysr-seshachalam-red-sandal-operation",
-    summary: "రెడ్ శాండల్ టాస్క్‌ఫోర్స్ ప్రత్యేక ఆపరేషన్‌లో పలువురి అరెస్ట్",
-    featuredImage: "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=300&h=200&fit=crop",
-    label: "వై.యస్.ఆర్",
-  },
-  {
-    id: "ng5",
-    title: "నంద్యాల: బనగానపల్లె మామిడి సీజన్ ప్రారంభం - ఈసారి భారీ దిగుబడి అంచనా",
-    slug: "nandyal-banganapalle-mango-season-start",
-    summary: "ప్రపంచ ప్రసిద్ధ బనగానపల్లె మామిడి ఎగుమతులు పెరగనున్నాయి",
-    featuredImage: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&h=200&fit=crop",
-    label: "నంద్యాల",
-  },
-  {
-    id: "ng6",
-    title: "చిత్తూరు: హార్సిలీ హిల్స్ టూరిజం అభివృద్ధికి రూ.50 కోట్లు - మంత్రి ప్రకటన",
-    slug: "chittoor-horsley-hills-tourism-50-crores",
-    summary: "హార్సిలీ హిల్స్‌ను జాతీయ స్థాయి టూరిస్ట్ డెస్టినేషన్‌గా తీర్చిదిద్దనున్నారు",
-    featuredImage: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop",
-    label: "చిత్తూరు",
-  },
-  {
-    id: "ng7",
-    title: "శ్రీ సత్యసాయి: పుట్టపర్తి ఆశ్రమంలో ఉచిత వైద్య శిబిరం - 5,000 మందికి సేవలు",
-    slug: "sri-sathya-sai-puttaparthi-free-medical-camp",
-    summary: "సూపర్ స్పెషాలిటీ హాస్పిటల్‌లో ప్రత్యేక వైద్య శిబిరం నిర్వహణ",
-    featuredImage: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&h=200&fit=crop",
-    label: "శ్రీ సత్యసాయి",
-  },
-  {
-    id: "ng8",
-    title: "అన్నమయ్య: రాజంపేట సమీపంలో గనుల తవ్వకం - స్థానికుల ఆందోళన",
-    slug: "annamayya-rajampet-mining-protests",
-    summary: "గనుల తవ్వకంతో పర్యావరణ హాని జరుగుతోందని స్థానికులు ఆందోళన",
-    featuredImage: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=300&h=200&fit=crop",
-    label: "అన్నమయ్య",
-  },
-];
-
+// Static data that's not in DB yet
 const videoItems = [
-  {
-    id: "v1",
-    title: "రాయలసీమ అభివృద్ధి మండలి - ముఖ్యమంత్రి ప్రత్యేక ఇంటర్వ్యూ",
-    thumbnail: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&h=300&fit=crop",
-  },
-  {
-    id: "v2",
-    title: "కర్నూలు సోలార్ పార్క్ - భారతదేశంలోనే అతిపెద్దది ఎలా?",
-    thumbnail: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=300&fit=crop",
-  },
-  {
-    id: "v3",
-    title: "తిరుపతి బ్రహ్మోత్సవాలు - ప్రత్యేక కథనం",
-    thumbnail: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=500&h=300&fit=crop",
-  },
+  { id: "v1", title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C05\u0C2D\u0C3F\u0C35\u0C43\u0C26\u0C4D\u0C27\u0C3F \u0C2E\u0C02\u0C21\u0C32\u0C3F - \u0C2E\u0C41\u0C16\u0C4D\u0C2F\u0C2E\u0C02\u0C24\u0C4D\u0C30\u0C3F \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C07\u0C02\u0C1F\u0C30\u0C4D\u0C35\u0C4D\u0C2F\u0C42", thumbnail: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&h=300&fit=crop" },
+  { id: "v2", title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D - \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36\u0C02\u0C32\u0C4B\u0C28\u0C47 \u0C05\u0C24\u0C3F\u0C2A\u0C46\u0C26\u0C4D\u0C26\u0C26\u0C3F \u0C0E\u0C32\u0C3E?", thumbnail: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=300&fit=crop" },
+  { id: "v3", title: "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 - \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C15\u0C25\u0C28\u0C02", thumbnail: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=500&h=300&fit=crop" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch all data from PostgreSQL database
+  const { featured, latest, breakingNews, articlesByCategory } = await getHomepageData();
+
+  // Map DB articles to slider format
+  const sliderItems = featured.map((a) => ({
+    id: a.id,
+    title: a.title,
+    summary: a.summary || "",
+    slug: a.slug,
+    category: { name: a.category.name, color: a.category.color || "#FF2C2C", slug: a.category.slug },
+    featuredImage: a.featuredImage || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1400&h=700&fit=crop",
+    publishedAt: a.publishedAt?.toISOString() || new Date().toISOString(),
+    author: { name: a.author.name },
+  }));
+
+  // Map DB articles to news grid format (take first 8)
+  const allDbArticles = Object.values(articlesByCategory).flat();
+  const newsGridItems = allDbArticles.slice(0, 8).map((a) => ({
+    id: a.id,
+    title: a.title,
+    slug: a.slug,
+    summary: a.summary || "",
+    featuredImage: a.featuredImage,
+    label: a.category.name,
+  }));
+
+  // Map DB articles to latest news sidebar
+  const latestNewsItems = latest.map((a) => ({
+    id: a.id,
+    title: a.title,
+    slug: a.slug,
+  }));
+
+  // Helper to get articles for a category (from DB or empty)
+  const catArticles = (slug: string) =>
+    (articlesByCategory[slug] || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      slug: a.slug,
+      summary: a.summary || "",
+      featuredImage: a.featuredImage,
+      publishedAt: a.publishedAt?.toISOString() || new Date().toISOString(),
+      viewCount: a.viewCount,
+    }));
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
@@ -171,86 +107,28 @@ export default function HomePage() {
           {/* LEFT: 3-column category grid */}
           <div style={{ flex: "1 1 auto" }} className="space-y-2">
 
-            {/* Row 1: సినిమా | బిజినెస్ | క్రీడలు */}
+            {/* Row 1: Entertainment | Business | Sports - from DB */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title="సినిమా" slug="entertainment" articles={entertainmentArticles} />
-              <CategoryCard title="బిజినెస్" slug="business" articles={businessArticles} />
-              <CategoryCard title="క్రీడలు" slug="sports" articles={sportsArticles} />
+              <CategoryCard title="\u0C38\u0C3F\u0C28\u0C3F\u0C2E\u0C3E" slug="entertainment" articles={catArticles("entertainment")} />
+              <CategoryCard title="\u0C2C\u0C3F\u0C1C\u0C3F\u0C28\u0C46\u0C38\u0C4D" slug="business" articles={catArticles("business")} />
+              <CategoryCard title="\u0C15\u0C4D\u0C30\u0C40\u0C21\u0C32\u0C41" slug="sports" articles={catArticles("sports")} />
             </div>
 
-            {/* Row 2: జాతీయం | అంతర్జాతీయం | నవ్యసీమ */}
+            {/* Row 2: National | District News | Agriculture - from DB */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <CategoryCard title="జాతీయం" slug="national" articles={nationalArticles} />
-            <CategoryCard
-              title="అంతర్జాతీయం"
-              slug="international"
-              articles={[
-                {
-                  id: "int1",
-                  title: "భారత్-అమెరికా వ్యూహాత్మక ఒప్పందం - రక్షణ, టెక్నాలజీ రంగాల్లో సహకారం",
-                  slug: "india-us-agreement",
-                  summary: "రక్షణ, టెక్నాలజీ, అంతరిక్ష రంగాల్లో సహకారం పెరగనుంది",
-                  featuredImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&h=200&fit=crop",
-                  publishedAt: new Date(Date.now() - 5400000).toISOString(),
-                },
-                {
-                  id: "int2",
-                  title: "చైనా-భారత్ సరిహద్దు చర్చలు - ఉద్రిక్తత తగ్గింపు దిశగా అడుగులు",
-                  slug: "china-india-border-talks",
-                  summary: "లడఖ్ సరిహద్దులో పరిస్థితి మెరుగుపడుతోందని రక్షణ మంత్రిత్వశాఖ",
-                  featuredImage: "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=300&h=200&fit=crop",
-                  publishedAt: new Date(Date.now() - 10800000).toISOString(),
-                },
-              ]}
-            />
-            <CategoryCard
-              title="నవ్యసీమ"
-              slug="navyaseema"
-              articles={[
-                {
-                  id: "nv1",
-                  title: "రాయలసీమ మహిళా ఉద్యమకారులు - స్ఫూర్తిదాయక జీవిత గాథలు",
-                  slug: "rayalaseema-women-leaders-stories",
-                  summary: "రాయలసీమ ప్రాంతం నుండి వచ్చిన ధీర మహిళల ప్రేరణాత్మక కథలు",
-                  featuredImage: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=200&fit=crop",
-                  publishedAt: new Date(Date.now() - 3600000).toISOString(),
-                },
-                {
-                  id: "nv2",
-                  title: "రాయలసీమ వంటకాలు - గోంగూర పచ్చడి నుండి ఉగ్గాని వరకు",
-                  slug: "rayalaseema-recipes-gongura-uggani",
-                  summary: "మన ప్రాంత సంప్రదాయ వంటకాలు మరియు రెసిపీలు",
-                  featuredImage: "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=300&h=200&fit=crop",
-                  publishedAt: new Date(Date.now() - 7200000).toISOString(),
-                },
-                {
-                  id: "nv3",
-                  title: "ఆరోగ్యం: వేసవిలో చర్మ సంరక్షణ - నిపుణుల సలహాలు",
-                  slug: "summer-skin-care-expert-tips",
-                  summary: "వేసవి కాలంలో చర్మాన్ని ఆరోగ్యంగా ఉంచుకునే చిట్కాలు",
-                  featuredImage: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300&h=200&fit=crop",
-                  publishedAt: new Date(Date.now() - 14400000).toISOString(),
-                },
-                {
-                  id: "nv4",
-                  title: "మాతృత్వం కెరీర్‌కు ముగింపు కాదు! - సక్సెస్ స్టోరీస్",
-                  slug: "motherhood-career-success-stories",
-                  summary: "పిల్లల తర్వాత కూడా కెరీర్‌లో రాణిస్తున్న మహిళల కథలు",
-                  featuredImage: "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=300&h=200&fit=crop",
-                  publishedAt: new Date(Date.now() - 21600000).toISOString(),
-                },
-              ]}
-            />
-          </div>
+              <CategoryCard title="\u0C1C\u0C3E\u0C24\u0C40\u0C2F\u0C02" slug="national" articles={catArticles("national")} />
+              <CategoryCard title="\u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E \u0C35\u0C3E\u0C30\u0C4D\u0C24\u0C32\u0C41" slug="district-news" articles={catArticles("district-news")} />
+              <CategoryCard title="\u0C35\u0C4D\u0C2F\u0C35\u0C38\u0C3E\u0C2F\u0C02" slug="agriculture" articles={catArticles("agriculture")} />
+            </div>
 
             {/* Banner Ad */}
             <AdLeaderboard />
 
-            {/* Row 3: వ్యవసాయం | విద్య | నేరాలు */}
+            {/* Row 3: Education | Crime | Devotional - from DB */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title="వ్యవసాయం" slug="agriculture" articles={agricultureArticles} />
-              <CategoryCard title="విద్య" slug="education" articles={educationArticles} />
-              <CategoryCard title="నేరాలు" slug="crime" articles={crimeArticles} />
+              <CategoryCard title="\u0C35\u0C3F\u0C26\u0C4D\u0C2F" slug="education" articles={catArticles("education")} />
+              <CategoryCard title="\u0C28\u0C47\u0C30\u0C3E\u0C32\u0C41" slug="crime" articles={catArticles("crime")} />
+              <CategoryCard title="\u0C30\u0C3E\u0C1C\u0C15\u0C40\u0C2F\u0C3E\u0C32\u0C41" slug="politics" articles={catArticles("politics")} />
             </div>
 
             {/* Web Stories */}
