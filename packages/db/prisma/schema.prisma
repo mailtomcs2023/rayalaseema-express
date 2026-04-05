@@ -221,3 +221,15 @@ model SocialPost {
   @@unique([articleId, platform])
   @@map("social_posts")
 }
+
+// ============ SITE CONFIG ============
+
+model SiteConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("site_config")
+}

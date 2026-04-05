@@ -4,118 +4,368 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("Seeding database...");
 
-  // Create admin user
-  const adminPassword = await hash("admin123", 12);
+  // ========== USERS ==========
+  const adminPwd = await hash("admin123", 12);
   const admin = await prisma.user.upsert({
     where: { email: "admin@rayalaseemaexpress.com" },
     update: {},
-    create: {
-      email: "admin@rayalaseemaexpress.com",
-      name: "Admin",
-      passwordHash: adminPassword,
-      role: Role.ADMIN,
-    },
+    create: { email: "admin@rayalaseemaexpress.com", name: "Admin", passwordHash: adminPwd, role: Role.ADMIN },
   });
 
-  // Create editor
-  const editorPassword = await hash("editor123", 12);
+  const editorPwd = await hash("editor123", 12);
   const editor = await prisma.user.upsert({
     where: { email: "editor@rayalaseemaexpress.com" },
     update: {},
-    create: {
-      email: "editor@rayalaseemaexpress.com",
-      name: "Editor",
-      passwordHash: editorPassword,
-      role: Role.EDITOR,
-    },
+    create: { email: "editor@rayalaseemaexpress.com", name: "Rajesh Kumar", passwordHash: editorPwd, role: Role.EDITOR },
   });
 
-  // Create categories
-  const categories = [
-    { name: "రాజకీయాలు", nameEn: "Politics", slug: "politics", color: "#DC2626", sortOrder: 1 },
-    { name: "నేరాలు", nameEn: "Crime", slug: "crime", color: "#7C3AED", sortOrder: 2 },
-    { name: "క్రీడలు", nameEn: "Sports", slug: "sports", color: "#16A34A", sortOrder: 3 },
-    { name: "వ్యాపారం", nameEn: "Business", slug: "business", color: "#2563EB", sortOrder: 4 },
-    { name: "వినోదం", nameEn: "Entertainment", slug: "entertainment", color: "#DB2777", sortOrder: 5 },
-    { name: "విద్య", nameEn: "Education", slug: "education", color: "#0891B2", sortOrder: 6 },
-    { name: "వ్యవసాయం", nameEn: "Agriculture", slug: "agriculture", color: "#65A30D", sortOrder: 7 },
-    { name: "జిల్లా వార్తలు", nameEn: "District News", slug: "district-news", color: "#EA580C", sortOrder: 8 },
-    { name: "జాతీయం", nameEn: "National", slug: "national", color: "#4F46E5", sortOrder: 9 },
-    { name: "అంతర్జాతీయం", nameEn: "International", slug: "international", color: "#0D9488", sortOrder: 10 },
+  const reporterPwd = await hash("reporter123", 12);
+  const reporter = await prisma.user.upsert({
+    where: { email: "reporter@rayalaseemaexpress.com" },
+    update: {},
+    create: { email: "reporter@rayalaseemaexpress.com", name: "Suresh Reddy", passwordHash: reporterPwd, role: Role.REPORTER },
+  });
+
+  // ========== CATEGORIES (all sections from nav + dropdown) ==========
+  const categoriesData = [
+    { name: "\u0C30\u0C3E\u0C1C\u0C15\u0C40\u0C2F\u0C3E\u0C32\u0C41", nameEn: "Politics", slug: "politics", color: "#FF2C2C", sortOrder: 1 },
+    { name: "\u0C28\u0C47\u0C30\u0C3E\u0C32\u0C41", nameEn: "Crime", slug: "crime", color: "#7C3AED", sortOrder: 2 },
+    { name: "\u0C15\u0C4D\u0C30\u0C40\u0C21\u0C32\u0C41", nameEn: "Sports", slug: "sports", color: "#16A34A", sortOrder: 3 },
+    { name: "\u0C2C\u0C3F\u0C1C\u0C3F\u0C28\u0C46\u0C38\u0C4D", nameEn: "Business", slug: "business", color: "#2563EB", sortOrder: 4 },
+    { name: "\u0C38\u0C3F\u0C28\u0C3F\u0C2E\u0C3E", nameEn: "Entertainment", slug: "entertainment", color: "#DB2777", sortOrder: 5 },
+    { name: "\u0C35\u0C3F\u0C26\u0C4D\u0C2F", nameEn: "Education", slug: "education", color: "#0891B2", sortOrder: 6 },
+    { name: "\u0C35\u0C4D\u0C2F\u0C35\u0C38\u0C3E\u0C2F\u0C02", nameEn: "Agriculture", slug: "agriculture", color: "#65A30D", sortOrder: 7 },
+    { name: "\u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E \u0C35\u0C3E\u0C30\u0C4D\u0C24\u0C32\u0C41", nameEn: "District News", slug: "district-news", color: "#EA580C", sortOrder: 8 },
+    { name: "\u0C1C\u0C3E\u0C24\u0C40\u0C2F\u0C02", nameEn: "National", slug: "national", color: "#4F46E5", sortOrder: 9 },
+    { name: "\u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F\u0C02", nameEn: "International", slug: "international", color: "#0D9488", sortOrder: 10 },
+    // New categories from dropdown menu
+    { name: "\u0C1F\u0C46\u0C15\u0C4D\u0C28\u0C3E\u0C32\u0C1C\u0C40", nameEn: "Technology", slug: "technology", color: "#6366F1", sortOrder: 11 },
+    { name: "\u0C06\u0C30\u0C4B\u0C17\u0C4D\u0C2F\u0C02", nameEn: "Health", slug: "health", color: "#EC4899", sortOrder: 12 },
+    { name: "\u0C2D\u0C15\u0C4D\u0C24\u0C3F", nameEn: "Devotional", slug: "devotional", color: "#F59E0B", sortOrder: 13 },
+    { name: "\u0C30\u0C3E\u0C36\u0C3F \u0C2B\u0C32\u0C3E\u0C32\u0C41", nameEn: "Horoscope", slug: "rasi-phalalu", color: "#8B5CF6", sortOrder: 14 },
+    { name: "\u0C09\u0C26\u0C4D\u0C2F\u0C4B\u0C17\u0C3E\u0C32\u0C41", nameEn: "Jobs", slug: "jobs", color: "#14B8A6", sortOrder: 15 },
+    { name: "\u0C38\u0C3F\u0C28\u0C3F\u0C2E\u0C3E \u0C30\u0C3F\u0C35\u0C4D\u0C2F\u0C42\u0C32\u0C41", nameEn: "Movie Reviews", slug: "movie-reviews", color: "#F43F5E", sortOrder: 16 },
+    { name: "\u0C2A\u0C30\u0C40\u0C15\u0C4D\u0C37\u0C3E \u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41", nameEn: "Exam Results", slug: "exam-results", color: "#0EA5E9", sortOrder: 17 },
+    { name: "\u0C35\u0C3E\u0C24\u0C3E\u0C35\u0C30\u0C23\u0C02", nameEn: "Weather", slug: "weather", color: "#64748B", sortOrder: 18 },
+    { name: "NRI \u0C35\u0C3E\u0C30\u0C4D\u0C24\u0C32\u0C41", nameEn: "NRI News", slug: "nri", color: "#A855F7", sortOrder: 19 },
+    { name: "\u0C28\u0C35\u0C4D\u0C2F\u0C38\u0C40\u0C2E", nameEn: "Navyaseema", slug: "navyaseema", color: "#E11D48", sortOrder: 20 },
+    { name: "\u0C30\u0C3F\u0C2F\u0C32\u0C4D \u0C0E\u0C38\u0C4D\u0C1F\u0C47\u0C1F\u0C4D", nameEn: "Real Estate", slug: "real-estate", color: "#D97706", sortOrder: 21 },
+    { name: "\u0C38\u0C02\u0C2A\u0C3E\u0C26\u0C15\u0C40\u0C2F\u0C02", nameEn: "Editorial", slug: "editorial", color: "#374151", sortOrder: 22 },
   ];
 
-  for (const cat of categories) {
-    await prisma.category.upsert({
+  const categoryMap: Record<string, string> = {};
+  for (const cat of categoriesData) {
+    const created = await prisma.category.upsert({
       where: { slug: cat.slug },
-      update: {},
+      update: cat,
       create: cat,
     });
+    categoryMap[cat.slug] = created.id;
   }
+  console.log(`  ${Object.keys(categoryMap).length} categories created`);
 
-  // Create sample tags
-  const tags = [
-    { name: "ఏపీ", slug: "ap" },
-    { name: "తెలంగాణ", slug: "telangana" },
-    { name: "కర్నూలు", slug: "kurnool" },
-    { name: "అనంతపురం", slug: "anantapur" },
-    { name: "కడప", slug: "kadapa" },
-    { name: "చిత్తూరు", slug: "chittoor" },
-    { name: "ప్రకాశం", slug: "prakasam" },
-    { name: "నంద్యాల", slug: "nandyal" },
+  // ========== TAGS (districts + topics) ==========
+  const tagsData = [
+    { name: "AP", slug: "ap" },
+    { name: "Telangana", slug: "telangana" },
+    { name: "Kurnool", slug: "kurnool" },
+    { name: "Anantapur", slug: "anantapur" },
+    { name: "Kadapa", slug: "kadapa" },
+    { name: "Chittoor", slug: "chittoor" },
+    { name: "Nandyal", slug: "nandyal" },
+    { name: "Tirupati", slug: "tirupati" },
+    { name: "Sri Sathya Sai", slug: "sri-sathya-sai" },
+    { name: "Annamayya", slug: "annamayya" },
+    { name: "YSR", slug: "ysr" },
+    { name: "Rayalaseema", slug: "rayalaseema" },
+    { name: "IPL", slug: "ipl" },
+    { name: "Tungabhadra", slug: "tungabhadra" },
+    { name: "Kia Motors", slug: "kia-motors" },
+    { name: "Tirupati Temple", slug: "tirupati-temple" },
   ];
 
-  for (const tag of tags) {
-    await prisma.tag.upsert({
-      where: { slug: tag.slug },
-      update: {},
-      create: tag,
-    });
+  for (const tag of tagsData) {
+    await prisma.tag.upsert({ where: { slug: tag.slug }, update: {}, create: tag });
   }
+  console.log(`  ${tagsData.length} tags created`);
 
-  // Create sample article
-  const politicsCategory = await prisma.category.findUnique({ where: { slug: "politics" } });
-  if (politicsCategory) {
+  // ========== ALL ARTICLES from mock-data.ts ==========
+  // Each article: title (Telugu), summary (Telugu), body (Telugu HTML), slug (English), category, image, status
+
+  const allArticles = [
+    // --- SLIDER / FEATURED ---
+    {
+      title: "\u0C24\u0C41\u0C02\u0C17\u0C2D\u0C26\u0C4D\u0C30 \u0C21\u0C4D\u0C2F\u0C3E\u0C2E\u0C4D \u0C28\u0C41\u0C02\u0C21\u0C3F 1 \u0C32\u0C15\u0C4D\u0C37 \u0C15\u0C4D\u0C2F\u0C42\u0C38\u0C46\u0C15\u0C4D\u0C15\u0C41\u0C32 \u0C28\u0C40\u0C1F\u0C3F \u0C35\u0C3F\u0C21\u0C41\u0C26\u0C32 - \u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41, \u0C28\u0C02\u0C26\u0C4D\u0C2F\u0C3E\u0C32 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32\u0C15\u0C41 \u0C38\u0C3E\u0C17\u0C41\u0C28\u0C40\u0C30\u0C41",
+      slug: "tungabhadra-dam-water-release-kurnool-nandyal",
+      summary: "\u0C24\u0C41\u0C02\u0C17\u0C2D\u0C26\u0C4D\u0C30 \u0C21\u0C4D\u0C2F\u0C3E\u0C2E\u0C4D \u0C17\u0C47\u0C1F\u0C4D\u0C32\u0C41 \u0C0E\u0C24\u0C4D\u0C24\u0C3F\u0C35\u0C47\u0C36\u0C3E\u0C30\u0C41. \u0C15\u0C41\u0C21\u0C3F \u0C15\u0C3E\u0C32\u0C41\u0C35, \u0C0E\u0C21\u0C2E \u0C15\u0C3E\u0C32\u0C41\u0C35\u0C32 \u0C26\u0C4D\u0C35\u0C3E\u0C30\u0C3E \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C2A\u0C4D\u0C30\u0C3E\u0C02\u0C24\u0C02\u0C32\u0C4B\u0C28\u0C3F \u0C32\u0C15\u0C4D\u0C37\u0C32 \u0C0E\u0C15\u0C30\u0C3E\u0C32 \u0C38\u0C3E\u0C17\u0C41 \u0C2D\u0C42\u0C2E\u0C41\u0C32\u0C15\u0C41 \u0C28\u0C40\u0C1F\u0C3F \u0C35\u0C3F\u0C21\u0C41\u0C26\u0C32 \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C2E\u0C48\u0C02\u0C26\u0C3F.",
+      body: "<p>\u0C24\u0C41\u0C02\u0C17\u0C2D\u0C26\u0C4D\u0C30 \u0C21\u0C4D\u0C2F\u0C3E\u0C2E\u0C4D \u0C17\u0C47\u0C1F\u0C4D\u0C32\u0C41 \u0C0E\u0C24\u0C4D\u0C24\u0C3F\u0C35\u0C47\u0C36\u0C3E\u0C30\u0C41. \u0C15\u0C41\u0C21\u0C3F \u0C15\u0C3E\u0C32\u0C41\u0C35, \u0C0E\u0C21\u0C2E \u0C15\u0C3E\u0C32\u0C41\u0C35\u0C32 \u0C26\u0C4D\u0C35\u0C3E\u0C30\u0C3E \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C2A\u0C4D\u0C30\u0C3E\u0C02\u0C24\u0C02\u0C32\u0C4B\u0C28\u0C3F \u0C32\u0C15\u0C4D\u0C37\u0C32 \u0C0E\u0C15\u0C30\u0C3E\u0C32 \u0C38\u0C3E\u0C17\u0C41 \u0C2D\u0C42\u0C2E\u0C41\u0C32\u0C15\u0C41 \u0C28\u0C40\u0C1F\u0C3F \u0C35\u0C3F\u0C21\u0C41\u0C26\u0C32 \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C2E\u0C48\u0C02\u0C26\u0C3F.</p>",
+      category: "district-news", featured: true, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1400&h=700&fit=crop",
+      viewCount: 15420,
+    },
+    {
+      title: "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F: \u0C36\u0C4D\u0C30\u0C40\u0C35\u0C3E\u0C30\u0C3F \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 \u0C18\u0C28\u0C02\u0C17\u0C3E \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C02 - 10 \u0C32\u0C15\u0C4D\u0C37\u0C32 \u0C2D\u0C15\u0C4D\u0C24\u0C41\u0C32 \u0C24\u0C3E\u0C15\u0C3F\u0C21\u0C3F \u0C05\u0C02\u0C1A\u0C28\u0C3E",
+      slug: "tirupati-brahmotsavam-10-lakh-devotees",
+      summary: "\u0C24\u0C3F\u0C30\u0C41\u0C2E\u0C32 \u0C36\u0C4D\u0C30\u0C40\u0C35\u0C47\u0C02\u0C15\u0C1F\u0C47\u0C36\u0C4D\u0C35\u0C30 \u0C38\u0C4D\u0C35\u0C3E\u0C2E\u0C3F \u0C06\u0C32\u0C2F\u0C02\u0C32\u0C4B \u0C35\u0C3E\u0C30\u0C4D\u0C37\u0C3F\u0C15 \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 \u0C18\u0C28\u0C02\u0C17\u0C3E \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C2E\u0C2F\u0C4D\u0C2F\u0C3E\u0C2F\u0C3F. \u0C2D\u0C3E\u0C30\u0C40 \u0C2D\u0C26\u0C4D\u0C30\u0C24\u0C3E \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C4D\u0C32\u0C41.",
+      body: "<p>\u0C24\u0C3F\u0C30\u0C41\u0C2E\u0C32 \u0C36\u0C4D\u0C30\u0C40\u0C35\u0C47\u0C02\u0C15\u0C1F\u0C47\u0C36\u0C4D\u0C35\u0C30 \u0C38\u0C4D\u0C35\u0C3E\u0C2E\u0C3F \u0C06\u0C32\u0C2F\u0C02\u0C32\u0C4B \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 \u0C18\u0C28\u0C02\u0C17\u0C3E \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C2E\u0C2F\u0C4D\u0C2F\u0C3E\u0C2F\u0C3F.</p>",
+      category: "devotional", featured: true, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=1400&h=700&fit=crop",
+      viewCount: 23450,
+    },
+    {
+      title: "\u0C05\u0C28\u0C02\u0C24\u0C2A\u0C41\u0C30\u0C02: \u0C15\u0C3F\u0C2F\u0C3E EV \u0C2A\u0C4D\u0C32\u0C3E\u0C02\u0C1F\u0C4D \u0C36\u0C02\u0C15\u0C41\u0C38\u0C4D\u0C25\u0C3E\u0C2A\u0C28 - 5,000 \u0C09\u0C26\u0C4D\u0C2F\u0C4B\u0C17\u0C3E\u0C32\u0C41, \u0C30\u0C42.4,000 \u0C15\u0C4B\u0C1F\u0C4D\u0C32 \u0C2A\u0C46\u0C1F\u0C4D\u0C1F\u0C41\u0C2C\u0C21\u0C3F",
+      slug: "anantapur-kia-ev-plant-foundation-5000-jobs",
+      summary: "\u0C05\u0C28\u0C02\u0C24\u0C2A\u0C41\u0C30\u0C02 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E \u0C2A\u0C46\u0C28\u0C41\u0C15\u0C4A\u0C02\u0C21\u0C32\u0C4B \u0C15\u0C3F\u0C2F\u0C3E \u0C0E\u0C32\u0C15\u0C4D\u0C1F\u0C4D\u0C30\u0C3F\u0C15\u0C4D \u0C35\u0C3E\u0C39\u0C28\u0C3E\u0C32 \u0C24\u0C2F\u0C3E\u0C30\u0C40 \u0C2A\u0C4D\u0C32\u0C3E\u0C02\u0C1F\u0C4D \u0C36\u0C02\u0C15\u0C41\u0C38\u0C4D\u0C25\u0C3E\u0C2A\u0C28.",
+      body: "<p>\u0C05\u0C28\u0C02\u0C24\u0C2A\u0C41\u0C30\u0C02 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E \u0C2A\u0C46\u0C28\u0C41\u0C15\u0C4A\u0C02\u0C21\u0C32\u0C4B \u0C15\u0C3F\u0C2F\u0C3E \u0C0E\u0C32\u0C15\u0C4D\u0C1F\u0C4D\u0C30\u0C3F\u0C15\u0C4D \u0C35\u0C3E\u0C39\u0C28\u0C3E\u0C32 \u0C24\u0C2F\u0C3E\u0C30\u0C40 \u0C2A\u0C4D\u0C32\u0C3E\u0C02\u0C1F\u0C4D \u0C36\u0C02\u0C15\u0C41\u0C38\u0C4D\u0C25\u0C3E\u0C2A\u0C28. \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C2A\u0C3E\u0C30\u0C3F\u0C36\u0C4D\u0C30\u0C3E\u0C2E\u0C3F\u0C15 \u0C30\u0C02\u0C17\u0C02\u0C32\u0C4B \u0C2E\u0C48\u0C32\u0C41\u0C30\u0C3E\u0C2F\u0C3F.</p>",
+      category: "business", featured: true, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=1400&h=700&fit=crop",
+      viewCount: 8920,
+    },
+    {
+      title: "\u0C35\u0C48.\u0C2F\u0C38\u0C4D.\u0C06\u0C30\u0C4D \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E: \u0C15\u0C21\u0C2A \u0C38\u0C4D\u0C1F\u0C40\u0C32\u0C4D \u0C2A\u0C4D\u0C32\u0C3E\u0C02\u0C1F\u0C4D \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C41\u0C15\u0C41 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30 \u0C06\u0C2E\u0C4B\u0C26\u0C02 - \u0C26\u0C36\u0C3E\u0C2C\u0C4D\u0C26\u0C3E\u0C32 \u0C15\u0C32 \u0C28\u0C46\u0C30\u0C35\u0C47\u0C30\u0C3F\u0C02\u0C26\u0C3F",
+      slug: "ysr-kadapa-steel-plant-central-approval",
+      summary: "\u0C15\u0C21\u0C2A \u0C09\u0C15\u0C4D\u0C15\u0C41 \u0C15\u0C30\u0C4D\u0C2E\u0C3E\u0C17\u0C3E\u0C30\u0C02 \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C41\u0C15\u0C41 \u0C1A\u0C3F\u0C35\u0C30\u0C15\u0C41 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30 \u0C2A\u0C4D\u0C30\u0C2D\u0C41\u0C24\u0C4D\u0C35\u0C02 \u0C06\u0C2E\u0C4B\u0C26\u0C02 \u0C24\u0C46\u0C32\u0C3F\u0C2A\u0C3F\u0C02\u0C26\u0C3F. \u0C30\u0C42.12,000 \u0C15\u0C4B\u0C1F\u0C4D\u0C32 \u0C05\u0C02\u0C1A\u0C28\u0C3E \u0C35\u0C4D\u0C2F\u0C2F\u0C02\u0C24\u0C4B \u0C28\u0C3F\u0C30\u0C4D\u0C2E\u0C3E\u0C23\u0C02 \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C02.",
+      body: "<p>\u0C15\u0C21\u0C2A \u0C09\u0C15\u0C4D\u0C15\u0C41 \u0C15\u0C30\u0C4D\u0C2E\u0C3E\u0C17\u0C3E\u0C30\u0C02 \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C41\u0C15\u0C41 \u0C06\u0C2E\u0C4B\u0C26\u0C02.</p>",
+      category: "politics", featured: true, breaking: true,
+      featuredImage: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1400&h=700&fit=crop",
+      viewCount: 34560,
+    },
+    {
+      title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C05\u0C32\u0C4D\u0C1F\u0C4D\u0C30\u0C3E \u0C2E\u0C46\u0C17\u0C3E \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D 5,000 MW \u0C15\u0C41 \u0C35\u0C3F\u0C38\u0C4D\u0C24\u0C30\u0C23 - \u0C26\u0C47\u0C36\u0C02\u0C32\u0C4B\u0C28\u0C47 \u0C05\u0C24\u0C3F\u0C2A\u0C46\u0C26\u0C4D\u0C26\u0C26\u0C3F",
+      slug: "kurnool-solar-park-expansion-5000mw",
+      summary: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32\u0C4B\u0C28\u0C3F \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D \u0C35\u0C3F\u0C38\u0C4D\u0C24\u0C30\u0C23\u0C15\u0C41 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30 \u0C06\u0C2E\u0C4B\u0C26\u0C02.",
+      body: "<p>\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D \u0C35\u0C3F\u0C38\u0C4D\u0C24\u0C30\u0C23.</p>",
+      category: "business", featured: true, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1400&h=700&fit=crop",
+      viewCount: 6780,
+    },
+    {
+      title: "\u0C28\u0C02\u0C26\u0C4D\u0C2F\u0C3E\u0C32: \u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F\u0C15\u0C3F GI \u0C1F\u0C4D\u0C2F\u0C3E\u0C17\u0C4D - \u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F \u0C2E\u0C3E\u0C30\u0C4D\u0C15\u0C46\u0C1F\u0C4D\u0C32\u0C4B \u0C21\u0C3F\u0C2E\u0C3E\u0C02\u0C21\u0C4D \u0C2A\u0C46\u0C30\u0C41\u0C17\u0C41\u0C26\u0C32",
+      slug: "nandyal-banganapalle-mango-gi-tag",
+      summary: "\u0C2A\u0C4D\u0C30\u0C2A\u0C02\u0C1A \u0C2A\u0C4D\u0C30\u0C38\u0C3F\u0C26\u0C4D\u0C27 \u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F\u0C15\u0C3F GI \u0C17\u0C41\u0C30\u0C4D\u0C24\u0C3F\u0C02\u0C2A\u0C41. \u0C0E\u0C17\u0C41\u0C2E\u0C24\u0C41\u0C32\u0C41 \u0C30\u0C46\u0C1F\u0C4D\u0C1F\u0C3F\u0C02\u0C2A\u0C41 \u0C05\u0C35\u0C41\u0C24\u0C3E\u0C2F\u0C28\u0C3F \u0C05\u0C02\u0C1A\u0C28\u0C3E.",
+      body: "<p>\u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F\u0C15\u0C3F GI \u0C17\u0C41\u0C30\u0C4D\u0C24\u0C3F\u0C02\u0C2A\u0C41.</p>",
+      category: "agriculture", featured: true, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1400&h=700&fit=crop",
+      viewCount: 4560,
+    },
+
+    // --- POLITICS ---
+    {
+      title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C05\u0C2D\u0C3F\u0C35\u0C43\u0C26\u0C4D\u0C27\u0C3F \u0C2E\u0C02\u0C21\u0C32\u0C3F \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C41\u0C2A\u0C48 \u0C05\u0C28\u0C4D\u0C28\u0C3F \u0C2A\u0C3E\u0C30\u0C4D\u0C1F\u0C40\u0C32 \u0C38\u0C2E\u0C3E\u0C35\u0C47\u0C36\u0C02",
+      slug: "all-party-meet-rayalaseema-development",
+      summary: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C2A\u0C4D\u0C30\u0C3E\u0C02\u0C24 \u0C05\u0C2D\u0C3F\u0C35\u0C43\u0C26\u0C4D\u0C27\u0C3F\u0C15\u0C3F \u0C05\u0C28\u0C4D\u0C28\u0C3F \u0C30\u0C3E\u0C1C\u0C15\u0C40\u0C2F \u0C2A\u0C3E\u0C30\u0C4D\u0C1F\u0C40\u0C32\u0C41 \u0C0F\u0C15\u0C24\u0C3E\u0C1F\u0C3F\u0C2A\u0C48 \u0C28\u0C21\u0C35\u0C3E\u0C32\u0C28\u0C3F \u0C28\u0C3F\u0C30\u0C4D\u0C23\u0C2F\u0C3F\u0C02\u0C1A\u0C3E\u0C2F\u0C3F.",
+      body: "<p>\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C2A\u0C4D\u0C30\u0C3E\u0C02\u0C24 \u0C05\u0C2D\u0C3F\u0C35\u0C43\u0C26\u0C4D\u0C27\u0C3F\u0C15\u0C3F \u0C05\u0C28\u0C4D\u0C28\u0C3F \u0C30\u0C3E\u0C1C\u0C15\u0C40\u0C2F \u0C2A\u0C3E\u0C30\u0C4D\u0C1F\u0C40\u0C32\u0C41 \u0C0F\u0C15\u0C24\u0C3E\u0C1F\u0C3F\u0C2A\u0C48 \u0C28\u0C21\u0C35\u0C3E\u0C32\u0C28\u0C3F \u0C28\u0C3F\u0C30\u0C4D\u0C23\u0C2F\u0C3F\u0C02\u0C1A\u0C3E\u0C2F\u0C3F. \u0C05\u0C38\u0C46\u0C02\u0C2C\u0C4D\u0C32\u0C40\u0C32\u0C4B \u0C1C\u0C30\u0C3F\u0C17\u0C3F\u0C28 \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C38\u0C2E\u0C3E\u0C35\u0C47\u0C36\u0C02\u0C32\u0C4B \u0C05\u0C28\u0C4D\u0C28\u0C3F \u0C2A\u0C3E\u0C30\u0C4D\u0C1F\u0C40\u0C32 \u0C28\u0C3E\u0C2F\u0C15\u0C41\u0C32\u0C41 \u0C2A\u0C3E\u0C32\u0C4D\u0C17\u0C4A\u0C28\u0C4D\u0C28\u0C3E\u0C30\u0C41.</p>",
+      category: "politics", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600&h=400&fit=crop",
+      viewCount: 8920,
+    },
+    {
+      title: "\u0C0F\u0C2A\u0C40 \u0C15\u0C47\u0C2C\u0C3F\u0C28\u0C46\u0C1F\u0C4D \u0C15\u0C40\u0C32\u0C15 \u0C28\u0C3F\u0C30\u0C4D\u0C23\u0C2F\u0C3E\u0C32\u0C41 - \u0C15\u0C4A\u0C24\u0C4D\u0C24 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32 \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C41\u0C2A\u0C48 \u0C1A\u0C30\u0C4D\u0C1A",
+      slug: "ap-cabinet-key-decisions-new-districts",
+      summary: "\u0C30\u0C3E\u0C37\u0C4D\u0C1F\u0C4D\u0C30 \u0C2E\u0C02\u0C24\u0C4D\u0C30\u0C3F\u0C35\u0C30\u0C4D\u0C17 \u0C38\u0C2E\u0C3E\u0C35\u0C47\u0C36\u0C02\u0C32\u0C4B \u0C2A\u0C32\u0C41 \u0C15\u0C40\u0C32\u0C15 \u0C28\u0C3F\u0C30\u0C4D\u0C23\u0C2F\u0C3E\u0C32\u0C41 \u0C24\u0C40\u0C38\u0C41\u0C15\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C30\u0C41.",
+      body: "<p>\u0C30\u0C3E\u0C37\u0C4D\u0C1F\u0C4D\u0C30 \u0C2E\u0C02\u0C24\u0C4D\u0C30\u0C3F\u0C35\u0C30\u0C4D\u0C17 \u0C38\u0C2E\u0C3E\u0C35\u0C47\u0C36\u0C02\u0C32\u0C4B \u0C2A\u0C32\u0C41 \u0C15\u0C40\u0C32\u0C15 \u0C28\u0C3F\u0C30\u0C4D\u0C23\u0C2F\u0C3E\u0C32\u0C41 \u0C24\u0C40\u0C38\u0C41\u0C15\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C30\u0C41.</p>",
+      category: "politics", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1575540325276-8ab0f9b2a4d3?w=600&h=400&fit=crop",
+      viewCount: 6540,
+    },
+
+    // --- CRIME ---
+    {
+      title: "\u0C15\u0C21\u0C2A \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32\u0C4B \u0C30\u0C46\u0C21\u0C4D \u0C36\u0C3E\u0C02\u0C21\u0C32\u0C4D \u0C38\u0C4D\u0C2E\u0C17\u0C4D\u0C32\u0C3F\u0C02\u0C17\u0C4D \u0C2E\u0C41\u0C20\u0C3E \u0C05\u0C30\u0C46\u0C38\u0C4D\u0C1F\u0C4D - 5 \u0C1F\u0C28\u0C4D\u0C28\u0C41\u0C32 \u0C30\u0C15\u0C4D\u0C24\u0C1A\u0C02\u0C26\u0C28\u0C02 \u0C38\u0C4D\u0C35\u0C3E\u0C27\u0C40\u0C28\u0C02",
+      slug: "kadapa-red-sandal-smuggling-gang-arrest",
+      summary: "\u0C36\u0C47\u0C37\u0C3E\u0C1A\u0C32\u0C02 \u0C05\u0C21\u0C35\u0C41\u0C32\u0C4D\u0C32\u0C4B \u0C05\u0C15\u0C4D\u0C30\u0C2E\u0C02\u0C17\u0C3E \u0C30\u0C15\u0C4D\u0C24\u0C1A\u0C02\u0C26\u0C28\u0C02 \u0C24\u0C30\u0C32\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C28\u0C4D\u0C28 \u0C2E\u0C41\u0C20\u0C3E\u0C28\u0C41 \u0C2A\u0C4B\u0C32\u0C40\u0C38\u0C41\u0C32\u0C41 \u0C2A\u0C1F\u0C4D\u0C1F\u0C41\u0C15\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C30\u0C41.",
+      body: "<p>\u0C36\u0C47\u0C37\u0C3E\u0C1A\u0C32\u0C02 \u0C05\u0C21\u0C35\u0C41\u0C32\u0C4D\u0C32\u0C4B \u0C05\u0C15\u0C4D\u0C30\u0C2E\u0C02\u0C17\u0C3E \u0C30\u0C15\u0C4D\u0C24\u0C1A\u0C02\u0C26\u0C28\u0C02 \u0C24\u0C30\u0C32\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C28\u0C4D\u0C28 \u0C2E\u0C41\u0C20\u0C3E\u0C28\u0C41 \u0C2A\u0C4B\u0C32\u0C40\u0C38\u0C41\u0C32\u0C41 \u0C2A\u0C1F\u0C4D\u0C1F\u0C41\u0C15\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C30\u0C41.</p>",
+      category: "crime", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?w=600&h=400&fit=crop",
+      viewCount: 12340,
+    },
+    {
+      title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41\u0C32\u0C4B \u0C38\u0C48\u0C2C\u0C30\u0C4D \u0C2E\u0C4B\u0C38\u0C17\u0C3E\u0C33\u0C4D\u0C32 \u0C05\u0C30\u0C46\u0C38\u0C4D\u0C1F\u0C4D - \u0C30\u0C42.3 \u0C15\u0C4B\u0C1F\u0C4D\u0C32\u0C41 \u0C30\u0C3F\u0C15\u0C35\u0C30\u0C40",
+      slug: "kurnool-cyber-fraud-arrest-3-crores",
+      summary: "\u0C06\u0C28\u0C4D\u200C\u0C32\u0C48\u0C28\u0C4D \u0C32\u0C4B\u0C28\u0C4D \u0C2F\u0C3E\u0C2A\u0C4D\u200C\u0C32 \u0C26\u0C4D\u0C35\u0C3E\u0C30\u0C3E \u0C2E\u0C4B\u0C38\u0C02 \u0C1A\u0C47\u0C38\u0C4D\u0C24\u0C41\u0C28\u0C4D\u0C28 \u0C2E\u0C41\u0C20\u0C3E\u0C28\u0C41 \u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C38\u0C48\u0C2C\u0C30\u0C4D \u0C15\u0C4D\u0C30\u0C48\u0C2E\u0C4D \u0C2A\u0C4B\u0C32\u0C40\u0C38\u0C41\u0C32\u0C41 \u0C2A\u0C1F\u0C4D\u0C1F\u0C41\u0C15\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C30\u0C41.",
+      body: "<p>\u0C38\u0C48\u0C2C\u0C30\u0C4D \u0C2E\u0C4B\u0C38\u0C02 \u0C2E\u0C41\u0C20\u0C3E \u0C05\u0C30\u0C46\u0C38\u0C4D\u0C1F\u0C4D.</p>",
+      category: "crime", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=600&h=400&fit=crop",
+      viewCount: 8760,
+    },
+
+    // --- SPORTS ---
+    {
+      title: "IPL 2026: \u0C38\u0C28\u0C4D\u200C\u0C30\u0C48\u0C1C\u0C30\u0C4D\u0C38\u0C4D \u0C39\u0C48\u0C26\u0C30\u0C3E\u0C2C\u0C3E\u0C26\u0C4D \u0C38\u0C02\u0C1A\u0C32\u0C28 \u0C35\u0C3F\u0C1C\u0C2F\u0C02 - \u0C2E\u0C41\u0C02\u0C2C\u0C48 \u0C07\u0C02\u0C21\u0C3F\u0C2F\u0C28\u0C4D\u0C38\u0C4D\u200C\u0C2A\u0C48 45 \u0C2A\u0C30\u0C41\u0C17\u0C41\u0C32 \u0C24\u0C47\u0C21\u0C3E\u0C24\u0C4B \u0C17\u0C46\u0C32\u0C41\u0C2A\u0C41",
+      slug: "ipl-2026-srh-sensational-win-mi",
+      summary: "IPL 2026 \u0C32\u0C40\u0C17\u0C4D \u0C26\u0C36\u0C32\u0C4B \u0C38\u0C28\u0C4D\u200C\u0C30\u0C48\u0C1C\u0C30\u0C4D\u0C38\u0C4D \u0C39\u0C48\u0C26\u0C30\u0C3E\u0C2C\u0C3E\u0C26\u0C4D \u0C05\u0C26\u0C4D\u0C2D\u0C41\u0C24\u0C2E\u0C48\u0C28 \u0C2A\u0C4D\u0C30\u0C26\u0C30\u0C4D\u0C36\u0C28 \u0C15\u0C28\u0C2C\u0C30\u0C1A\u0C3F\u0C02\u0C26\u0C3F.",
+      body: "<p>IPL 2026 \u0C32\u0C40\u0C17\u0C4D \u0C26\u0C36\u0C32\u0C4B SRH \u0C05\u0C26\u0C4D\u0C2D\u0C41\u0C24\u0C2E\u0C48\u0C28 \u0C2A\u0C4D\u0C30\u0C26\u0C30\u0C4D\u0C36\u0C28.</p>",
+      category: "sports", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=600&h=400&fit=crop",
+      viewCount: 25680,
+    },
+
+    // --- EDUCATION ---
+    {
+      title: "\u0C0F\u0C2A\u0C40 \u0C07\u0C02\u0C1F\u0C30\u0C4D \u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41 2026 \u0C35\u0C3F\u0C21\u0C41\u0C26\u0C32 - \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32\u0C4D\u0C32\u0C4B 89% \u0C09\u0C24\u0C4D\u0C24\u0C40\u0C30\u0C4D\u0C23\u0C24",
+      slug: "ap-inter-results-2026-rayalaseema-89-percent",
+      summary: "\u0C06\u0C02\u0C27\u0C4D\u0C30\u0C2A\u0C4D\u0C30\u0C26\u0C47\u0C36\u0C4D \u0C07\u0C02\u0C1F\u0C30\u0C4D\u0C2E\u0C40\u0C21\u0C3F\u0C2F\u0C46\u0C1F\u0C4D \u0C2A\u0C30\u0C40\u0C15\u0C4D\u0C37\u0C32 \u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41 \u0C35\u0C3F\u0C21\u0C41\u0C26\u0C32\u0C2F\u0C4D\u0C2F\u0C3E\u0C2F\u0C3F.",
+      body: "<p>\u0C07\u0C02\u0C1F\u0C30\u0C4D \u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41 \u0C35\u0C3F\u0C21\u0C41\u0C26\u0C32\u0C2F\u0C4D\u0C2F\u0C3E\u0C2F\u0C3F. \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32 \u0C28\u0C41\u0C02\u0C21\u0C3F \u0C05\u0C26\u0C4D\u0C2D\u0C41\u0C24\u0C2E\u0C48\u0C28 \u0C2B\u0C32\u0C3F\u0C24\u0C3E\u0C32\u0C41 \u0C35\u0C1A\u0C4D\u0C1A\u0C3E\u0C2F\u0C3F. \u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E \u0C1F\u0C3E\u0C2A\u0C30\u0C4D \u0C30\u0C47\u0C37\u0C4D\u0C2E 990/1000 \u0C2E\u0C3E\u0C30\u0C4D\u0C15\u0C41\u0C32\u0C41 \u0C38\u0C3E\u0C27\u0C3F\u0C02\u0C1A\u0C3F\u0C02\u0C26\u0C3F.</p>",
+      category: "education", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?w=600&h=400&fit=crop",
+      viewCount: 34560,
+    },
+
+    // --- ENTERTAINMENT ---
+    {
+      title: "\u0C2A\u0C41\u0C37\u0C4D\u0C2A 3 - \u0C05\u0C32\u0C4D\u0C32\u0C41 \u0C05\u0C30\u0C4D\u0C1C\u0C41\u0C28\u0C4D \u0C15\u0C4A\u0C24\u0C4D\u0C24 \u0C38\u0C3F\u0C28\u0C3F\u0C2E\u0C3E \u0C37\u0C42\u0C1F\u0C3F\u0C02\u0C17\u0C4D \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E\u0C32\u0C4B \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C02",
+      slug: "pushpa-3-shooting-rayalaseema-allu-arjun",
+      summary: "\u0C10\u0C15\u0C3E\u0C28\u0C4D \u0C38\u0C4D\u0C1F\u0C3E\u0C30\u0C4D \u0C05\u0C32\u0C4D\u0C32\u0C41 \u0C05\u0C30\u0C4D\u0C1C\u0C41\u0C28\u0C4D \u0C28\u0C1F\u0C3F\u0C38\u0C4D\u0C24\u0C41\u0C28\u0C4D\u0C28 \u0C2A\u0C41\u0C37\u0C4D\u0C2A \u0C38\u0C3F\u0C30\u0C40\u0C38\u0C4D \u0C2E\u0C42\u0C21\u0C35 \u0C2D\u0C3E\u0C17\u0C02 \u0C37\u0C42\u0C1F\u0C3F\u0C02\u0C17\u0C4D \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C05\u0C21\u0C35\u0C41\u0C32\u0C4D\u0C32\u0C4B \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C2E\u0C48\u0C02\u0C26\u0C3F.",
+      body: "<p>\u0C2A\u0C41\u0C37\u0C4D\u0C2A 3 \u0C37\u0C42\u0C1F\u0C3F\u0C02\u0C17\u0C4D \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C05\u0C21\u0C35\u0C41\u0C32\u0C4D\u0C32\u0C4B \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C2E\u0C48\u0C02\u0C26\u0C3F.</p>",
+      category: "entertainment", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&h=400&fit=crop",
+      viewCount: 45230,
+    },
+
+    // --- AGRICULTURE ---
+    {
+      title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E\u0C32\u0C4B \u0C21\u0C4D\u0C30\u0C3F\u0C2A\u0C4D \u0C07\u0C30\u0C3F\u0C17\u0C47\u0C37\u0C28\u0C4D \u0C35\u0C3F\u0C2A\u0C4D\u0C32\u0C35\u0C02 - 2 \u0C32\u0C15\u0C4D\u0C37\u0C32 \u0C0E\u0C15\u0C30\u0C3E\u0C32\u0C15\u0C41 \u0C38\u0C2C\u0C4D\u0C38\u0C3F\u0C21\u0C40",
+      slug: "rayalaseema-drip-irrigation-revolution-subsidy",
+      summary: "\u0C15\u0C30\u0C41\u0C35\u0C41 \u0C2A\u0C4D\u0C30\u0C3E\u0C02\u0C24\u0C02\u0C17\u0C3E \u0C2A\u0C47\u0C30\u0C4A\u0C02\u0C26\u0C3F\u0C28 \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E\u0C32\u0C4B \u0C21\u0C4D\u0C30\u0C3F\u0C2A\u0C4D \u0C07\u0C30\u0C3F\u0C17\u0C47\u0C37\u0C28\u0C4D \u0C26\u0C4D\u0C35\u0C3E\u0C30\u0C3E \u0C38\u0C3E\u0C17\u0C41\u0C15\u0C41 \u0C2A\u0C4D\u0C30\u0C2D\u0C41\u0C24\u0C4D\u0C35\u0C02 \u0C2D\u0C3E\u0C30\u0C40 \u0C38\u0C2C\u0C4D\u0C38\u0C3F\u0C21\u0C40\u0C32\u0C41 \u0C2A\u0C4D\u0C30\u0C15\u0C1F\u0C3F\u0C02\u0C1A\u0C3F\u0C02\u0C26\u0C3F.",
+      body: "<p>\u0C21\u0C4D\u0C30\u0C3F\u0C2A\u0C4D \u0C07\u0C30\u0C3F\u0C17\u0C47\u0C37\u0C28\u0C4D \u0C38\u0C2C\u0C4D\u0C38\u0C3F\u0C21\u0C40\u0C32\u0C41.</p>",
+      category: "agriculture", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=600&h=400&fit=crop",
+      viewCount: 7890,
+    },
+
+    // --- NATIONAL ---
+    {
+      title: "\u0C2A\u0C3E\u0C30\u0C4D\u0C32\u0C2E\u0C46\u0C02\u0C1F\u0C4D \u0C2C\u0C21\u0C4D\u0C1C\u0C46\u0C1F\u0C4D \u0C38\u0C46\u0C37\u0C28\u0C4D - \u0C26\u0C15\u0C4D\u0C37\u0C3F\u0C23 \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36\u0C3E\u0C28\u0C3F\u0C15\u0C3F \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C15\u0C47\u0C1F\u0C3E\u0C2F\u0C3F\u0C02\u0C2A\u0C41\u0C32\u0C41",
+      slug: "parliament-budget-south-india-special-allocation",
+      summary: "\u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30 \u0C2C\u0C21\u0C4D\u0C1C\u0C46\u0C1F\u0C4D\u200C\u0C32\u0C4B \u0C26\u0C15\u0C4D\u0C37\u0C3F\u0C23 \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36 \u0C30\u0C3E\u0C37\u0C4D\u0C1F\u0C4D\u0C30\u0C3E\u0C32\u0C15\u0C41 \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C28\u0C3F\u0C27\u0C41\u0C32 \u0C15\u0C47\u0C1F\u0C3E\u0C2F\u0C3F\u0C02\u0C2A\u0C41 \u0C1A\u0C47\u0C36\u0C3E\u0C30\u0C41.",
+      body: "<p>\u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30 \u0C2C\u0C21\u0C4D\u0C1C\u0C46\u0C1F\u0C4D.</p>",
+      category: "national", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=600&h=400&fit=crop",
+      viewCount: 15670,
+    },
+
+    // --- DISTRICT NEWS ---
+    {
+      title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41: \u0C2C\u0C47\u0C32\u0C02 \u0C17\u0C41\u0C39\u0C32\u0C4D\u0C32\u0C4B \u0C15\u0C4A\u0C24\u0C4D\u0C24 \u0C1F\u0C42\u0C30\u0C3F\u0C1C\u0C02 \u0C38\u0C26\u0C41\u0C2A\u0C3E\u0C2F\u0C3E\u0C32\u0C41 - \u0C32\u0C48\u0C1F\u0C4D \u0C05\u0C02\u0C21\u0C4D \u0C38\u0C4C\u0C02\u0C21\u0C4D \u0C37\u0C4B \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C02",
+      slug: "kurnool-belum-caves-new-tourism-facilities",
+      summary: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32\u0C4B\u0C28\u0C3F \u0C2A\u0C4D\u0C30\u0C38\u0C3F\u0C26\u0C4D\u0C27 \u0C2C\u0C47\u0C32\u0C02 \u0C17\u0C41\u0C39\u0C32\u0C4D\u0C32\u0C4B \u0C15\u0C4A\u0C24\u0C4D\u0C24 \u0C32\u0C48\u0C1F\u0C4D \u0C05\u0C02\u0C21\u0C4D \u0C38\u0C4C\u0C02\u0C21\u0C4D \u0C37\u0C4B.",
+      body: "<p>\u0C2C\u0C47\u0C32\u0C02 \u0C17\u0C41\u0C39\u0C32\u0C4D\u0C32\u0C4B \u0C15\u0C4A\u0C24\u0C4D\u0C24 \u0C1F\u0C42\u0C30\u0C3F\u0C1C\u0C02 \u0C38\u0C26\u0C41\u0C2A\u0C3E\u0C2F\u0C3E\u0C32\u0C41.</p>",
+      category: "district-news", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=600&h=400&fit=crop",
+      viewCount: 6780,
+    },
+    {
+      title: "\u0C1A\u0C3F\u0C24\u0C4D\u0C24\u0C42\u0C30\u0C41: \u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C0E\u0C2F\u0C3F\u0C30\u0C4D\u200C\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C4D \u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F \u0C35\u0C3F\u0C2E\u0C3E\u0C28\u0C3E\u0C32 \u0C38\u0C47\u0C35\u0C32\u0C41 \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C02",
+      slug: "chittoor-tirupati-airport-international-flights",
+      summary: "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F \u0C35\u0C3F\u0C2E\u0C3E\u0C28\u0C3E\u0C36\u0C4D\u0C30\u0C2F\u0C02 \u0C28\u0C41\u0C02\u0C21\u0C3F \u0C38\u0C3F\u0C02\u0C17\u0C2A\u0C42\u0C30\u0C4D, \u0C15\u0C4C\u0C32\u0C3E\u0C32\u0C02\u0C2A\u0C42\u0C30\u0C4D, \u0C2C\u0C4D\u0C2F\u0C3E\u0C02\u0C15\u0C3E\u0C15\u0C4D \u0C28\u0C47\u0C30\u0C41\u0C17\u0C3E \u0C35\u0C3F\u0C2E\u0C3E\u0C28\u0C3E\u0C32 \u0C38\u0C47\u0C35\u0C32\u0C41.",
+      body: "<p>\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C0E\u0C2F\u0C3F\u0C30\u0C4D\u200C\u0C2A\u0C4B\u0C30\u0C4D\u0C1F\u0C4D \u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F \u0C38\u0C47\u0C35\u0C32\u0C41.</p>",
+      category: "district-news", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=600&h=400&fit=crop",
+      viewCount: 8920,
+    },
+
+    // --- BUSINESS ---
+    {
+      title: "\u0C2C\u0C02\u0C17\u0C3E\u0C30\u0C02 \u0C27\u0C30\u0C32\u0C41 \u0C38\u0C30\u0C3F\u0C15\u0C4A\u0C24\u0C4D\u0C24 \u0C17\u0C30\u0C3F\u0C37\u0C4D\u0C20\u0C3E\u0C28\u0C3F\u0C15\u0C3F - \u0C24\u0C41\u0C32\u0C02 \u0C30\u0C42.82,000 \u0C26\u0C3E\u0C1F\u0C3F\u0C02\u0C26\u0C3F",
+      slug: "gold-prices-new-record-high-82000",
+      summary: "\u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F \u0C2E\u0C3E\u0C30\u0C4D\u0C15\u0C46\u0C1F\u0C4D\u0C32\u0C4B \u0C2C\u0C02\u0C17\u0C3E\u0C30\u0C02 \u0C27\u0C30 \u0C2A\u0C46\u0C30\u0C41\u0C17\u0C41\u0C26\u0C32 \u0C15\u0C3E\u0C30\u0C23\u0C02\u0C17\u0C3E \u0C26\u0C47\u0C36\u0C40\u0C2F\u0C02\u0C17\u0C3E \u0C2C\u0C02\u0C17\u0C3E\u0C30\u0C02 \u0C24\u0C41\u0C32\u0C02 \u0C27\u0C30 \u0C30\u0C42.82,000 \u0C26\u0C3E\u0C1F\u0C3F\u0C02\u0C26\u0C3F.",
+      body: "<p>\u0C2C\u0C02\u0C17\u0C3E\u0C30\u0C02 \u0C27\u0C30\u0C32\u0C41 \u0C2A\u0C46\u0C30\u0C41\u0C17\u0C41\u0C24\u0C41\u0C28\u0C4D\u0C28\u0C3E\u0C2F\u0C3F.</p>",
+      category: "business", featured: false, breaking: false,
+      featuredImage: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=600&h=400&fit=crop",
+      viewCount: 9870,
+    },
+  ];
+
+  // Insert all articles
+  let articleCount = 0;
+  for (const a of allArticles) {
+    const catId = categoryMap[a.category];
+    if (!catId) {
+      console.log(`  Warning: category '${a.category}' not found, skipping article '${a.slug}'`);
+      continue;
+    }
+
     await prisma.article.upsert({
-      where: { slug: "sample-article-rayalaseema-development" },
-      update: {},
+      where: { slug: a.slug },
+      update: {
+        title: a.title,
+        summary: a.summary,
+        body: a.body,
+        featuredImage: a.featuredImage,
+        featured: a.featured,
+        breaking: a.breaking,
+        viewCount: a.viewCount,
+        status: ArticleStatus.PUBLISHED,
+        publishedAt: new Date(Date.now() - Math.random() * 86400000),
+      },
       create: {
-        title: "రాయలసీమ అభివృద్ధి కోసం కొత్త ప్రణాళికలు",
-        slug: "sample-article-rayalaseema-development",
-        summary: "రాయలసీమ ప్రాంతం అభివృద్ధి కోసం ప్రభుత్వం కొత్త ప్రణాళికలను ప్రకటించింది. నీటి పారుదల, రోడ్లు, విద్య రంగాలలో భారీ పెట్టుబడులు పెట్టనున్నట్లు తెలిపింది.",
-        body: "<p>రాయలసీమ ప్రాంతం అభివృద్ధి కోసం ప్రభుత్వం కొత్త ప్రణాళికలను ప్రకటించింది.</p><p>నీటి పారుదల, రోడ్లు, విద్య రంగాలలో భారీ పెట్టుబడులు పెట్టనున్నట్లు తెలిపింది. ఈ ప్రణాళికలు రాయలసీమలోని నాలుగు జిల్లాలకు ప్రయోజనకరంగా ఉంటాయని అధికారులు చెప్పారు.</p>",
+        title: a.title,
+        slug: a.slug,
+        summary: a.summary,
+        body: a.body,
+        featuredImage: a.featuredImage,
         language: Language.TELUGU,
         status: ArticleStatus.PUBLISHED,
-        featured: true,
-        authorId: editor.id,
-        categoryId: politicsCategory.id,
-        publishedAt: new Date(),
+        featured: a.featured,
+        breaking: a.breaking,
+        viewCount: a.viewCount,
+        authorId: [editor.id, reporter.id][Math.floor(Math.random() * 2)],
+        categoryId: catId,
+        publishedAt: new Date(Date.now() - Math.random() * 86400000),
+      },
+    });
+    articleCount++;
+  }
+  console.log(`  ${articleCount} articles created`);
+
+  // ========== BREAKING NEWS ==========
+  const breakingItems = [
+    "\u0C24\u0C41\u0C02\u0C17\u0C2D\u0C26\u0C4D\u0C30 \u0C21\u0C4D\u0C2F\u0C3E\u0C2E\u0C4D \u0C17\u0C47\u0C1F\u0C4D\u0C32\u0C41 \u0C0E\u0C24\u0C4D\u0C24\u0C3F\u0C35\u0C47\u0C24 - \u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41, \u0C28\u0C02\u0C26\u0C4D\u0C2F\u0C3E\u0C32 \u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E\u0C32\u0C4D\u0C32\u0C4B \u0C05\u0C2A\u0C4D\u0C30\u0C2E\u0C24\u0C4D\u0C24\u0C02",
+    "\u0C15\u0C21\u0C2A \u0C38\u0C4D\u0C1F\u0C40\u0C32\u0C4D \u0C2A\u0C4D\u0C32\u0C3E\u0C02\u0C1F\u0C4D \u0C0F\u0C30\u0C4D\u0C2A\u0C3E\u0C1F\u0C41\u0C15\u0C41 \u0C15\u0C47\u0C02\u0C26\u0C4D\u0C30 \u0C06\u0C2E\u0C4B\u0C26\u0C02 - \u0C30\u0C42.12,000 \u0C15\u0C4B\u0C1F\u0C4D\u0C32 \u0C2A\u0C46\u0C1F\u0C4D\u0C1F\u0C41\u0C2C\u0C21\u0C3F",
+    "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 \u0C2A\u0C4D\u0C30\u0C3E\u0C30\u0C02\u0C2D\u0C02 - 10 \u0C32\u0C15\u0C4D\u0C37\u0C32 \u0C2D\u0C15\u0C4D\u0C24\u0C41\u0C32\u0C41 \u0C05\u0C02\u0C1A\u0C28\u0C3E",
+    "\u0C05\u0C28\u0C02\u0C24\u0C2A\u0C41\u0C30\u0C02 \u0C15\u0C3F\u0C2F\u0C3E \u0C2A\u0C4D\u0C32\u0C3E\u0C02\u0C1F\u0C4D\u200C\u0C32\u0C4B EV \u0C24\u0C2F\u0C3E\u0C30\u0C40 \u0C2F\u0C42\u0C28\u0C3F\u0C1F\u0C4D \u0C36\u0C02\u0C15\u0C41\u0C38\u0C4D\u0C25\u0C3E\u0C2A\u0C28 - 5,000 \u0C09\u0C26\u0C4D\u0C2F\u0C4B\u0C17\u0C3E\u0C32\u0C41",
+    "\u0C28\u0C02\u0C26\u0C4D\u0C2F\u0C3E\u0C32 \u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F\u0C15\u0C3F GI \u0C1F\u0C4D\u0C2F\u0C3E\u0C17\u0C4D - \u0C05\u0C02\u0C24\u0C30\u0C4D\u0C1C\u0C3E\u0C24\u0C40\u0C2F \u0C17\u0C41\u0C30\u0C4D\u0C24\u0C3F\u0C02\u0C2A\u0C41",
+  ];
+
+  // Delete existing breaking news and insert fresh
+  await prisma.breakingNews.deleteMany({});
+  for (let i = 0; i < breakingItems.length; i++) {
+    await prisma.breakingNews.create({
+      data: {
+        headline: breakingItems[i],
+        active: true,
+        priority: i + 1,
       },
     });
   }
+  console.log(`  ${breakingItems.length} breaking news items created`);
 
-  // Create sample breaking news
-  await prisma.breakingNews.create({
-    data: {
-      headline: "రాయలసీమ ఎక్స్‌ప్రెస్ డిజిటల్ వెర్షన్ లాంచ్!",
-      headlineEn: "Rayalaseema Express Digital Version Launched!",
-      active: true,
-      priority: 1,
-    },
-  });
+  // ========== SITE CONFIG ==========
+  const configs = [
+    { key: "brand_color", value: "#FF2C2C", description: "Primary brand color" },
+    { key: "slider_count", value: "6", description: "Number of articles in homepage slider" },
+    { key: "homepage_layout", value: "eenadu", description: "Homepage layout style" },
+    { key: "ticker_speed", value: "60", description: "Breaking news ticker speed in seconds" },
+    { key: "logo_url", value: "/logo.svg", description: "Site logo URL" },
+  ];
 
-  console.log("✅ Seed complete!");
-  console.log(`   Admin: admin@rayalaseemaexpress.com / admin123`);
-  console.log(`   Editor: editor@rayalaseemaexpress.com / editor123`);
+  for (const cfg of configs) {
+    await prisma.siteConfig.upsert({
+      where: { key: cfg.key },
+      update: { value: cfg.value },
+      create: cfg,
+    });
+  }
+  console.log(`  ${configs.length} site config entries created`);
+
+  console.log("\nSeed complete!");
+  console.log("  Admin:    admin@rayalaseemaexpress.com / admin123");
+  console.log("  Editor:   editor@rayalaseemaexpress.com / editor123");
+  console.log("  Reporter: reporter@rayalaseemaexpress.com / reporter123");
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+  .then(async () => { await prisma.$disconnect(); })
+  .catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1); });
