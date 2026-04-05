@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
+import { RichEditor } from "@/components/rich-editor";
 
 interface Category {
   id: string;
@@ -165,17 +166,9 @@ export default function NewArticlePage() {
               <p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{summary.split(/\s+/).filter(Boolean).length} / 60 words</p>
             </div>
 
-            {/* Body */}
-            <div style={{ background: "#fff", borderRadius: 10, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>Article Body (HTML)</label>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="<p>Write your article content here...</p>"
-                rows={15}
-                style={{ width: "100%", border: "1px solid #eee", borderRadius: 8, padding: 12, fontSize: 14, fontFamily: "monospace", resize: "vertical", outline: "none", boxSizing: "border-box" }}
-              />
-              <p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>HTML formatting supported. Rich text editor coming soon.</p>
+            {/* Body - Rich Text Editor */}
+            <div style={{ marginBottom: 16 }}>
+              <RichEditor content={body} onChange={setBody} />
             </div>
           </div>
 
