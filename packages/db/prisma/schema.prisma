@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ USER & AUTH ============
+
+enum Role {
+  ADMIN
+  EDITOR
+  REPORTER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          Role      @default(REPORTER)
+  avatar        String?
+  bio           String?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  articles      Article[]
+  media         Media[]
+
+  @@map("users")
+}
+
+// ============ CONTENT ============
+
+enum ArticleStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Language {
+  TELUGU
+  ENGLISH
+}
+
+model Article {
+  id              String        @id @default(cuid())
+  title           String
+  slug            String        @unique
+  summary         String?       @db.Text // Short 60-word summary for app
+  body            String        @db.Text
+  featuredImage   String?
+  imageCaption    String?
+  language        Language      @default(TELUGU)
+  status          ArticleStatus @default(DRAFT)
+  featured        Boolean       @default(false)
+  breaking        Boolean       @default(false)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  ogImage         String?
+
+  // Scheduling
+  publishedAt     DateTime?
+  scheduledAt     DateTime?
+
+  // Relations
+  authorId        String
+  author          User          @relation(fields: [authorId], references: [id])
+  categoryId      String
+  category        Category      @relation(fields: [categoryId], references: [id])
+  tags            ArticleTag[]
+  socialPosts     SocialPost[]
+
+  // Analytics
+  viewCount       Int           @default(0)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([slug])
+  @@map("articles")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  nameEn      String?    // English name
+  slug        String     @unique
+  description String?
+  color       String?    @default("#DC2626")
+  sortOrder   Int        @default(0)
+  active      Boolean    @default(true)
+
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+
+  articles    Article[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  slug      String       @unique
+  articles  ArticleTag[]
+
+  @@map("tags")
+}
+
+model ArticleTag {
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+// ============ MEDIA ============
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  PDF
+  DOCUMENT
+}
+
+model Media {
+  id          String    @id @default(cuid())
+  url         String
+  filename    String
+  altText     String?
+  type        MediaType @default(IMAGE)
+  size        Int       // bytes
+  width       Int?
+  height      Int?
+  uploadedById String
+  uploadedBy  User      @relation(fields: [uploadedById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@map("media")
+}
+
+// ============ ePAPER ============
+
+model EpaperEdition {
+  id          String   @id @default(cuid())
+  date        DateTime @unique @db.Date
+  title       String?
+  section     String   @default("main") // main, supplement, district
+  pdfUrl      String
+  thumbnailUrl String?
+  pageCount   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@map("epaper_editions")
+}
+
+// ============ BREAKING NEWS ============
+
+model BreakingNews {
+  id          String   @id @default(cuid())
+  headline    String
+  headlineEn  String?
+  url         String?  // optional link to article
+  priority    Int      @default(0)
+  active      Boolean  @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("breaking_news")
+}
+
+// ============ SOCIAL MEDIA ============
+
+enum SocialPlatform {
+  FACEBOOK
+  TWITTER
+  INSTAGRAM
+  WHATSAPP
+  TELEGRAM
+  YOUTUBE
+}
+
+enum SocialPostStatus {
+  QUEUED
+  POSTED
+  FAILED
+}
+
+model SocialPost {
+  id          String           @id @default(cuid())
+  articleId   String
+  article     Article          @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  platform    SocialPlatform
+  status      SocialPostStatus @default(QUEUED)
+  postUrl     String?
+  error       String?
+  postedAt    DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@unique([articleId, platform])
+  @@map("social_posts")
+}
