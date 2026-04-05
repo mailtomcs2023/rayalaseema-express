@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { RichEditor } from "@/components/rich-editor";
+import { TeluguInput } from "@/components/telugu-input";
 
 interface Category {
   id: string;
@@ -36,9 +37,12 @@ export default function NewArticlePage() {
       .then(setCategories);
   }, []);
 
-  // Auto-generate slug from title
+  // Auto-generate slug - only from English characters
   const generateSlug = (text: string) => {
-    return text
+    // Extract only English/ASCII characters for slug
+    const english = text.replace(/[^\x00-\x7F]/g, "").trim();
+    if (!english) return "";
+    return english
       .toLowerCase()
       .replace(/[^\w\s-]/g, "")
       .replace(/\s+/g, "-")
@@ -48,8 +52,10 @@ export default function NewArticlePage() {
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    if (!slug || slug === generateSlug(title)) {
-      setSlug(generateSlug(val));
+    // Only auto-generate slug if user hasn't manually edited it
+    const autoSlug = generateSlug(val);
+    if (autoSlug && (!slug || slug === generateSlug(title))) {
+      setSlug(autoSlug);
     }
   };
 
@@ -135,33 +141,37 @@ export default function NewArticlePage() {
           <div style={{ flex: 1 }}>
             {/* Title */}
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <input
-                type="text"
+              <TeluguInput
                 value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="Article title..."
-                style={{ width: "100%", border: "none", outline: "none", fontSize: 22, fontWeight: 800, color: "#111", boxSizing: "border-box" }}
+                onChange={handleTitleChange}
+                placeholder="Article title... (type English, press Space for Telugu)"
+                style={{ fontSize: 22, fontWeight: 800, color: "#111" }}
               />
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                <span style={{ fontSize: 12, color: "#888" }}>Slug:</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                <span style={{ fontSize: 12, color: "#888", flexShrink: 0 }}>Slug:</span>
                 <input
                   type="text"
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  style={{ flex: 1, border: "1px solid #eee", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#666", fontFamily: "monospace", boxSizing: "border-box" }}
+                  placeholder="enter-english-slug-here (required)"
+                  style={{ flex: 1, border: "1px solid #eee", borderRadius: 6, padding: "6px 10px", fontSize: 13, color: "#333", fontFamily: "monospace", boxSizing: "border-box" }}
                 />
               </div>
+              <p style={{ fontSize: 11, color: "#bbb", marginTop: 4 }}>
+                URL slug in English (e.g. "ipl-2026-lucknow-win"). Type in English - this is the URL path.
+              </p>
             </div>
 
             {/* Summary */}
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>Summary (60 words for short news app)</label>
-              <textarea
+              <TeluguInput
                 value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="Brief summary of the article..."
+                onChange={setSummary}
+                placeholder="Brief summary... (type English, press Space for Telugu)"
+                multiline
                 rows={3}
-                style={{ width: "100%", border: "1px solid #eee", borderRadius: 8, padding: 12, fontSize: 14, resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                style={{ border: "1px solid #eee", borderRadius: 8, padding: 12, fontSize: 14, resize: "vertical" }}
               />
               <p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{summary.split(/\s+/).filter(Boolean).length} / 60 words</p>
             </div>

@@ -1,0 +1,220 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface Column {
+  key: string;
+  label: string;
+  type?: "text" | "boolean" | "color" | "count" | "date" | "link";
+}
+
+interface CrudTableProps {
+  title: string;
+  apiPath: string;
+  columns: Column[];
+  data: any[];
+  fields: Field[];
+}
+
+interface Field {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "url" | "select" | "checkbox" | "number" | "date" | "color";
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+  required?: boolean;
+}
+
+export function CrudTable({ title, apiPath, columns, data, fields }: CrudTableProps) {
+  const router = useRouter();
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const openCreate = () => {
+    setEditId(null);
+    setFormData({});
+    setShowForm(true);
+    setError("");
+  };
+
+  const openEdit = (row: any) => {
+    setEditId(row.id);
+    setFormData({ ...row });
+    setShowForm(true);
+    setError("");
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this?")) return;
+    await fetch(`/api/${apiPath}/${id}`, { method: "DELETE" });
+    router.refresh();
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const url = editId ? `/api/${apiPath}/${editId}` : `/api/${apiPath}`;
+      const method = editId ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to save");
+        setSaving(false);
+        return;
+      }
+      setShowForm(false);
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message);
+    }
+    setSaving(false);
+  };
+
+  const updateField = (key: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  return (
+    <>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111" }}>{title}</h1>
+          <p style={{ fontSize: 13, color: "#888", marginTop: 4 }}>{data.length} items</p>
+        </div>
+        <button onClick={openCreate} style={{ padding: "10px 20px", background: "#FF2C2C", color: "#fff", borderRadius: 8, fontSize: 14, fontWeight: 700, border: "none", cursor: "pointer" }}>
+          + Add New
+        </button>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #f3f4f6" }}>
+              {columns.map((col) => (
+                <th key={col.key} style={{ padding: "12px 16px", textAlign: "left", fontSize: 12, color: "#888", fontWeight: 600 }}>{col.label}</th>
+              ))}
+              <th style={{ padding: "12px 16px", textAlign: "right", fontSize: 12, color: "#888", fontWeight: 600 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.id} style={{ borderBottom: "1px solid #f9fafb" }}>
+                {columns.map((col) => {
+                  const val = col.key.includes(".") ? col.key.split(".").reduce((o: any, k: string) => o?.[k], row) : row[col.key];
+                  return (
+                    <td key={col.key} style={{ padding: "10px 16px", fontSize: 13, color: "#333", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {col.type === "boolean" ? (
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4, background: val ? "#dcfce7" : "#fee2e2", color: val ? "#166534" : "#991b1b" }}>
+                          {val ? "Active" : "Inactive"}
+                        </span>
+                      ) : col.type === "color" ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 14, height: 14, borderRadius: 3, background: val || "#ccc" }} />
+                          <span style={{ fontSize: 11, fontFamily: "monospace" }}>{val}</span>
+                        </div>
+                      ) : col.type === "count" ? (
+                        String(val?.articles ?? val?.photos ?? val ?? 0)
+                      ) : col.type === "date" ? (
+                        val ? new Date(val).toLocaleDateString() : "-"
+                      ) : col.type === "link" ? (
+                        val ? "Yes" : "-"
+                      ) : (
+                        String(val ?? "")
+                      )}
+                    </td>
+                  );
+                })}
+                <td style={{ padding: "10px 16px", textAlign: "right" }}>
+                  <button onClick={() => openEdit(row)} style={{ padding: "4px 10px", background: "#eff6ff", color: "#2563eb", border: "none", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer", marginRight: 6 }}>Edit</button>
+                  <button onClick={() => handleDelete(row.id)} style={{ padding: "4px 10px", background: "#fef2f2", color: "#dc2626", border: "none", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Delete</button>
+                </td>
+              </tr>
+            ))}
+            {data.length === 0 && (
+              <tr><td colSpan={columns.length + 1} style={{ padding: 40, textAlign: "center", color: "#aaa" }}>No items yet</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal Form */}
+      {showForm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowForm(false)}>
+          <div style={{ background: "#fff", borderRadius: 12, width: 520, maxHeight: "85vh", overflow: "auto", padding: 24 }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{editId ? "Edit" : "Create New"} {title.replace(/s$/, "")}</h2>
+
+            {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 13, color: "#dc2626" }}>{error}</div>}
+
+            {fields.map((field) => (
+              <div key={field.key} style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 4 }}>
+                  {field.label} {field.required && <span style={{ color: "#dc2626" }}>*</span>}
+                </label>
+
+                {field.type === "textarea" ? (
+                  <textarea
+                    value={formData[field.key] || ""}
+                    onChange={(e) => updateField(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    rows={3}
+                    style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 14, outline: "none", resize: "vertical", boxSizing: "border-box" }}
+                  />
+                ) : field.type === "select" ? (
+                  <select
+                    value={formData[field.key] || ""}
+                    onChange={(e) => updateField(field.key, e.target.value)}
+                    style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  >
+                    <option value="">Select...</option>
+                    {field.options?.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                ) : field.type === "checkbox" ? (
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <input type="checkbox" checked={formData[field.key] || false} onChange={(e) => updateField(field.key, e.target.checked)} style={{ width: 16, height: 16 }} />
+                    <span style={{ fontSize: 13, color: "#555" }}>{field.placeholder || "Enabled"}</span>
+                  </label>
+                ) : field.type === "color" ? (
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input type="color" value={formData[field.key] || "#FF2C2C"} onChange={(e) => updateField(field.key, e.target.value)} style={{ width: 40, height: 32, border: "none", cursor: "pointer" }} />
+                    <input type="text" value={formData[field.key] || ""} onChange={(e) => updateField(field.key, e.target.value)} style={{ flex: 1, border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 13, fontFamily: "monospace", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                ) : (
+                  <input
+                    type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "url" ? "url" : "text"}
+                    value={formData[field.key] || ""}
+                    onChange={(e) => updateField(field.key, field.type === "number" ? Number(e.target.value) : e.target.value)}
+                    placeholder={field.placeholder}
+                    style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  />
+                )}
+
+                {/* Image preview */}
+                {field.type === "url" && formData[field.key] && (field.key.includes("image") || field.key.includes("Image") || field.key.includes("thumbnail") || field.key.includes("cover")) && (
+                  <img src={formData[field.key]} alt="Preview" style={{ width: "100%", maxHeight: 150, objectFit: "cover", borderRadius: 6, marginTop: 6 }} />
+                )}
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
+              <button onClick={() => setShowForm(false)} style={{ padding: "8px 16px", background: "#f3f4f6", color: "#555", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={handleSave} disabled={saving} style={{ padding: "8px 20px", background: saving ? "#999" : "#FF2C2C", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer" }}>
+                {saving ? "Saving..." : editId ? "Update" : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
