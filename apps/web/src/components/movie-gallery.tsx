@@ -63,7 +63,8 @@ const trendingReels = [
 ];
 
 /* ===== Cinema Gallery - opens in new page ===== */
-export function MovieGallery() {
+export function MovieGallery({ items }: { items?: { id: string; title: string; image: string; tag: string; tagColor: string; subtitle: string }[] }) {
+  const cards = items || cinemaCards;
   return (
       <div className="bg-white h-full flex flex-col">
         {/* Header tab */}
@@ -81,24 +82,24 @@ export function MovieGallery() {
             style={{ display: "block", width: "100%", position: "relative", borderRadius: 6, overflow: "hidden", textDecoration: "none" }}
           >
             <img
-              src={cinemaCards[0].image}
-              alt={cinemaCards[0].title}
+              src={cards[0].image}
+              alt={cards[0].title}
               style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }}
             />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)" }} />
             {/* Tag */}
-            <span style={{ position: "absolute", top: 6, left: 6, background: cinemaCards[0].tagColor, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 3 }}>
-              {cinemaCards[0].tag}
+            <span style={{ position: "absolute", top: 6, left: 6, background: cards[0].tagColor, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 3 }}>
+              {cards[0].tag}
             </span>
             {/* Photo count badge */}
             <div style={{ position: "absolute", bottom: 36, right: 8, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 4 }}>
               <svg width="12" height="12" fill="#fff" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-              {cinemaCards.length} ఫోటోలు
+              {cards.length} ఫోటోలు
             </div>
             {/* Title */}
             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "14px 8px 6px" }}>
               <p style={{ color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1.4, textShadow: "1px 1px 3px rgba(0,0,0,0.8)" }}>
-                {cinemaCards[0].title}
+                {cards[0].title}
               </p>
             </div>
           </a>
@@ -106,7 +107,7 @@ export function MovieGallery() {
 
         {/* Cinema list */}
         <div style={{ padding: "0 8px 4px", flex: 1 }}>
-          {cinemaCards.slice(1, 4).map((card) => (
+          {cards.slice(1, 4).map((card) => (
             <a
               key={card.id}
               href="/gallery/cinema"
@@ -140,7 +141,8 @@ export function MovieGallery() {
 }
 
 /* ===== Trending Reels - Instagram Reels style ===== */
-export function TrendingReels() {
+export function TrendingReels({ items }: { items?: { id: string; title: string; image: string; views: string }[] }) {
+  const reelItems = items || trendingReels.map(r => ({ id: r.id, title: r.title, image: r.thumbnailUrl, views: r.views }));
   const [reelOpen, setReelOpen] = useState(false);
   const [reelIndex, setReelIndex] = useState(0);
 
@@ -158,7 +160,7 @@ export function TrendingReels() {
         {/* Reels grid */}
         <div style={{ padding: 8, flex: 1 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-            {trendingReels.slice(0, 6).map((reel, i) => (
+            {reelItems.slice(0, 6).map((reel, i) => (
               <button
                 key={reel.id}
                 onClick={() => { setReelIndex(i); setReelOpen(true); }}

@@ -342,6 +342,122 @@ async function main() {
   }
   console.log(`  ${breakingItems.length} breaking news items created`);
 
+  // ========== VIDEOS ==========
+  await prisma.video.deleteMany({});
+  const videosData = [
+    { title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C05\u0C2D\u0C3F\u0C35\u0C43\u0C26\u0C4D\u0C27\u0C3F \u0C2E\u0C02\u0C21\u0C32\u0C3F - \u0C2E\u0C41\u0C16\u0C4D\u0C2F\u0C2E\u0C02\u0C24\u0C4D\u0C30\u0C3F \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C07\u0C02\u0C1F\u0C30\u0C4D\u0C35\u0C4D\u0C2F\u0C42", slug: "rayalaseema-cm-interview", thumbnailUrl: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&h=300&fit=crop", videoUrl: "https://youtube.com/watch?v=example1", duration: "12:45", views: 25000, featured: true },
+    { title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D - \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36\u0C02\u0C32\u0C4B\u0C28\u0C47 \u0C05\u0C24\u0C3F\u0C2A\u0C46\u0C26\u0C4D\u0C26\u0C26\u0C3F \u0C0E\u0C32\u0C3E?", slug: "kurnool-solar-park-video", thumbnailUrl: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=300&fit=crop", videoUrl: "https://youtube.com/watch?v=example2", duration: "8:20", views: 18000, featured: false },
+    { title: "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 - \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C15\u0C25\u0C28\u0C02", slug: "tirupati-brahmotsavam-video", thumbnailUrl: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=500&h=300&fit=crop", videoUrl: "https://youtube.com/watch?v=example3", duration: "15:30", views: 32000, featured: false },
+  ];
+  for (const v of videosData) {
+    await prisma.video.create({ data: v });
+  }
+  console.log(`  ${videosData.length} videos created`);
+
+  // ========== PHOTO GALLERIES ==========
+  await prisma.galleryPhoto.deleteMany({});
+  await prisma.photoGallery.deleteMany({});
+  const galleriesData = [
+    { title: "\u0C24\u0C3F\u0C30\u0C41\u0C2E\u0C32 \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32 \u0C26\u0C43\u0C36\u0C4D\u0C2F\u0C3E\u0C32\u0C41", slug: "tirupati-brahmotsavam-gallery", coverImage: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=400&h=300&fit=crop",
+      photos: [
+        "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=600&fit=crop",
+      ] },
+    { title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C2C\u0C47\u0C32\u0C02 \u0C17\u0C41\u0C39\u0C32 \u0C05\u0C02\u0C26\u0C3E\u0C32\u0C41", slug: "kurnool-belum-caves-gallery", coverImage: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=300&fit=crop",
+      photos: [
+        "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop",
+      ] },
+    { title: "\u0C05\u0C28\u0C02\u0C24\u0C2A\u0C41\u0C30\u0C02 \u0C32\u0C47\u0C2A\u0C3E\u0C15\u0C4D\u0C37\u0C3F \u0C06\u0C32\u0C2F\u0C02", slug: "anantapur-lepakshi-gallery", coverImage: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=400&h=300&fit=crop",
+      photos: [
+        "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=800&h=600&fit=crop",
+      ] },
+    { title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C35\u0C4D\u0C2F\u0C35\u0C38\u0C3E\u0C2F \u0C26\u0C43\u0C36\u0C4D\u0C2F\u0C3E\u0C32\u0C41", slug: "rayalaseema-agriculture-gallery", coverImage: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&h=300&fit=crop",
+      photos: [
+        "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=800&h=600&fit=crop",
+        "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=800&h=600&fit=crop",
+      ] },
+  ];
+  for (const g of galleriesData) {
+    const gallery = await prisma.photoGallery.create({
+      data: { title: g.title, slug: g.slug, coverImage: g.coverImage },
+    });
+    for (let i = 0; i < g.photos.length; i++) {
+      await prisma.galleryPhoto.create({
+        data: { galleryId: gallery.id, imageUrl: g.photos[i], sortOrder: i },
+      });
+    }
+  }
+  console.log(`  ${galleriesData.length} photo galleries created`);
+
+  // ========== WEB STORIES ==========
+  await prisma.webStory.deleteMany({});
+  const storiesData = [
+    { title: "\u0C36\u0C4D\u0C30\u0C40 \u0C35\u0C47\u0C02\u0C15\u0C1F\u0C47\u0C36\u0C4D\u0C35\u0C30 \u0C38\u0C4D\u0C35\u0C3E\u0C2E\u0C3F - \u0C24\u0C3F\u0C30\u0C41\u0C2E\u0C32 7 \u0C15\u0C4A\u0C02\u0C21\u0C32 \u0C30\u0C39\u0C38\u0C4D\u0C2F\u0C3E\u0C32\u0C41", slug: "tirupati-7-hills-secrets", imageUrl: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=300&h=500&fit=crop", category: "devotional" },
+    { title: "\u0C36\u0C4D\u0C30\u0C40 \u0C15\u0C43\u0C37\u0C4D\u0C23\u0C26\u0C47\u0C35\u0C30\u0C3E\u0C2F\u0C32\u0C41 - \u0C35\u0C3F\u0C1C\u0C2F\u0C28\u0C17\u0C30 \u0C38\u0C3E\u0C2E\u0C4D\u0C30\u0C3E\u0C1C\u0C4D\u0C2F\u0C02 \u0C35\u0C48\u0C2D\u0C35\u0C02", slug: "krishnadevaraya-vijayanagara", imageUrl: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=300&h=500&fit=crop", category: "history" },
+    { title: "\u0C2C\u0C47\u0C32\u0C02 \u0C17\u0C41\u0C39\u0C32\u0C41 - \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36\u0C02\u0C32\u0C4B \u0C30\u0C46\u0C02\u0C21\u0C35 \u0C2A\u0C46\u0C26\u0C4D\u0C26 \u0C17\u0C41\u0C39\u0C32\u0C41", slug: "belum-caves-india", imageUrl: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=300&h=500&fit=crop", category: "travel" },
+    { title: "\u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F - \u0C2A\u0C4D\u0C30\u0C2A\u0C02\u0C1A \u0C2A\u0C4D\u0C30\u0C38\u0C3F\u0C26\u0C4D\u0C27 \u0C30\u0C41\u0C1A\u0C3F", slug: "banganapalle-mango-story", imageUrl: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&h=500&fit=crop", category: "food" },
+    { title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 - \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C28\u0C4D\u0C2F\u0C3E\u0C2F \u0C30\u0C3E\u0C1C\u0C27\u0C3E\u0C28\u0C3F", slug: "kurnool-judicial-capital", imageUrl: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=300&h=500&fit=crop", category: "city" },
+    { title: "\u0C32\u0C47\u0C2A\u0C3E\u0C15\u0C4D\u0C37\u0C3F \u0C28\u0C02\u0C26\u0C3F - \u0C35\u0C40\u0C30\u0C2D\u0C26\u0C4D\u0C30\u0C41\u0C28\u0C3F \u0C06\u0C32\u0C2F \u0C05\u0C26\u0C4D\u0C2D\u0C41\u0C24\u0C3E\u0C32\u0C41", slug: "lepakshi-nandi-temple", imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=500&fit=crop", category: "heritage" },
+    { title: "\u0C2A\u0C46\u0C28\u0C41\u0C15\u0C4A\u0C02\u0C21 \u0C15\u0C4B\u0C1F - \u0C1A\u0C30\u0C3F\u0C24\u0C4D\u0C30 \u0C18\u0C28\u0C24 \u0C28\u0C3F\u0C32\u0C3F\u0C1A\u0C3F\u0C28 \u0C2A\u0C4D\u0C30\u0C26\u0C47\u0C36\u0C02", slug: "penukonda-fort-history", imageUrl: "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=300&h=500&fit=crop", category: "history" },
+    { title: "\u0C05\u0C39\u0C4B\u0C2C\u0C3F\u0C32\u0C02 - \u0C28\u0C30\u0C38\u0C3F\u0C02\u0C39 \u0C38\u0C4D\u0C35\u0C3E\u0C2E\u0C3F 9 \u0C30\u0C42\u0C2A\u0C3E\u0C32 \u0C26\u0C30\u0C4D\u0C36\u0C28\u0C02", slug: "ahobilam-narasimha", imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300&h=500&fit=crop", category: "devotional" },
+    { title: "\u0C17\u0C02\u0C21\u0C3F\u0C15\u0C4B\u0C1F - \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36\u0C2A\u0C41 \u0C17\u0C4D\u0C30\u0C3E\u0C02\u0C21\u0C4D \u0C15\u0C3E\u0C28\u0C4D\u0C2F\u0C28\u0C4D", slug: "gandikota-grand-canyon", imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&h=500&fit=crop", category: "travel" },
+    { title: "\u0C39\u0C3E\u0C30\u0C4D\u0C38\u0C3F\u0C32\u0C40 \u0C39\u0C3F\u0C32\u0C4D\u0C38\u0C4D - \u0C06\u0C02\u0C27\u0C4D\u0C30\u0C2A\u0C4D\u0C30\u0C26\u0C47\u0C36\u0C4D \u0C0A\u0C1F\u0C40", slug: "horsley-hills-ap-ooty", imageUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=300&h=500&fit=crop", category: "travel" },
+    { title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C35\u0C02\u0C1F\u0C15\u0C3E\u0C32\u0C41 - \u0C30\u0C41\u0C1A\u0C3F\u0C15\u0C3F \u0C2E\u0C3E\u0C30\u0C41\u0C2A\u0C47\u0C30\u0C41", slug: "rayalaseema-cuisine", imageUrl: "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=300&h=500&fit=crop", category: "food" },
+    { title: "\u0C2A\u0C41\u0C1F\u0C4D\u0C1F\u0C2A\u0C30\u0C4D\u0C24\u0C3F - \u0C36\u0C4D\u0C30\u0C40 \u0C38\u0C24\u0C4D\u0C2F\u0C38\u0C3E\u0C2F\u0C3F \u0C2C\u0C3E\u0C2C\u0C3E \u0C06\u0C36\u0C4D\u0C30\u0C2E\u0C02", slug: "puttaparthi-sai-baba", imageUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&h=500&fit=crop", category: "devotional" },
+  ];
+  for (const s of storiesData) {
+    await prisma.webStory.create({ data: s });
+  }
+  console.log(`  ${storiesData.length} web stories created`);
+
+  // ========== REELS ==========
+  await prisma.reel.deleteMany({});
+  const reelsData = [
+    { title: "\u0C24\u0C3F\u0C30\u0C41\u0C2E\u0C32 \u0C35\u0C3E\u0C39\u0C28 \u0C38\u0C47\u0C35 \u0C05\u0C26\u0C4D\u0C2D\u0C41\u0C24 \u0C26\u0C43\u0C36\u0C4D\u0C2F\u0C3E\u0C32\u0C41", slug: "tirupati-vahana-seva-reel", thumbnailUrl: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=200&h=300&fit=crop", views: "2.5L" },
+    { title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C2C\u0C47\u0C32\u0C02 \u0C17\u0C41\u0C39\u0C32 \u0C32\u0C48\u0C1F\u0C4D \u0C37\u0C4B", slug: "belum-caves-light-show-reel", thumbnailUrl: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=200&h=300&fit=crop", views: "1.8L" },
+    { title: "\u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F \u0C24\u0C4B\u0C1F\u0C32\u0C4D\u0C32\u0C4B \u0C2A\u0C30\u0C4D\u0C2F\u0C1F\u0C28", slug: "banganapalle-mango-farms-reel", thumbnailUrl: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=200&h=300&fit=crop", views: "95K" },
+    { title: "\u0C05\u0C28\u0C02\u0C24\u0C2A\u0C41\u0C30\u0C02 \u0C15\u0C3F\u0C2F\u0C3E \u0C2B\u0C4D\u0C2F\u0C3E\u0C15\u0C4D\u0C1F\u0C30\u0C40 \u0C32\u0C4B\u0C2A\u0C32", slug: "kia-factory-inside-reel", thumbnailUrl: "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=200&h=300&fit=crop", views: "1.2L" },
+    { title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C38\u0C02\u0C2A\u0C4D\u0C30\u0C26\u0C3E\u0C2F \u0C35\u0C3F\u0C35\u0C3E\u0C39\u0C02", slug: "rayalaseema-wedding-reel", thumbnailUrl: "https://images.unsplash.com/photo-1519741497674-611481863552?w=200&h=300&fit=crop", views: "3.1L" },
+    { title: "\u0C32\u0C47\u0C2A\u0C3E\u0C15\u0C4D\u0C37\u0C3F \u0C28\u0C02\u0C26\u0C3F \u0C35\u0C3F\u0C17\u0C4D\u0C30\u0C39\u0C02 \u0C30\u0C39\u0C38\u0C4D\u0C2F\u0C3E\u0C32\u0C41", slug: "lepakshi-nandi-secrets-reel", thumbnailUrl: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=200&h=300&fit=crop", views: "2.2L" },
+  ];
+  for (const r of reelsData) {
+    await prisma.reel.create({ data: r });
+  }
+  console.log(`  ${reelsData.length} reels created`);
+
+  // ========== CARTOONS (YETTETA) ==========
+  await prisma.cartoon.deleteMany({});
+  const cartoonsData = [
+    { title: "\u0C28\u0C40\u0C33\u0C4D\u0C32 \u0C15\u0C4B\u0C38\u0C02 \u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E", caption: "\u0C24\u0C41\u0C02\u0C17\u0C2D\u0C26\u0C4D\u0C30 \u0C28\u0C40\u0C33\u0C4D\u0C32\u0C41 \u0C0E\u0C2A\u0C4D\u0C2A\u0C41\u0C21\u0C4A\u0C38\u0C4D\u0C24\u0C3E\u0C2F\u0C4B... \u0C0E\u0C35\u0C30\u0C3F\u0C15\u0C40 \u0C24\u0C46\u0C32\u0C3F\u0C2F\u0C26\u0C41!", imageUrl: "https://images.unsplash.com/photo-1614107151491-6876eecbff89?w=400&h=400&fit=crop", date: new Date("2026-04-05") },
+    { title: "\u0C0E\u0C28\u0C4D\u0C28\u0C3F\u0C15\u0C32 \u0C35\u0C3E\u0C17\u0C4D\u0C26\u0C3E\u0C28\u0C3E\u0C32\u0C41", caption: "\u0C30\u0C4B\u0C21\u0C4D\u0C32\u0C41 \u0C35\u0C47\u0C38\u0C4D\u0C24\u0C3E\u0C02... \u0C2C\u0C4D\u0C30\u0C3F\u0C21\u0C4D\u0C1C\u0C3F\u0C32\u0C41 \u0C15\u0C21\u0C24\u0C3E\u0C02... \u0C13\u0C1F\u0C4D\u0C32\u0C41 \u0C35\u0C47\u0C2F\u0C02\u0C21\u0C3F!", imageUrl: "https://images.unsplash.com/photo-1580477667995-2b94f01c9516?w=400&h=400&fit=crop", date: new Date("2026-04-04") },
+    { title: "\u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D \u0C35\u0C46\u0C32\u0C41\u0C17\u0C41\u0C32\u0C41", caption: "\u0C38\u0C42\u0C30\u0C4D\u0C2F\u0C41\u0C21\u0C3F \u0C26\u0C17\u0C4D\u0C17\u0C30 \u0C15\u0C30\u0C46\u0C02\u0C1F\u0C4D \u0C09\u0C02\u0C26\u0C3F... \u0C2E\u0C3E \u0C0A\u0C33\u0C4D\u0C33\u0C4B \u0C2E\u0C3E\u0C24\u0C4D\u0C30\u0C02 \u0C15\u0C1F\u0C4D!", imageUrl: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=400&fit=crop", date: new Date("2026-04-03") },
+    { title: "\u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F \u0C38\u0C40\u0C1C\u0C28\u0C4D", caption: "\u0C2C\u0C28\u0C17\u0C3E\u0C28\u0C2A\u0C32\u0C4D\u0C32\u0C46 \u0C2E\u0C3E\u0C2E\u0C3F\u0C21\u0C3F... \u0C27\u0C30 \u0C35\u0C3F\u0C28\u0C4D\u0C28\u0C3E\u0C15 \u0C15\u0C33\u0C4D\u0C33\u0C41 \u0C24\u0C3F\u0C30\u0C3F\u0C17\u0C3E\u0C2F\u0C3F!", imageUrl: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&h=400&fit=crop", date: new Date("2026-04-02") },
+    { title: "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C26\u0C30\u0C4D\u0C36\u0C28\u0C02", caption: "48 \u0C17\u0C02\u0C1F\u0C32 \u0C35\u0C47\u0C1A\u0C3F \u0C09\u0C02\u0C21\u0C3E\u0C32\u0C3F... \u0C2D\u0C17\u0C35\u0C02\u0C24\u0C41\u0C21\u0C3E \u0C28\u0C40\u0C15\u0C47 \u0C15\u0C37\u0C4D\u0C1F\u0C02!", imageUrl: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400&h=400&fit=crop", date: new Date("2026-04-01") },
+  ];
+  for (const c of cartoonsData) {
+    await prisma.cartoon.create({ data: c });
+  }
+  console.log(`  ${cartoonsData.length} cartoons created`);
+
+  // ========== ADS ==========
+  await prisma.ad.deleteMany({});
+  const adsData = [
+    { name: "IAS Coaching - Header Left", position: "HEADER_LEFT" as const, htmlContent: '<div style="background:linear-gradient(180deg,#1e3a5f,#1e3a5f);color:#fff;padding:8px;text-align:center;border-radius:4px"><p style="font-size:9px;color:#93c5fd">Planning to prepare for</p><p style="font-size:18px;font-weight:900;color:#facc15">IAS/IPS?</p><p style="font-size:9px;color:#93c5fd">Choose <strong style="color:#fde047">La Excellence</strong></p><p style="font-size:8px;color:#93c5fd;margin-top:4px">9052 29 29 29</p></div>' },
+    { name: "Real Estate - Header Right", position: "HEADER_RIGHT" as const, htmlContent: '<div style="background:linear-gradient(to right,#fffbeb,#fef3c7);border:1px solid #fbbf24;border-radius:4px;padding:10px"><p style="font-size:14px;font-weight:800;color:#92400e">MY HOME UDYAN</p><p style="font-size:12px;color:#b45309">2, 2.5, 3 & 4 BHK Premium Homes</p><p style="font-size:10px;color:#6b7280">at TELLAPUR | Starting 45 Lakhs*</p></div>' },
+    { name: "App Download Banner", position: "BANNER_MID" as const, htmlContent: '<div style="background:linear-gradient(to right,#fff1f1,#ffedd5);border:1px solid #fecaca;border-radius:4px;padding:8px 16px;display:flex;align-items:center;justify-content:space-between"><div><span style="font-size:9px;color:#999">AD</span> <span style="font-size:14px;font-weight:700;color:#b91c1c">RE - Your district news, your language, your phone</span></div><button style="background:#ff2c2c;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700">APP Download</button></div>' },
+    { name: "IAS Coaching - Sidebar", position: "SIDEBAR_SQUARE" as const, bgColor: "#1e3a5f", textColor: "#fff", htmlContent: '<div style="background:linear-gradient(180deg,#1e3a5f,#172554);color:#fff;padding:16px;text-align:center;border-radius:4px"><p style="font-size:9px;color:#93c5fd">ADVERTISEMENT</p><p style="font-size:12px;color:#bfdbfe">Planning to prepare for</p><p style="font-size:28px;font-weight:900;color:#facc15;margin:8px 0">IAS/IPS?</p><p style="font-size:14px">Choose the best institute</p><p style="font-size:16px;font-weight:700;color:#fde047;margin-top:4px">La Excellence</p><div style="margin-top:12px;font-size:11px;text-align:left;color:#bfdbfe"><p>Inter with civils</p><p>Degree with civils</p><p>Inter with CLAT</p></div><div style="margin-top:8px;background:#facc15;color:#1e3a5f;border-radius:4px;padding:4px 8px;font-size:10px;font-weight:700;display:inline-block">86 Ranks in 2025</div><p style="font-size:12px;color:#93c5fd;margin-top:8px">9052 29 29 29</p></div>' },
+    { name: "Astrology - Sidebar", position: "SIDEBAR_TALL" as const, htmlContent: '<div style="background:linear-gradient(180deg,#eef2ff,#e0e7ff);border:1px solid #a5b4fc;border-radius:4px;padding:16px;text-align:center"><p style="font-size:9px;color:#999">ADVERTISEMENT</p><p style="font-size:22px;font-weight:900;color:#4338ca">Jathaka Phalam</p><p style="font-size:14px;color:#6366f1;margin-top:4px">Ask your question</p><div style="font-size:48px;margin:16px 0">&#x1F52E;</div><p style="font-size:12px;color:#666">Know about your horoscope</p><button style="margin-top:12px;background:#4f46e5;color:#fff;border:none;padding:6px 16px;border-radius:4px;font-size:14px">Click here</button></div>' },
+    { name: "RE Self-promo", position: "LEADERBOARD" as const, htmlContent: '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:4px;display:flex;align-items:center;justify-content:center;gap:24px;padding:16px"><img src="/logo.svg" alt="RE" style="height:40px" /><div style="border-left:1px solid #e5e7eb;padding-left:24px"><p style="font-size:9px;color:#999">ADVERTISE WITH US</p><p style="font-size:14px;color:#666">Your business ad here</p><p style="font-size:14px;font-weight:700;color:#333">ads@rayalaseemaexpress.com</p><p style="font-size:12px;color:#888">98765 43210</p></div></div>' },
+    { name: "Real Estate In-feed", position: "IN_FEED" as const, htmlContent: '<div style="background:linear-gradient(to right,#f0fdf4,#ecfdf5);border:1px solid #86efac;border-radius:4px;display:flex;align-items:center;gap:16px;padding:12px 16px"><div style="font-size:36px">&#x1F3D7;</div><div><p style="font-size:9px;color:#999">ADVERTISEMENT</p><p style="font-size:14px;font-weight:700;color:#166534">Luxury Flat.. Budget Price</p><p style="font-size:12px;color:#15803d">Every step comfort | 2 & 3 BHK</p></div><button style="margin-left:auto;background:#16a34a;color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:700">Book Now</button></div>' },
+  ];
+  for (const ad of adsData) {
+    await prisma.ad.create({ data: ad });
+  }
+  console.log(`  ${adsData.length} ads created`);
+
   // ========== SITE CONFIG ==========
   const configs = [
     { key: "brand_color", value: "#FF2C2C", description: "Primary brand color" },

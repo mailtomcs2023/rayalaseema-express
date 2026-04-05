@@ -79,7 +79,7 @@ const webStories = [
 
 // Fullscreen story viewer
 function StoryViewer({ story, onClose, onNext, onPrev, index, total }: {
-  story: typeof webStories[0];
+  story: { id: string; title: string; image: string; category: string };
   onClose: () => void;
   onNext: () => void;
   onPrev: () => void;
@@ -177,14 +177,15 @@ function StoryViewer({ story, onClose, onNext, onPrev, index, total }: {
   );
 }
 
-export function WebStories() {
+export function WebStories({ items }: { items?: { id: string; title: string; image: string; category: string }[] }) {
+  const storyItems = items || webStories.map(s => ({ id: s.id, title: s.title, image: s.imageUrl, category: s.category || "" }));
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 
   const openStory = (i: number) => { setViewerIndex(i); setViewerOpen(true); };
   const closeStory = () => setViewerOpen(false);
   const nextStory = () => {
-    if (viewerIndex < webStories.length - 1) setViewerIndex(viewerIndex + 1);
+    if (viewerIndex < storyItems.length - 1) setViewerIndex(viewerIndex + 1);
     else closeStory();
   };
   const prevStory = () => { if (viewerIndex > 0) setViewerIndex(viewerIndex - 1); };
@@ -204,14 +205,14 @@ export function WebStories() {
             </span>
           </span>
           <span style={{ color: "#999" }}>
-            {webStories.length} స్టోరీస్
+            {storyItems.length} స్టోరీస్
           </span>
         </div>
 
         {/* 4-column scrollable stories */}
         <div style={{ padding: 8, overflowX: "auto" }} className="scrollbar-hide">
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6 }}>
-            {webStories.slice(0, 12).map((story, i) => (
+            {storyItems.slice(0, 12).map((story, i) => (
               <button
                 key={story.id}
                 onClick={() => openStory(i)}
@@ -268,12 +269,12 @@ export function WebStories() {
       {/* Fullscreen viewer */}
       {viewerOpen && (
         <StoryViewer
-          story={webStories[viewerIndex]}
+          story={storyItems[viewerIndex]}
           onClose={closeStory}
           onNext={nextStory}
           onPrev={prevStory}
           index={viewerIndex}
-          total={webStories.length}
+          total={storyItems.length}
         />
       )}
     </>

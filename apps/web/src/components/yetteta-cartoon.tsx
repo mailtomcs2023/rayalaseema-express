@@ -40,12 +40,13 @@ const cartoons = [
   },
 ];
 
-export function YettetaCartoon() {
+export function YettetaCartoon({ items }: { items?: { id: string; title: string; caption: string; image: string; date: string }[] }) {
+  const allCartoons = items || cartoons;
   const [current, setCurrent] = useState(0);
-  const cartoon = cartoons[current];
+  const cartoon = allCartoons[current];
 
-  const next = () => setCurrent((p) => (p + 1) % cartoons.length);
-  const prev = () => setCurrent((p) => (p - 1 + cartoons.length) % cartoons.length);
+  const next = () => setCurrent((p) => (p + 1) % allCartoons.length);
+  const prev = () => setCurrent((p) => (p - 1 + allCartoons.length) % allCartoons.length);
 
   return (
     <div className="sticky top-[100px]">
@@ -94,7 +95,7 @@ export function YettetaCartoon() {
             ‹
           </button>
           <span style={{ fontSize: "var(--fs-caption)", color: "#888" }}>
-            {cartoon.date} • {current + 1}/{cartoons.length}
+            {cartoon.date} • {current + 1}/{allCartoons.length}
           </span>
           <button onClick={next} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#666" }}>
             ›

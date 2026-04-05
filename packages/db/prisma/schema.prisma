@@ -105,6 +105,7 @@ model Category {
   children    Category[] @relation("CategoryTree")
 
   articles    Article[]
+  videos      Video[]
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -232,4 +233,134 @@ model SiteConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("site_config")
+}
+
+// ============ VIDEOS ============
+
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?  @db.Text
+  thumbnailUrl String
+  videoUrl    String?  // YouTube/external URL
+  duration    String?  // "12:45"
+  views       Int      @default(0)
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, featured])
+  @@map("videos")
+}
+
+// ============ PHOTO GALLERY ============
+
+model PhotoGallery {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  description String?
+  coverImage  String
+  active      Boolean       @default(true)
+  photos      GalleryPhoto[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("photo_galleries")
+}
+
+model GalleryPhoto {
+  id          String       @id @default(cuid())
+  galleryId   String
+  gallery     PhotoGallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  imageUrl    String
+  caption     String?
+  sortOrder   Int          @default(0)
+
+  @@map("gallery_photos")
+}
+
+// ============ WEB STORIES ============
+
+model WebStory {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  imageUrl    String
+  category    String?  // devotional, travel, food, history, etc.
+  active      Boolean  @default(true)
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("web_stories")
+}
+
+// ============ REELS ============
+
+model Reel {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  thumbnailUrl String
+  videoUrl    String?
+  views       String   @default("0") // "2.5L", "95K" etc.
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reels")
+}
+
+// ============ CARTOON (YETTETA) ============
+
+model Cartoon {
+  id          String   @id @default(cuid())
+  title       String
+  caption     String
+  imageUrl    String
+  date        DateTime @db.Date
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([date])
+  @@map("cartoons")
+}
+
+// ============ ADS ============
+
+enum AdPosition {
+  HEADER_LEFT
+  HEADER_RIGHT
+  BANNER_MID
+  SIDEBAR_SQUARE
+  SIDEBAR_TALL
+  LEADERBOARD
+  IN_FEED
+  VERTICAL_STRIP
+}
+
+model Ad {
+  id          String     @id @default(cuid())
+  name        String
+  position    AdPosition
+  imageUrl    String?
+  linkUrl     String?
+  htmlContent String?    @db.Text // custom HTML ad
+  bgColor     String?
+  textColor   String?
+  active      Boolean    @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  clicks      Int        @default(0)
+  impressions Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([position, active])
+  @@map("ads")
 }

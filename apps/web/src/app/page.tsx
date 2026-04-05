@@ -14,19 +14,11 @@ import {
 import { MovieGallery, TrendingReels } from "@/components/movie-gallery";
 import { YettetaCartoon } from "@/components/yetteta-cartoon";
 import { WebStories } from "@/components/web-stories";
-import { getHomepageData } from "@/lib/db-queries";
-import { photoGallery } from "@/lib/mock-data";
-
-// Static data that's not in DB yet
-const videoItems = [
-  { id: "v1", title: "\u0C30\u0C3E\u0C2F\u0C32\u0C38\u0C40\u0C2E \u0C05\u0C2D\u0C3F\u0C35\u0C43\u0C26\u0C4D\u0C27\u0C3F \u0C2E\u0C02\u0C21\u0C32\u0C3F - \u0C2E\u0C41\u0C16\u0C4D\u0C2F\u0C2E\u0C02\u0C24\u0C4D\u0C30\u0C3F \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C07\u0C02\u0C1F\u0C30\u0C4D\u0C35\u0C4D\u0C2F\u0C42", thumbnail: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&h=300&fit=crop" },
-  { id: "v2", title: "\u0C15\u0C30\u0C4D\u0C28\u0C42\u0C32\u0C41 \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D \u0C2A\u0C3E\u0C30\u0C4D\u0C15\u0C4D - \u0C2D\u0C3E\u0C30\u0C24\u0C26\u0C47\u0C36\u0C02\u0C32\u0C4B\u0C28\u0C47 \u0C05\u0C24\u0C3F\u0C2A\u0C46\u0C26\u0C4D\u0C26\u0C26\u0C3F \u0C0E\u0C32\u0C3E?", thumbnail: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&h=300&fit=crop" },
-  { id: "v3", title: "\u0C24\u0C3F\u0C30\u0C41\u0C2A\u0C24\u0C3F \u0C2C\u0C4D\u0C30\u0C39\u0C4D\u0C2E\u0C4B\u0C24\u0C4D\u0C38\u0C35\u0C3E\u0C32\u0C41 - \u0C2A\u0C4D\u0C30\u0C24\u0C4D\u0C2F\u0C47\u0C15 \u0C15\u0C25\u0C28\u0C02", thumbnail: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=500&h=300&fit=crop" },
-];
+import { getFullHomepageData } from "@/lib/db-queries";
 
 export default async function HomePage() {
-  // Fetch all data from PostgreSQL database
-  const { featured, latest, breakingNews, articlesByCategory } = await getHomepageData();
+  // Fetch ALL data from PostgreSQL - articles, videos, galleries, reels, stories, cartoons, ads
+  const { featured, latest, breakingNews, articlesByCategory, videos, galleries, webStories, reels, cartoons, ads } = await getFullHomepageData();
 
   // Map DB articles to slider format
   const sliderItems = featured.map((a) => ({
@@ -69,6 +61,23 @@ export default async function HomePage() {
       publishedAt: a.publishedAt?.toISOString() || new Date().toISOString(),
       viewCount: a.viewCount,
     }));
+
+  // Map DB videos to component format
+  const videoItems = videos.map((v) => ({
+    id: v.id,
+    title: v.title,
+    thumbnail: v.thumbnailUrl,
+    duration: v.duration || "",
+    views: v.views,
+  }));
+
+  // Map DB galleries to component format
+  const photoGalleryItems = galleries.map((g) => ({
+    id: g.id,
+    title: g.title,
+    image: g.coverImage,
+    count: g._count.photos,
+  }));
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
@@ -95,10 +104,10 @@ export default async function HomePage() {
             <VideoWidget videos={videoItems} />
           </div>
           <div className="category-card" style={{ flex: "1 1 33.33%", minWidth: 0, display: "flex", flexDirection: "column" }}>
-            <MovieGallery />
+            <MovieGallery items={webStories.slice(0, 6).map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, tag: s.category || "", tagColor: "#DB2777", subtitle: s.category || "" }))} />
           </div>
           <div className="category-card" style={{ flex: "1 1 33.33%", minWidth: 0, display: "flex", flexDirection: "column" }}>
-            <TrendingReels />
+            <TrendingReels items={reels.map((r) => ({ id: r.id, title: r.title, image: r.thumbnailUrl, views: r.views }))} />
           </div>
         </div>
 
@@ -132,10 +141,10 @@ export default async function HomePage() {
             </div>
 
             {/* Web Stories */}
-            <WebStories />
+            <WebStories items={webStories.map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, category: s.category || "" }))} />
 
             {/* Photo Gallery */}
-            <PhotoGallery photos={photoGallery} />
+            <PhotoGallery photos={photoGalleryItems} />
 
             <AdInFeedBanner />
 
@@ -143,7 +152,7 @@ export default async function HomePage() {
 
           {/* RIGHT: ఎట్టెట Cartoon column */}
           <div style={{ flex: "0 0 180px" }} className="hidden lg:block">
-            <YettetaCartoon />
+            <YettetaCartoon items={cartoons.map((c) => ({ id: c.id, title: c.title, caption: c.caption, image: c.imageUrl, date: c.date.toLocaleDateString("te-IN", { month: "long", day: "numeric" }) }))} />
           </div>
         </div>
       </main>
