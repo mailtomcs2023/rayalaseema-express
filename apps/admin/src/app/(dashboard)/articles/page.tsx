@@ -32,6 +32,7 @@ export default async function ArticlesPage() {
                 <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, color: "#888", fontWeight: 600 }}>Status</th>
                 <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, color: "#888", fontWeight: 600 }}>Views</th>
                 <th style={{ padding: "12px 20px", textAlign: "left", fontSize: 12, color: "#888", fontWeight: 600 }}>Date</th>
+                <th style={{ padding: "12px 20px", textAlign: "right", fontSize: 12, color: "#888", fontWeight: 600 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -61,6 +62,9 @@ export default async function ArticlesPage() {
                   <td style={{ padding: "12px 20px", fontSize: 12, color: "#888" }}>{article.viewCount.toLocaleString()}</td>
                   <td style={{ padding: "12px 20px", fontSize: 12, color: "#888" }}>
                     {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : "-"}
+                  </td>
+                  <td style={{ padding: "12px 20px", textAlign: "right" }}>
+                    <Link href={`/articles/${article.id}`} style={{ padding: "4px 10px", background: "#eff6ff", color: "#2563eb", borderRadius: 4, fontSize: 12, fontWeight: 600, textDecoration: "none", marginRight: 6 }}>Edit</Link>
                   </td>
                 </tr>
               ))}
