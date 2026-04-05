@@ -1,0 +1,411 @@
+{
+  "source": "AP CEO (ceoandhra.nic.in), ECI Delimitation Order 2008, myneta.info, AP Gov district portals (ap.gov.in), AP 2022 District Reorganization GO, appolitics.info, chanakyya.com, onefivenine.com, Wikipedia",
+  "note": "Post-2022 district reorganization. Old Kurnool split into Kurnool+Nandyal, old Anantapur into Anantapur+Sri Sathya Sai, old Kadapa into YSR+Annamayya, old Chittoor into Chittoor+Tirupati. Constituency numbers per Delimitation of Parliamentary and Assembly Constituencies Order, 2008.",
+  "districts": [
+    {
+      "name": "కర్నూలు",
+      "nameEn": "Kurnool",
+      "slug": "kurnool",
+      "loksabha": "Kurnool",
+      "constituencies": [
+        {
+          "nameEn": "Kurnool",
+          "name": "కర్నూలు",
+          "number": 137,
+          "mandals": ["Kurnool"]
+        },
+        {
+          "nameEn": "Pattikonda",
+          "name": "పట్టికొండ",
+          "number": 142,
+          "mandals": ["Pattikonda", "Krishnagiri", "Veldurthi", "Tuggali", "Maddikera"]
+        },
+        {
+          "nameEn": "Kodumur",
+          "name": "కోడుమూరు",
+          "number": 143,
+          "reservation": "SC",
+          "mandals": ["Kodumur", "C Belagal", "Gudur"]
+        },
+        {
+          "nameEn": "Yemmiganur",
+          "name": "యెమ్మిగనూరు",
+          "number": 144,
+          "mandals": ["Yemmiganur", "Gonegandla", "Nandavaram"]
+        },
+        {
+          "nameEn": "Mantralayam",
+          "name": "మంత్రాలయం",
+          "number": 145,
+          "mandals": ["Mantralayam", "Kosigi", "Kowthalam", "Peddakadubur"]
+        },
+        {
+          "nameEn": "Adoni",
+          "name": "ఆదోని",
+          "number": 146,
+          "mandals": ["Adoni"]
+        },
+        {
+          "nameEn": "Alur",
+          "name": "అలూరు",
+          "number": 147,
+          "mandals": ["Alur", "Aspari", "Chippagiri", "Devanakonda", "Holagunda", "Halaharvi"]
+        }
+      ]
+    },
+    {
+      "name": "నంద్యాల",
+      "nameEn": "Nandyal",
+      "slug": "nandyal",
+      "loksabha": "Nandyal",
+      "constituencies": [
+        {
+          "nameEn": "Allagadda",
+          "name": "ఆళ్లగడ్డ",
+          "number": 134,
+          "mandals": ["Allagadda", "Sirvel", "Rudravaram", "Dornipadu", "Uyyalawada", "Chagalamarri"]
+        },
+        {
+          "nameEn": "Srisailam",
+          "name": "శ్రీశైలం",
+          "number": 135,
+          "mandals": ["Srisailam", "Atmakur", "Velgode", "Bandi Atmakur", "Mahanandi"]
+        },
+        {
+          "nameEn": "Nandikotkur",
+          "name": "నందికొట్కూరు",
+          "number": 136,
+          "reservation": "SC",
+          "mandals": ["Nandikotkur", "Pagidyala", "Jupadu Bungalow", "Kothapalle", "Pamulapadu", "Midthur"]
+        },
+        {
+          "nameEn": "Panyam",
+          "name": "పాణ్యం",
+          "number": 138,
+          "mandals": ["Panyam", "Kallur", "Orvakal", "Gadivemula"]
+        },
+        {
+          "nameEn": "Nandyal",
+          "name": "నంద్యాల",
+          "number": 139,
+          "mandals": ["Nandyal", "Gospadu"]
+        },
+        {
+          "nameEn": "Banaganapalle",
+          "name": "బనగానపల్లె",
+          "number": 140,
+          "mandals": ["Banaganapalle", "Owk", "Koilkuntla", "Sanjamala", "Kolimigundla"]
+        },
+        {
+          "nameEn": "Dhone",
+          "name": "ధోని",
+          "number": 141,
+          "mandals": ["Dhone", "Bethamcherla", "Peapally"]
+        }
+      ]
+    },
+    {
+      "name": "అనంతపురం",
+      "nameEn": "Ananthapuramu",
+      "slug": "ananthapuramu",
+      "loksabha": "Anantapur",
+      "constituencies": [
+        {
+          "nameEn": "Rayadurg",
+          "name": "రాయదుర్గం",
+          "number": 148,
+          "mandals": ["Rayadurg", "D Hirehal", "Kanekal", "Bommanahal", "Gummagatta"]
+        },
+        {
+          "nameEn": "Uravakonda",
+          "name": "ఉరవకొండ",
+          "number": 149,
+          "mandals": ["Uravakonda", "Vidapanakal", "Vajrakarur", "Beluguppa", "Kudair"]
+        },
+        {
+          "nameEn": "Guntakal",
+          "name": "గుంతకల్",
+          "number": 150,
+          "mandals": ["Guntakal", "Gooty", "Pamidi"]
+        },
+        {
+          "nameEn": "Tadpatri",
+          "name": "తాడిపత్రి",
+          "number": 151,
+          "mandals": ["Tadpatri", "Peddavadugur", "Yadiki", "Peddapappur"]
+        },
+        {
+          "nameEn": "Singanamala",
+          "name": "సింగనమల",
+          "number": 152,
+          "reservation": "SC",
+          "mandals": ["Singanamala", "Garladinne", "Putluru", "Yellanur", "Narpala", "Bukkarayasamudram"]
+        },
+        {
+          "nameEn": "Anantapur Urban",
+          "name": "అనంతపురం అర్బన్",
+          "number": 153,
+          "mandals": ["Anantapur"]
+        },
+        {
+          "nameEn": "Kalyandurg",
+          "name": "కళ్యాణదుర్గం",
+          "number": 154,
+          "mandals": ["Kalyandurg", "Brahmasamudram", "Kambadur", "Kundurpi", "Settur"]
+        },
+        {
+          "nameEn": "Raptadu",
+          "name": "రాప్తాడు",
+          "number": 155,
+          "mandals": ["Raptadu", "Atmakur", "Kanaganapalli", "C K Palli", "Ramagiri", "Anantapur Rural"]
+        }
+      ]
+    },
+    {
+      "name": "శ్రీ సత్యసాయి",
+      "nameEn": "Sri Sathya Sai",
+      "slug": "sri-sathya-sai",
+      "loksabha": "Hindupur",
+      "constituencies": [
+        {
+          "nameEn": "Madakasira",
+          "name": "మదకశిర",
+          "number": 156,
+          "reservation": "SC",
+          "mandals": ["Madakasira", "Amarapuram", "Gudibanda", "Rolla", "Agali"]
+        },
+        {
+          "nameEn": "Hindupur",
+          "name": "హిందూపురం",
+          "number": 157,
+          "mandals": ["Hindupur", "Lepakshi", "Chilamathur"]
+        },
+        {
+          "nameEn": "Penukonda",
+          "name": "పెనుకొండ",
+          "number": 158,
+          "mandals": ["Penukonda", "Gorantla", "Roddam", "Parigi", "Somandepalle"]
+        },
+        {
+          "nameEn": "Puttaparthi",
+          "name": "పుట్టపర్తి",
+          "number": 159,
+          "mandals": ["Puttaparthi", "Bukkapatnam", "Kothacheruvu", "Nallamada", "Obuladevaracheruvu"]
+        },
+        {
+          "nameEn": "Dharmavaram",
+          "name": "ధర్మవరం",
+          "number": 160,
+          "mandals": ["Dharmavaram", "Bathalapalle", "Tadimarri", "Mudigubba"]
+        },
+        {
+          "nameEn": "Kadiri",
+          "name": "కదిరి",
+          "number": 161,
+          "mandals": ["Kadiri", "Gandlapenta", "Nallacheruvu", "Nambulapulakunta", "Talupula", "Tanakal"]
+        }
+      ]
+    },
+    {
+      "name": "వై.యస్.ఆర్",
+      "nameEn": "YSR Kadapa",
+      "slug": "ysr-kadapa",
+      "loksabha": "Kadapa",
+      "constituencies": [
+        {
+          "nameEn": "Badvel",
+          "name": "బద్వేలు",
+          "number": 124,
+          "reservation": "SC",
+          "mandals": ["Badvel", "Porumamilla", "Gopavaram", "Kalasapadu", "B Kodur", "Sri Avadhutha Kasinayana", "Brahmamgarimattam"]
+        },
+        {
+          "nameEn": "Kadapa",
+          "name": "కడప",
+          "number": 126,
+          "mandals": ["Kadapa"]
+        },
+        {
+          "nameEn": "Pulivendla",
+          "name": "పులివెందుల",
+          "number": 129,
+          "mandals": ["Pulivendla", "Lingala", "Vemula", "Thondur", "Simhadripuram", "Vempalle", "Chakrayapet"]
+        },
+        {
+          "nameEn": "Kamalapuram",
+          "name": "కమలాపురం",
+          "number": 130,
+          "mandals": ["Kamalapuram", "Pendlimarri", "Chinthakommadinne", "Vallur", "Veerapunayunipalle", "Lakkireddipalle", "Ramapuram"]
+        },
+        {
+          "nameEn": "Jammalamadugu",
+          "name": "జమ్మలమడుగు",
+          "number": 131,
+          "mandals": ["Jammalamadugu", "Peddamudiyam", "Mylavaram", "Kondapuram", "Muddanur", "Yerraguntla"]
+        },
+        {
+          "nameEn": "Proddatur",
+          "name": "ప్రొద్దుటూరు",
+          "number": 132,
+          "mandals": ["Proddatur", "Rajupalem"]
+        },
+        {
+          "nameEn": "Mydukur",
+          "name": "మైదుకూరు",
+          "number": 133,
+          "mandals": ["Mydukur", "Brahmamgarimattam", "Chapadu", "Duvvuru", "Khajipet"]
+        }
+      ]
+    },
+    {
+      "name": "అన్నమయ్య",
+      "nameEn": "Annamayya",
+      "slug": "annamayya",
+      "loksabha": "Rajampet",
+      "constituencies": [
+        {
+          "nameEn": "Rajampet",
+          "name": "రాజంపేట",
+          "number": 125,
+          "mandals": ["Rajampet", "Sidhout", "Vontimitta", "Nandalur", "Veeraballi", "Atlur"]
+        },
+        {
+          "nameEn": "Kodur",
+          "name": "కోడూరు",
+          "number": 127,
+          "reservation": "SC",
+          "mandals": ["Kodur", "Penagalur", "Chitvel", "Pullampeta", "Obulavaripalli"]
+        },
+        {
+          "nameEn": "Rayachoti",
+          "name": "రాయచోటి",
+          "number": 128,
+          "mandals": ["Rayachoti", "Chinnamandyam", "Galiveedu", "Lakkireddipalli", "Sambepalli", "Ramapuram"]
+        },
+        {
+          "nameEn": "Thamballapalle",
+          "name": "తంబళ్ళపల్లె",
+          "number": 162,
+          "mandals": ["Thamballapalle", "Mulakalacheruvu", "Peddamandyam", "Kurabalakota", "B Kothakota", "Peddathippasamudram"]
+        },
+        {
+          "nameEn": "Pileru",
+          "name": "పీలేరు",
+          "number": 163,
+          "mandals": ["Pileru", "Gurramkonda", "Kalakada", "Kambhamvaripalle", "Kalikiri", "Valmikipuram"]
+        },
+        {
+          "nameEn": "Madanapalle",
+          "name": "మదనపల్లె",
+          "number": 164,
+          "mandals": ["Madanapalle", "Nimmanapalle", "Ramasamudram"]
+        },
+        {
+          "nameEn": "Punganur",
+          "name": "పుంగనూరు",
+          "number": 165,
+          "mandals": ["Punganur", "Sodam", "Somala", "Chowdepalle", "Pulicherla", "Rompicherla"]
+        }
+      ]
+    },
+    {
+      "name": "తిరుపతి",
+      "nameEn": "Tirupati",
+      "slug": "tirupati",
+      "loksabha": "Tirupati",
+      "constituencies": [
+        {
+          "nameEn": "Gudur",
+          "name": "గూడూరు",
+          "number": 120,
+          "reservation": "SC",
+          "mandals": ["Gudur", "Chillakur", "Kota", "Vakadu", "Chittamur"]
+        },
+        {
+          "nameEn": "Sullurpeta",
+          "name": "సూళ్ళూరుపేట",
+          "number": 121,
+          "reservation": "SC",
+          "mandals": ["Sullurpeta", "Doravarisatram", "Naidupeta", "Ozili", "Pellakur", "Tada"]
+        },
+        {
+          "nameEn": "Venkatagiri",
+          "name": "వెంకటగిరి",
+          "number": 122,
+          "mandals": ["Venkatagiri", "Rapur", "Sydapuram", "Kaluvoya", "Balayapalli", "Dakkili"]
+        },
+        {
+          "nameEn": "Chandragiri",
+          "name": "చంద్రగిరి",
+          "number": 166,
+          "mandals": ["Chandragiri", "Pakala", "Ramachandrapuram", "Chinnagottigallu", "Yerravaripalem"]
+        },
+        {
+          "nameEn": "Tirupati",
+          "name": "తిరుపతి",
+          "number": 167,
+          "mandals": ["Tirupati Urban", "Tirupati Rural"]
+        },
+        {
+          "nameEn": "Srikalahasti",
+          "name": "శ్రీకాళహస్తి",
+          "number": 168,
+          "mandals": ["Srikalahasti", "Renigunta", "Yerpedu", "Thottambedu"]
+        },
+        {
+          "nameEn": "Satyavedu",
+          "name": "సత్యవేడు",
+          "number": 169,
+          "reservation": "SC",
+          "mandals": ["Satyavedu", "K V B Puram", "Varadaiahpalem", "Nagalapuram", "Pichatur", "Narayanavanam"]
+        }
+      ]
+    },
+    {
+      "name": "చిత్తూరు",
+      "nameEn": "Chittoor",
+      "slug": "chittoor",
+      "loksabha": "Chittoor",
+      "constituencies": [
+        {
+          "nameEn": "Nagari",
+          "name": "నగరి",
+          "number": 170,
+          "mandals": ["Nagari", "Puttur", "Vijayapuram", "Vadamalapeta"]
+        },
+        {
+          "nameEn": "Gangadhara Nellore",
+          "name": "గంగాధర నెల్లూరు",
+          "number": 171,
+          "reservation": "SC",
+          "mandals": ["G D Nellore", "Penumuru", "Vedurukuppam", "Karvetinagar", "Palasamudram", "S R Puram"]
+        },
+        {
+          "nameEn": "Chittoor",
+          "name": "చిత్తూరు",
+          "number": 172,
+          "mandals": ["Chittoor", "Gudipala"]
+        },
+        {
+          "nameEn": "Puthalapattu",
+          "name": "పుతలపట్టు",
+          "number": 173,
+          "reservation": "SC",
+          "mandals": ["Puthalapattu", "Yadamarri", "Thavanampalle", "Irala", "Bangarupalem"]
+        },
+        {
+          "nameEn": "Palamaner",
+          "name": "పాలమనేరు",
+          "number": 174,
+          "mandals": ["Palamaner", "Baireddipalle", "Gangavaram", "V Kota", "Pedda Panjani"]
+        },
+        {
+          "nameEn": "Kuppam",
+          "name": "కుప్పం",
+          "number": 175,
+          "mandals": ["Kuppam", "Ramakuppam", "Gudipalle", "Santhipuram"]
+        }
+      ]
+    }
+  ]
+}

@@ -77,6 +77,12 @@ model Article {
   tags            ArticleTag[]
   socialPosts     SocialPost[]
 
+  // Location tagging
+  constituencyId  String?
+  constituency    Constituency? @relation("ArticleConstituency", fields: [constituencyId], references: [id])
+  mandalId        String?
+  mandal          Mandal?       @relation("ArticleMandal", fields: [mandalId], references: [id])
+
   // Analytics
   viewCount       Int           @default(0)
 
@@ -86,6 +92,7 @@ model Article {
   @@index([status, publishedAt])
   @@index([categoryId])
   @@index([authorId])
+  @@index([constituencyId])
   @@index([slug])
   @@map("articles")
 }
@@ -233,6 +240,57 @@ model SiteConfig {
   updatedAt   DateTime @updatedAt
 
   @@map("site_config")
+}
+
+// ============ LOCATIONS (Districts → Constituencies → Mandals) ============
+
+model District {
+  id              String          @id @default(cuid())
+  name            String          // Telugu name
+  nameEn          String          // English name
+  slug            String          @unique
+  loksabhaSeats   String?         // Comma-separated Lok Sabha constituency names
+  sortOrder       Int             @default(0)
+  active          Boolean         @default(true)
+  constituencies  Constituency[]
+  createdAt       DateTime        @default(now())
+
+  @@map("districts")
+}
+
+model Constituency {
+  id          String   @id @default(cuid())
+  name        String   // Telugu name
+  nameEn      String   // English name
+  slug        String   @unique
+  type        String   @default("ASSEMBLY") // ASSEMBLY or LOKSABHA
+  districtId  String
+  district    District @relation(fields: [districtId], references: [id])
+  loksabha    String?  // Which Lok Sabha seat this falls under
+  mandals     Mandal[]
+  articles    Article[] @relation("ArticleConstituency")
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([districtId])
+  @@map("constituencies")
+}
+
+model Mandal {
+  id              String       @id @default(cuid())
+  name            String       // Telugu name
+  nameEn          String       // English name
+  slug            String       @unique
+  constituencyId  String
+  constituency    Constituency @relation(fields: [constituencyId], references: [id])
+  articles        Article[]    @relation("ArticleMandal")
+  sortOrder       Int          @default(0)
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+
+  @@index([constituencyId])
+  @@map("mandals")
 }
 
 // ============ VIDEOS ============
