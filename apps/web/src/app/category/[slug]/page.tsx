@@ -1,170 +1,111 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Badge } from "@rayalaseema/ui";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { DateBar } from "@/components/date-bar";
-import { TrendingSidebar } from "@/components/trending-sidebar";
-import {
-  trendingArticles,
-  politicsArticles,
-  crimeArticles,
-  sportsArticles,
-  businessArticles,
-  educationArticles,
-  entertainmentArticles,
-  agricultureArticles,
-  districtArticles,
-  nationalArticles,
-} from "@/lib/mock-data";
-
-const categoryMap: Record<string, { name: string; nameEn: string; color: string; articles: any[] }> = {
-  politics: { name: "రాజకీయాలు", nameEn: "Politics", color: "#FF2C2C", articles: politicsArticles },
-  crime: { name: "నేరాలు", nameEn: "Crime", color: "#7C3AED", articles: crimeArticles },
-  sports: { name: "క్రీడలు", nameEn: "Sports", color: "#16A34A", articles: sportsArticles },
-  business: { name: "వ్యాపారం", nameEn: "Business", color: "#2563EB", articles: businessArticles },
-  education: { name: "విద్య", nameEn: "Education", color: "#0891B2", articles: educationArticles },
-  entertainment: { name: "వినోదం", nameEn: "Entertainment", color: "#DB2777", articles: entertainmentArticles },
-  agriculture: { name: "వ్యవసాయం", nameEn: "Agriculture", color: "#65A30D", articles: agricultureArticles },
-  "district-news": { name: "జిల్లా వార్తలు", nameEn: "District News", color: "#EA580C", articles: districtArticles },
-  national: { name: "జాతీయం", nameEn: "National", color: "#4F46E5", articles: nationalArticles },
-};
-
-function formatTimeAgo(dateString: string) {
-  const diff = Date.now() - new Date(dateString).getTime();
-  const hours = Math.floor(diff / 3600000);
-  if (hours < 1) return `${Math.floor(diff / 60000)} ని. క్రితం`;
-  if (hours < 24) return `${hours} గంటల క్రితం`;
-  return `${Math.floor(hours / 24)} రోజుల క్రితం`;
-}
+import { prisma } from "@rayalaseema/db";
+import { getTrendingArticles } from "@/lib/db-queries";
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const cat = categoryMap[slug] || {
-    name: "వార్తలు",
-    nameEn: "News",
-    color: "#FF2C2C",
-    articles: politicsArticles,
-  };
+
+  const category = await prisma.category.findUnique({ where: { slug } });
+  if (!category) return notFound();
+
+  const [articles, trending] = await Promise.all([
+    prisma.article.findMany({
+      where: { status: "PUBLISHED", categoryId: category.id },
+      include: { author: { select: { name: true } } },
+      orderBy: { publishedAt: "desc" },
+      take: 20,
+    }),
+    getTrendingArticles(8),
+  ]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <DateBar />
 
-      {/* Category Header Banner */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="container-news py-6">
-          <nav className="flex items-center gap-2 text-sm text-gray-400 mb-3">
-            <Link href="/" className="hover:text-primary-500">హోమ్</Link>
+      {/* Category Header */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #eee" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
+          <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#888", marginBottom: 12 }}>
+            <Link href="/" style={{ color: "#888", textDecoration: "none" }}>Home</Link>
             <span>/</span>
-            <span className="text-gray-700 font-telugu">{cat.name}</span>
+            <span style={{ color: "#333" }}>{category.name}</span>
           </nav>
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-10 rounded-full" style={{ backgroundColor: cat.color }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 6, height: 36, borderRadius: 3, background: category.color || "#FF2C2C" }} />
             <div>
-              <h1 className="text-telugu-2xl font-bold text-gray-900 font-telugu">
-                {cat.name}
-              </h1>
-              <p className="text-sm text-gray-400">{cat.nameEn}</p>
+              <h1 style={{ fontSize: 26, fontWeight: 900, color: "#000" }}>{category.name}</h1>
+              <p style={{ fontSize: 13, color: "#888" }}>{category.nameEn} - {articles.length} articles</p>
             </div>
           </div>
         </div>
       </div>
 
-      <main className="container-news py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
+        <div style={{ display: "flex", gap: 24 }}>
           {/* Articles */}
-          <div className="lg:col-span-8">
-            {/* Featured first article */}
-            {cat.articles.length > 0 && (
-              <Link href={`/article/${cat.articles[0].slug}`} className="group block mb-8">
-                <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-4">
-                  <img
-                    src={cat.articles[0].featuredImage || ""}
-                    alt={cat.articles[0].title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <Badge color={cat.color}>{cat.name}</Badge>
-                    <h2 className="text-telugu-2xl font-bold text-white mt-2 font-telugu drop-shadow-lg">
-                      {cat.articles[0].title}
-                    </h2>
-                    <p className="text-white/80 font-telugu text-sm mt-2 line-clamp-2">
-                      {cat.articles[0].summary}
-                    </p>
+          <div style={{ flex: 1 }}>
+            {/* Featured first */}
+            {articles[0] && (
+              <Link href={`/article/${articles[0].slug}`} style={{ display: "block", marginBottom: 24, textDecoration: "none" }}>
+                <div style={{ position: "relative", borderRadius: 10, overflow: "hidden" }}>
+                  {articles[0].featuredImage && (
+                    <img src={articles[0].featuredImage} alt={articles[0].title} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover" }} />
+                  )}
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)" }} />
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 20 }}>
+                    <Badge color={category.color || "#FF2C2C"}>{category.name}</Badge>
+                    <h2 style={{ fontSize: 24, fontWeight: 900, color: "#fff", marginTop: 8, lineHeight: 1.4 }}>{articles[0].title}</h2>
+                    <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", marginTop: 6 }}>{articles[0].summary}</p>
                   </div>
                 </div>
               </Link>
             )}
 
-            {/* Rest of articles */}
-            <div className="space-y-6">
-              {cat.articles.slice(1).map((article: any) => (
-                <Link
-                  key={article.id}
-                  href={`/article/${article.slug}`}
-                  className="group flex gap-5 pb-6 border-b border-gray-100"
-                >
-                  <div className="w-48 h-32 shrink-0 rounded-xl overflow-hidden">
-                    <img
-                      src={article.featuredImage || ""}
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
+            {/* Rest */}
+            {articles.slice(1).map((article) => (
+              <Link key={article.id} href={`/article/${article.slug}`} style={{ display: "flex", gap: 16, padding: "16px 0", borderBottom: "1px solid #f3f4f6", textDecoration: "none" }}>
+                {article.featuredImage && (
+                  <img src={article.featuredImage} alt="" style={{ width: 180, height: 120, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                )}
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: "#000", lineHeight: 1.5 }}>{article.title}</h3>
+                  <p style={{ fontSize: 14, color: "#666", marginTop: 6, lineHeight: 1.6 }}>{article.summary}</p>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, fontSize: 12, color: "#888" }}>
+                    <span>{article.author.name}</span>
+                    <span>|</span>
+                    <span>{article.publishedAt ? new Date(article.publishedAt).toLocaleDateString("te-IN") : ""}</span>
+                    <span>|</span>
+                    <span>{article.viewCount.toLocaleString()} views</span>
                   </div>
-                  <div className="flex-1">
-                    <Badge color={cat.color}>{cat.name}</Badge>
-                    <h3 className="text-telugu-lg font-bold text-gray-900 font-telugu mt-1 group-hover:text-primary-500 transition-colors line-clamp-2">
-                      {article.title}
-                    </h3>
-                    <p className="text-telugu-sm text-gray-500 font-telugu mt-1 line-clamp-2">
-                      {article.summary}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                      <span>{formatTimeAgo(article.publishedAt)}</span>
-                      {article.viewCount && (
-                        <>
-                          <span>•</span>
-                          <span>{article.viewCount.toLocaleString()} views</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+              </Link>
+            ))}
 
-            {/* Pagination */}
-            <div className="flex items-center justify-center gap-2 mt-10">
-              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-400 cursor-not-allowed">
-                ← మునుపటి
-              </button>
-              <button className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium">
-                1
-              </button>
-              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                2
-              </button>
-              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                3
-              </button>
-              <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                తదుపరి →
-              </button>
-            </div>
+            {articles.length === 0 && (
+              <div style={{ textAlign: "center", padding: 60, color: "#888" }}>
+                <p style={{ fontSize: 16 }}>No articles in this category yet</p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-4 space-y-8">
-            <TrendingSidebar articles={trendingArticles} />
-
-            <div className="bg-gradient-to-b from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-2">ప్రకటన</p>
-              <div className="bg-white rounded-lg p-8 shadow-inner">
-                <p className="text-lg font-bold text-orange-600 font-telugu">మీ ప్రకటన ఇక్కడ</p>
-              </div>
+          <aside style={{ width: 320, flexShrink: 0 }}>
+            <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
+                Trending
+              </h3>
+              {trending.map((t, i) => (
+                <Link key={t.id} href={`/article/${t.slug}`} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f5f5f5", textDecoration: "none" }}>
+                  <span style={{ fontSize: 20, fontWeight: 900, color: i < 3 ? "var(--color-brand)" : "#ddd", width: 28, flexShrink: 0 }}>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.5 }}>{t.title}</p>
+                </Link>
+              ))}
             </div>
           </aside>
         </div>
