@@ -32,17 +32,22 @@ export default function EditArticlePage() {
   const [featuredImage, setFeaturedImage] = useState("");
   const [status, setStatus] = useState("DRAFT");
   const [featured, setFeatured] = useState(false);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedConstituency, setSelectedConstituency] = useState("");
   const [breaking, setBreaking] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState("");
   const editorRef = useRef<RichEditorRef>(null);
 
-  // Load article and categories
+  // Load article, categories, and locations
   useEffect(() => {
     Promise.all([
       fetch(`/api/articles/${articleId}`).then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
-    ]).then(([article, cats]) => {
+      fetch("/api/locations").then((r) => r.json()).catch(() => []),
+    ]).then(([article, cats, locs]) => {
+      setDistricts(locs || []);
       if (article.error) {
         setError("Article not found");
         setLoading(false);
@@ -56,6 +61,7 @@ export default function EditArticlePage() {
       setFeaturedImage(article.featuredImage || "");
       setStatus(article.status || "DRAFT");
       setFeatured(article.featured || false);
+      setSelectedConstituency(article.constituencyId || "");
       setBreaking(article.breaking || false);
       setCategories(cats);
       setLoading(false);
@@ -75,6 +81,7 @@ export default function EditArticlePage() {
         featuredImage: featuredImage || null,
         status: newStatus || status,
         featured, breaking,
+        constituencyId: selectedConstituency || null,
       }),
     });
 
@@ -301,6 +308,26 @@ export default function EditArticlePage() {
                 <option value="">Select...</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.nameEn})</option>)}
               </select>
+            </div>
+
+            {/* Location - District & Constituency */}
+            <div style={{ background: "#fff", borderRadius: 10, padding: 16, marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 6 }}>Location (optional)</label>
+              <select value={selectedDistrict} onChange={(e) => { setSelectedDistrict(e.target.value); setSelectedConstituency(""); }}
+                style={{ width: "100%", border: "1px solid #eee", borderRadius: 8, padding: "8px 10px", fontSize: 13, outline: "none", boxSizing: "border-box", marginBottom: 8 }}>
+                <option value="">Select District...</option>
+                {districts.map((d: any) => <option key={d.id} value={d.id}>{d.name} ({d.nameEn})</option>)}
+              </select>
+              {selectedDistrict && (
+                <select value={selectedConstituency} onChange={(e) => setSelectedConstituency(e.target.value)}
+                  style={{ width: "100%", border: "1px solid #eee", borderRadius: 8, padding: "8px 10px", fontSize: 13, outline: "none", boxSizing: "border-box" }}>
+                  <option value="">Select Constituency...</option>
+                  {districts.find((d: any) => d.id === selectedDistrict)?.constituencies?.map((c: any) =>
+                    <option key={c.id} value={c.id}>{c.name} ({c.nameEn})</option>
+                  )}
+                </select>
+              )}
+              <p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>Tag to district/constituency for location-based news</p>
             </div>
 
             {/* Featured Image */}

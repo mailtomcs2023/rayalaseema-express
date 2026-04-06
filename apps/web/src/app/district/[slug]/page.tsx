@@ -105,11 +105,12 @@ export default async function DistrictPage({ params }: { params: Promise<{ slug:
               {displayArticles.slice(0, 3).map((article) => (
                 <Link key={article.id} href={`/article/${article.slug}`} style={{ textDecoration: "none", display: "block" }}>
                   <div style={{ background: "#fff", borderRadius: 8, overflow: "hidden", border: "1px solid #eee" }}>
-                    {article.featuredImage && (
+                    {article.featuredImage ? (
                       <img src={article.featuredImage} alt="" style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }} />
+                    ) : (
+                      <div className="img-placeholder"><span>RE</span></div>
                     )}
                     <div style={{ padding: 12 }}>
-                      {/* Show CATEGORY tag, not fake location */}
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 3,
                         background: article.category.color || "var(--color-brand)", color: "#fff",
@@ -129,9 +130,13 @@ export default async function DistrictPage({ params }: { params: Promise<{ slug:
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               {displayArticles.slice(3).map((article) => (
                 <Link key={article.id} href={`/article/${article.slug}`} style={{ textDecoration: "none", display: "flex", gap: 10, padding: 10, background: "#fff", borderRadius: 8, border: "1px solid #f3f4f6" }}>
-                  {article.featuredImage && (
-                    <img src={article.featuredImage} alt="" style={{ width: 90, height: 65, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
-                  )}
+                  <div style={{ width: 90, height: 65, borderRadius: 6, overflow: "hidden", flexShrink: 0, background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {article.featuredImage ? (
+                      <img src={article.featuredImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <span style={{ color: "#ccc", fontWeight: 800, fontSize: 16 }}>RE</span>
+                    )}
+                  </div>
                   <div>
                     <span style={{ fontSize: 10, fontWeight: 700, color: article.category.color || "var(--color-brand)" }}>
                       {article.category.name}

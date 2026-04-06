@@ -28,6 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       status: body.status,
       featured: body.featured,
       breaking: body.breaking,
+      constituencyId: body.constituencyId || null,
       publishedAt: body.status === "PUBLISHED" ? new Date() : undefined,
     },
   });

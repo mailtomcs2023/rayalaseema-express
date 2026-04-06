@@ -61,15 +61,21 @@ export function NewsSlider({ items }: { items: SliderItem[] }) {
             transition: "opacity 0.8s ease",
             zIndex: i === current ? 10 : 0,
           }}>
-            <img
-              src={item.featuredImage}
-              alt={item.title}
-              style={{
-                width: "100%", height: "100%", objectFit: "cover",
-                transform: i === current ? "scale(1.03)" : "scale(1)",
-                transition: "transform 8s ease-out",
-              }}
-            />
+            {item.featuredImage ? (
+              <img
+                src={item.featuredImage}
+                alt={item.title}
+                style={{
+                  width: "100%", height: "100%", objectFit: "cover",
+                  transform: i === current ? "scale(1.03)" : "scale(1)",
+                  transition: "transform 8s ease-out",
+                }}
+              />
+            ) : (
+              <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: "var(--color-brand)", fontSize: 64, fontWeight: 900, opacity: 0.3 }}>RE</span>
+              </div>
+            )}
             {/* Gradient overlays */}
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%)" }} />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.5), transparent 60%)" }} />
