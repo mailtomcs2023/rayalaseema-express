@@ -26,11 +26,16 @@ export default function NewsFeedPage() {
   const [importing, setImporting] = useState<string | null>(null);
   const [imported, setImported] = useState<Set<string>>(new Set());
 
-  const fetchNews = async () => {
+  const fetchNews = async (searchQuery?: string) => {
+    const q = searchQuery || query;
     setLoading(true);
-    const res = await fetch(`/api/fetch-news?q=${encodeURIComponent(query)}&language=${language}&size=20`);
-    const data = await res.json();
-    setArticles(data.articles || []);
+    try {
+      const res = await fetch(`/api/fetch-news?q=${encodeURIComponent(q)}&language=${language}&size=20`);
+      const data = await res.json();
+      setArticles(data.articles || []);
+    } catch (e) {
+      console.error("Fetch error:", e);
+    }
     setLoading(false);
   };
 
@@ -83,7 +88,7 @@ export default function NewsFeedPage() {
         {/* Quick search buttons */}
         <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
           {["Kurnool", "Anantapur", "Kadapa", "Tirupati", "Chittoor", "Nandyal", "AP Politics", "Rayalaseema", "Telugu Cinema", "IPL Cricket"].map((q) => (
-            <button key={q} onClick={() => { setQuery(q); }} style={{ padding: "5px 12px", background: "#fff", border: "1px solid #ddd", borderRadius: 16, fontSize: 12, fontWeight: 600, color: "#555", cursor: "pointer" }}>
+            <button key={q} onClick={() => { setQuery(q); fetchNews(q); }} style={{ padding: "5px 12px", background: "#fff", border: "1px solid #ddd", borderRadius: 16, fontSize: 12, fontWeight: 600, color: "#555", cursor: "pointer" }}>
               {q}
             </button>
           ))}
