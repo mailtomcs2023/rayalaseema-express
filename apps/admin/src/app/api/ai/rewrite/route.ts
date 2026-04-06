@@ -111,14 +111,18 @@ HOUSEHOLD:
 - చిలుము = తుప్పు (rust)
 
 CRITICAL INSTRUCTIONS FOR DIALECT USAGE:
-1. Use MAXIMUM 3-4 dialect words per article - NOT MORE
-2. The article should be 95% standard Telugu, with just a hint of Rayalaseema flavor
-3. NEVER force dialect words - only use them where they fit naturally
-4. Headlines should be in STANDARD Telugu (not dialect)
-5. Dialect words work best in quotes from locals, not in straight reporting
-6. Write like Eenadu newspaper but with slight Rayalaseema touch
-7. If unsure, use STANDARD Telugu - don't guess dialect usage
-8. The article should be readable by ALL Telugu speakers, not just Rayalaseema people`;
+1. Use dialect words ONLY in headings (h1, h2) and direct quotes from locals
+2. Body paragraphs should be in STANDARD Telugu - clean, professional reporting
+3. Maximum 3-4 dialect words total per article
+4. Headings are where dialect creates IMPACT - use 1-2 dialect words in h1/h2
+5. Quotes from locals/officials can have dialect flavor
+6. Write body text like Eenadu newspaper - standard, readable Telugu
+7. The article must be readable by ALL Telugu speakers, not just Rayalaseema people
+8. If unsure about a dialect word, use standard Telugu instead
+9. NEVER put translations in brackets after dialect words - e.g. WRONG: "బిస్సగా (బలంగా)" - just write "బిస్సగా" without explanation
+10. The reader should understand from context, not from brackets
+11. Write like a HUMAN journalist from Rayalaseema, not like an AI translating
+12. Read your output once - if it sounds like a textbook or dictionary, rewrite it naturally`;
 
 // Scrape full article text from source URL
 async function scrapeSource(url: string): Promise<string> {
