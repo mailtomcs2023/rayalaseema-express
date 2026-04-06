@@ -8,6 +8,7 @@ import TiptapLink from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
+import React from "react";
 import Highlight from "@tiptap/extension-highlight";
 import { useState, useCallback, useRef, useEffect } from "react";
 
@@ -25,7 +26,12 @@ async function transliterate(word: string): Promise<string[]> {
   return [word];
 }
 
-export function RichEditor({ content, onChange }: { content: string; onChange: (html: string) => void }) {
+export interface RichEditorRef {
+  setContent: (html: string) => void;
+  getHTML: () => string;
+}
+
+export const RichEditor = React.forwardRef<RichEditorRef, { content: string; onChange: (html: string) => void }>(function RichEditor({ content, onChange }, ref) {
   const [activePanel, setActivePanel] = useState<"none" | "link" | "image">("none");
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -73,6 +79,16 @@ export function RichEditor({ content, onChange }: { content: string; onChange: (
       },
     },
   });
+
+  // Expose setContent and getHTML to parent via ref
+  React.useImperativeHandle(ref, () => ({
+    setContent: (html: string) => {
+      if (editor) editor.commands.setContent(html);
+    },
+    getHTML: () => {
+      return editor?.getHTML() || "";
+    },
+  }), [editor]);
 
   // Drag & drop images
   useEffect(() => {
@@ -244,7 +260,7 @@ export function RichEditor({ content, onChange }: { content: string; onChange: (
       `}</style>
     </div>
   );
-}
+});
 
 // Toolbar button
 function T({ on, fn, children }: { on: boolean; fn: () => void; children: React.ReactNode }) {

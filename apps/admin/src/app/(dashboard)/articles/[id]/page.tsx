@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
-import { RichEditor } from "@/components/rich-editor";
+import { RichEditor, type RichEditorRef } from "@/components/rich-editor";
 import { TeluguInput } from "@/components/telugu-input";
 
 interface Category {
@@ -35,6 +35,7 @@ export default function EditArticlePage() {
   const [breaking, setBreaking] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState("");
+  const editorRef = useRef<RichEditorRef>(null);
 
   // Load article and categories
   useEffect(() => {
@@ -118,7 +119,8 @@ export default function EditArticlePage() {
           setSuccess(data.result);
         } else {
           setBody(data.result);
-          setSuccess(`AI ${action} complete! (${data.tokens?.total || 0} tokens used)`);
+          editorRef.current?.setContent(data.result);
+          setSuccess(`AI ${action} complete! (${data.tokens?.total_tokens || data.tokens?.total || 0} tokens used)`);
         }
       }
     } catch (e: any) { setError(e.message); }
@@ -253,7 +255,7 @@ export default function EditArticlePage() {
 
             {/* Body - Rich Editor */}
             <div style={{ marginBottom: 16 }}>
-              <RichEditor content={body} onChange={setBody} />
+              <RichEditor ref={editorRef} content={body} onChange={setBody} />
             </div>
           </div>
 
