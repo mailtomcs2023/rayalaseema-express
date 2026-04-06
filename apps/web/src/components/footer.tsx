@@ -51,9 +51,9 @@ export function Footer() {
               {[
                 { name: "కర్నూలు", slug: "kurnool" },
                 { name: "నంద్యాల", slug: "nandyal" },
-                { name: "అనంతపురం", slug: "anantapur" },
+                { name: "అనంతపురం", slug: "ananthapuramu" },
                 { name: "శ్రీ సత్యసాయి", slug: "sri-sathya-sai" },
-                { name: "వై.యస్.ఆర్", slug: "ysr" },
+                { name: "వై.యస్.ఆర్", slug: "ysr-kadapa" },
                 { name: "తిరుపతి", slug: "tirupati" },
                 { name: "అన్నమయ్య", slug: "annamayya" },
                 { name: "చిత్తూరు", slug: "chittoor" },

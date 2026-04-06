@@ -18,7 +18,7 @@ import { getFullHomepageData } from "@/lib/db-queries";
 
 export default async function HomePage() {
   // Fetch ALL data from PostgreSQL - articles, videos, galleries, reels, stories, cartoons, ads
-  const { featured, latest, breakingNews, articlesByCategory, videos, galleries, webStories, reels, cartoons, ads } = await getFullHomepageData();
+  const { featured, latest, breakingNews, articlesByCategory, categories, videos, galleries, webStories, reels, cartoons, ads } = await getFullHomepageData();
 
   // Map DB articles to slider format
   const sliderItems = featured.map((a) => ({
@@ -71,6 +71,12 @@ export default async function HomePage() {
     views: v.views,
   }));
 
+  // Helper to get category Telugu name from DB
+  const catName = (slug: string) => {
+    const cat = categories.find((c) => c.slug === slug);
+    return cat?.name || slug;
+  };
+
   // Map DB galleries to component format
   const photoGalleryItems = galleries.map((g) => ({
     id: g.id,
@@ -116,28 +122,28 @@ export default async function HomePage() {
           {/* LEFT: 3-column category grid */}
           <div style={{ flex: "1 1 auto" }} className="space-y-2">
 
-            {/* Row 1: Entertainment | Business | Sports - from DB */}
+            {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title="\u0C38\u0C3F\u0C28\u0C3F\u0C2E\u0C3E" slug="entertainment" articles={catArticles("entertainment")} />
-              <CategoryCard title="\u0C2C\u0C3F\u0C1C\u0C3F\u0C28\u0C46\u0C38\u0C4D" slug="business" articles={catArticles("business")} />
-              <CategoryCard title="\u0C15\u0C4D\u0C30\u0C40\u0C21\u0C32\u0C41" slug="sports" articles={catArticles("sports")} />
+              <CategoryCard title={catName("entertainment")} slug="entertainment" articles={catArticles("entertainment")} />
+              <CategoryCard title={catName("business")} slug="business" articles={catArticles("business")} />
+              <CategoryCard title={catName("sports")} slug="sports" articles={catArticles("sports")} />
             </div>
 
-            {/* Row 2: National | District News | Agriculture - from DB */}
+            {/* Row 2 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title="\u0C1C\u0C3E\u0C24\u0C40\u0C2F\u0C02" slug="national" articles={catArticles("national")} />
-              <CategoryCard title="\u0C1C\u0C3F\u0C32\u0C4D\u0C32\u0C3E \u0C35\u0C3E\u0C30\u0C4D\u0C24\u0C32\u0C41" slug="district-news" articles={catArticles("district-news")} />
-              <CategoryCard title="\u0C35\u0C4D\u0C2F\u0C35\u0C38\u0C3E\u0C2F\u0C02" slug="agriculture" articles={catArticles("agriculture")} />
+              <CategoryCard title={catName("national")} slug="national" articles={catArticles("national")} />
+              <CategoryCard title={catName("district-news")} slug="district-news" articles={catArticles("district-news")} />
+              <CategoryCard title={catName("agriculture")} slug="agriculture" articles={catArticles("agriculture")} />
             </div>
 
             {/* Banner Ad */}
             <AdLeaderboard />
 
-            {/* Row 3: Education | Crime | Devotional - from DB */}
+            {/* Row 3 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title="\u0C35\u0C3F\u0C26\u0C4D\u0C2F" slug="education" articles={catArticles("education")} />
-              <CategoryCard title="\u0C28\u0C47\u0C30\u0C3E\u0C32\u0C41" slug="crime" articles={catArticles("crime")} />
-              <CategoryCard title="\u0C30\u0C3E\u0C1C\u0C15\u0C40\u0C2F\u0C3E\u0C32\u0C41" slug="politics" articles={catArticles("politics")} />
+              <CategoryCard title={catName("education")} slug="education" articles={catArticles("education")} />
+              <CategoryCard title={catName("crime")} slug="crime" articles={catArticles("crime")} />
+              <CategoryCard title={catName("politics")} slug="politics" articles={catArticles("politics")} />
             </div>
 
             {/* Web Stories */}
