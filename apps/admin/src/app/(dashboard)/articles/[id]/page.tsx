@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { RichEditor, type RichEditorRef } from "@/components/rich-editor";
 import { TeluguInput } from "@/components/telugu-input";
+import { ImageUpload } from "@/components/image-upload";
 
 interface Category {
   id: string;
@@ -36,6 +37,11 @@ export default function EditArticlePage() {
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedConstituency, setSelectedConstituency] = useState("");
   const [breaking, setBreaking] = useState(false);
+  const [socialPlatforms, setSocialPlatforms] = useState<Record<string, boolean>>({
+    telegram: true, twitter: true, facebook: true, linkedin: false, instagram: false, whatsapp: false, pinterest: false,
+  });
+  const [shareResults, setShareResults] = useState<Record<string, { success: boolean; error?: string }>>({});
+  const [sharing, setSharing] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState("");
   const editorRef = useRef<RichEditorRef>(null);
@@ -332,10 +338,7 @@ export default function EditArticlePage() {
 
             {/* Featured Image */}
             <div style={{ background: "#fff", borderRadius: 10, padding: 16, marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 6 }}>Featured Image</label>
-              <input type="url" value={featuredImage} onChange={(e) => setFeaturedImage(e.target.value)} placeholder="https://..."
-                style={{ width: "100%", border: "1px solid #eee", borderRadius: 8, padding: "8px 10px", fontSize: 12, outline: "none", boxSizing: "border-box" }} />
-              {featuredImage && <img src={featuredImage} alt="" style={{ width: "100%", borderRadius: 6, marginTop: 8, aspectRatio: "16/9", objectFit: "cover" }} />}
+              <ImageUpload value={featuredImage} onChange={setFeaturedImage} />
             </div>
 
             {/* Options */}
@@ -349,6 +352,72 @@ export default function EditArticlePage() {
                 <input type="checkbox" checked={breaking} onChange={(e) => setBreaking(e.target.checked)} style={{ width: 16, height: 16 }} />
                 <span style={{ fontSize: 13, color: "#555" }}>Breaking News</span>
               </label>
+            </div>
+
+            {/* Social Media Sharing */}
+            <div style={{ background: "#fff", borderRadius: 10, padding: 16, marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 10 }}>Share to Social Media</label>
+              {([
+                { key: "telegram", label: "Telegram", icon: "✈️", color: "#0088cc" },
+                { key: "twitter", label: "Twitter / X", icon: "𝕏", color: "#000" },
+                { key: "facebook", label: "Facebook", icon: "f", color: "#1877f2" },
+                { key: "linkedin", label: "LinkedIn", icon: "in", color: "#0a66c2" },
+                { key: "instagram", label: "Instagram", icon: "📷", color: "#e4405f" },
+                { key: "whatsapp", label: "WhatsApp", icon: "💬", color: "#25d366" },
+                { key: "pinterest", label: "Pinterest", icon: "📌", color: "#e60023" },
+              ] as const).map(({ key, label, icon, color }) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 6, padding: "4px 0" }}>
+                  <input type="checkbox" checked={socialPlatforms[key] || false}
+                    onChange={(e) => setSocialPlatforms((p) => ({ ...p, [key]: e.target.checked }))}
+                    style={{ width: 15, height: 15 }} />
+                  <span style={{ width: 22, height: 22, borderRadius: 5, background: color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontSize: 12, color: "#333", flex: 1 }}>{label}</span>
+                  {shareResults[key] && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: shareResults[key].success ? "#16a34a" : "#dc2626" }}>
+                      {shareResults[key].success ? "✓ Posted" : "✗ Failed"}
+                    </span>
+                  )}
+                </label>
+              ))}
+              {/* Share errors */}
+              {Object.entries(shareResults).filter(([, r]) => !r.success && r.error).map(([key, r]) => (
+                <p key={key} style={{ fontSize: 10, color: "#dc2626", margin: "2px 0 2px 30px" }}>{key}: {r.error}</p>
+              ))}
+              <button
+                onClick={async () => {
+                  const selected = Object.entries(socialPlatforms).filter(([, v]) => v).map(([k]) => k);
+                  if (selected.length === 0) return alert("Select at least one platform");
+                  if (status !== "PUBLISHED") return alert("Publish the article first before sharing");
+                  setSharing(true);
+                  setShareResults({});
+                  try {
+                    const categoryName = categories.find((c) => c.id === categoryId);
+                    const res = await fetch("/api/social/share", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        platforms: selected,
+                        article: { title, slug, summary, featuredImage, categoryNameEn: categoryName?.nameEn },
+                      }),
+                    });
+                    const results = await res.json();
+                    setShareResults(results);
+                  } catch (err: any) {
+                    alert("Share failed: " + err.message);
+                  } finally {
+                    setSharing(false);
+                  }
+                }}
+                disabled={sharing || status !== "PUBLISHED"}
+                style={{
+                  width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, border: "none", cursor: sharing || status !== "PUBLISHED" ? "not-allowed" : "pointer",
+                  fontSize: 13, fontWeight: 700,
+                  background: status !== "PUBLISHED" ? "#e5e7eb" : sharing ? "#93c5fd" : "#3b82f6",
+                  color: status !== "PUBLISHED" ? "#999" : "#fff",
+                }}
+              >
+                {sharing ? "Sharing..." : status !== "PUBLISHED" ? "Publish first to share" : `Share to ${Object.values(socialPlatforms).filter(Boolean).length} platforms`}
+              </button>
             </div>
 
             {/* View on frontend */}

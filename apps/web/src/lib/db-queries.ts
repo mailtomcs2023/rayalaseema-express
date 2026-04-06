@@ -1,5 +1,13 @@
 import { prisma } from "@rayalaseema/db";
 
+// Fetch site config from database
+export async function getSiteConfig(): Promise<Record<string, string>> {
+  const configs = await prisma.siteConfig.findMany();
+  const map: Record<string, string> = {};
+  configs.forEach((c) => (map[c.key] = c.value));
+  return map;
+}
+
 // Fetch featured/slider articles
 export async function getFeaturedArticles(limit = 6) {
   return prisma.article.findMany({
@@ -92,7 +100,7 @@ export async function getArticleBySlug(slug: string) {
     where: { slug },
     include: {
       category: { select: { name: true, nameEn: true, slug: true, color: true } },
-      author: { select: { name: true, bio: true, avatar: true } },
+      author: { select: { id: true, name: true, bio: true, avatar: true } },
       tags: { include: { tag: true } },
     },
   });
@@ -192,9 +200,53 @@ export async function getAllAds() {
   });
 }
 
+// Fetch district-wise latest articles for homepage
+// myDistrictSlug: the user's preferred district (from cookie) - gets more articles
+export async function getDistrictArticles(myDistrictSlug?: string | null) {
+  const districts = await prisma.district.findMany({
+    where: { active: true },
+    select: { id: true, name: true, nameEn: true, slug: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  const districtArticles: Record<string, { district: typeof districts[0]; articles: any[] }> = {};
+
+  await Promise.all(
+    districts.map(async (d) => {
+      const constituencies = await prisma.constituency.findMany({
+        where: { districtId: d.id },
+        select: { id: true },
+      });
+      const constIds = constituencies.map((c) => c.id);
+
+      const articles = await prisma.article.findMany({
+        where: {
+          status: "PUBLISHED",
+          OR: [
+            { constituencyId: { in: constIds } },
+            { title: { contains: d.name } },
+            { title: { contains: d.nameEn, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true, title: true, slug: true, summary: true,
+          featuredImage: true, publishedAt: true,
+          category: { select: { name: true, color: true } },
+        },
+        orderBy: { publishedAt: "desc" },
+        take: d.slug === myDistrictSlug ? 8 : 3,
+      });
+
+      districtArticles[d.slug] = { district: d, articles };
+    })
+  );
+
+  return districtArticles;
+}
+
 // Fetch complete homepage data including multimedia
-export async function getFullHomepageData() {
-  const [base, videos, galleries, webStories, reels, cartoons, ads] = await Promise.all([
+export async function getFullHomepageData(myDistrictSlug?: string | null) {
+  const [base, videos, galleries, webStories, reels, cartoons, ads, config, districtArticles] = await Promise.all([
     getHomepageData(),
     getVideos(),
     getPhotoGalleries(),
@@ -202,7 +254,9 @@ export async function getFullHomepageData() {
     getReels(),
     getCartoons(),
     getAllAds(),
+    getSiteConfig(),
+    getDistrictArticles(myDistrictSlug),
   ]);
 
-  return { ...base, videos, galleries, webStories, reels, cartoons, ads };
+  return { ...base, videos, galleries, webStories, reels, cartoons, ads, config, districtArticles };
 }

@@ -30,142 +30,254 @@ export function NewsSlider({ items }: { items: SliderItem[] }) {
   const prev = useCallback(() => setCurrent((p) => (p - 1 + items.length) % items.length), [items.length]);
 
   useEffect(() => {
-    if (!auto) return;
+    if (!auto || items.length <= 1) return;
     const t = setInterval(next, 5000);
     return () => clearInterval(t);
-  }, [auto, next]);
+  }, [auto, next, items.length]);
+
+  if (!items.length) return null;
+
+  const item = items[current];
 
   return (
     <div
+      className="news-slider-wrap"
       onMouseEnter={() => setAuto(false)}
       onMouseLeave={() => setAuto(true)}
-      style={{ position: "relative", background: "#000", borderRadius: "6px 6px 0 0", overflow: "hidden" }}
     >
-      {/* Counter badge */}
-      <div style={{
-        position: "absolute", top: 12, right: 12, zIndex: 20,
-        background: "var(--color-brand)", color: "#fff",
-        fontSize: 12, fontWeight: 800,
-        padding: "4px 10px", borderRadius: 4,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-      }}>
-        {current + 1}/{items.length}
-      </div>
-
-      {/* Slides */}
-      <div style={{ position: "relative", aspectRatio: "16/9" }}>
-        {items.map((item, i) => (
-          <div key={item.id} style={{
-            position: "absolute", inset: 0,
-            opacity: i === current ? 1 : 0,
-            transition: "opacity 0.8s ease",
-            zIndex: i === current ? 10 : 0,
-          }}>
-            {item.featuredImage ? (
-              <img
-                src={item.featuredImage}
-                alt={item.title}
-                style={{
-                  width: "100%", height: "100%", objectFit: "cover",
-                  transform: i === current ? "scale(1.03)" : "scale(1)",
-                  transition: "transform 8s ease-out",
-                }}
-              />
-            ) : (
-              <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "var(--color-brand)", fontSize: 64, fontWeight: 900, opacity: 0.3 }}>RE</span>
-              </div>
-            )}
-            {/* Gradient overlays */}
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.15) 100%)" }} />
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(0,0,0,0.5), transparent 60%)" }} />
-
-            {/* Content */}
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 24px 44px" }}>
-              <span style={{
-                display: "inline-block", padding: "3px 12px",
-                background: "var(--color-brand)", borderRadius: 3,
-                color: "#fff", fontSize: 12, fontWeight: 800, marginBottom: 10,
-                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-              }}>
-                {item.category.name}
-              </span>
-              <Link href={`/article/${item.slug}`}>
-                <h2 style={{
-                  fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1.4,
-                  textShadow: "2px 2px 8px rgba(0,0,0,0.8)",
-                  maxWidth: "80%",
-                  display: "-webkit-box", WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical" as const, overflow: "hidden",
-                }}>
-                  {item.title}
-                </h2>
-              </Link>
-              <p style={{
-                fontSize: 15, color: "rgba(255,255,255,0.7)", fontWeight: 600,
-                marginTop: 8, maxWidth: "70%", lineHeight: 1.6,
-                display: "-webkit-box", WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical" as const, overflow: "hidden",
-              }}>
-                {item.summary}
-              </p>
-              <div style={{ display: "flex", gap: 8, marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
-                <span>{item.author.name}</span>
-                <span>|</span>
-                <span>{formatTimeAgo(item.publishedAt)}</span>
-              </div>
-            </div>
+      {/* Image area */}
+      <div className="news-slider-img">
+        {item.featuredImage ? (
+          <img
+            key={item.id}
+            src={item.featuredImage}
+            alt={item.title}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1a1a2e, #16213e)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: "var(--color-brand)", fontSize: 48, fontWeight: 900, opacity: 0.3 }}>RE</span>
           </div>
-        ))}
+        )}
 
-        {/* Arrows - positioned at top half to avoid text overlap */}
-        <button
-          onClick={prev}
-          style={{
-            position: "absolute", left: 8, top: "35%", transform: "translateY(-50%)", zIndex: 20,
-            width: 36, height: 36, borderRadius: "50%",
-            background: "rgba(0,0,0,0.4)", border: "none",
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "background 0.2s",
-          }}
-        >
-          <svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <button
-          onClick={next}
-          style={{
-            position: "absolute", right: 8, top: "35%", transform: "translateY(-50%)", zIndex: 20,
-            width: 36, height: 36, borderRadius: "50%",
-            background: "rgba(0,0,0,0.4)", border: "none",
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "background 0.2s",
-          }}
-        >
-          <svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        {/* Dark overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)" }} />
+
+        {/* Counter */}
+        <div className="news-slider-counter">{current + 1}/{items.length}</div>
+
+        {/* Arrows */}
+        {items.length > 1 && (
+          <>
+            <button onClick={prev} className="news-slider-arrow news-slider-arrow-l" aria-label="Previous">
+              <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button onClick={next} className="news-slider-arrow news-slider-arrow-r" aria-label="Next">
+              <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </>
+        )}
+
+        {/* Text overlay */}
+        <div className="news-slider-text">
+          <Link href={`/category/${item.category.slug}`}>
+            <span className="news-slider-cat" style={{ background: item.category.color || "var(--color-brand)" }}>
+              {item.category.name}
+            </span>
+          </Link>
+          <Link href={`/article/${item.slug}`} style={{ textDecoration: "none" }}>
+            <h2 className="news-slider-title">
+              <span className="news-slider-title-highlight">{item.title.split(" ").slice(0, 3).join(" ")}</span>{" "}
+              {item.title.split(" ").slice(3).join(" ")}
+            </h2>
+          </Link>
+          <p className="news-slider-summary">{item.summary}</p>
+          <div className="news-slider-meta">
+            <span>{item.author.name}</span>
+            <span style={{ opacity: 0.4 }}>|</span>
+            <span>{formatTimeAgo(item.publishedAt)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Dots */}
-      <div style={{
-        display: "flex", justifyContent: "center", gap: 6,
-        padding: "8px 0", background: "#fff",
-      }}>
-        {items.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent(i)}
-            style={{
-              width: i === current ? 22 : 8, height: 8, borderRadius: 4,
-              background: i === current ? "var(--color-brand)" : "#ddd",
-              border: "none", cursor: "pointer", transition: "all 0.3s ease",
-            }}
-          />
-        ))}
-      </div>
+      {items.length > 1 && (
+        <div className="news-slider-dots">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`news-slider-dot ${i === current ? "active" : ""}`}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      <style>{`
+        .news-slider-wrap {
+          border-radius: 6px 6px 0 0;
+          overflow: hidden;
+          background: #000;
+        }
+        .news-slider-img {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 16/9;
+          overflow: hidden;
+        }
+        .news-slider-counter {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 20;
+          background: var(--color-brand);
+          color: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 3px 9px;
+          border-radius: 4px;
+        }
+        .news-slider-arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 20;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: rgba(0,0,0,0.35);
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+        }
+        .news-slider-wrap:hover .news-slider-arrow {
+          opacity: 1;
+        }
+        .news-slider-arrow:hover {
+          background: rgba(0,0,0,0.7);
+        }
+        .news-slider-arrow-l { left: 8px; }
+        .news-slider-arrow-r { right: 8px; }
+
+        .news-slider-text {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 0 20px 16px;
+          z-index: 15;
+        }
+        .news-slider-cat {
+          display: inline-block;
+          padding: 2px 10px;
+          border-radius: 3px;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          margin-bottom: 8px;
+        }
+        .news-slider-title {
+          font-size: 26px;
+          font-weight: 900;
+          color: #fff;
+          line-height: 1.35;
+          text-shadow: 1px 2px 8px rgba(0,0,0,0.8);
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          margin: 0;
+        }
+        .news-slider-title-highlight {
+          color: #FFD700;
+        }
+        .news-slider-summary {
+          font-size: 13px;
+          color: rgba(255,255,255,0.65);
+          font-weight: 500;
+          margin-top: 6px;
+          line-height: 1.5;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .news-slider-meta {
+          display: flex;
+          gap: 6px;
+          margin-top: 6px;
+          font-size: 11px;
+          color: rgba(255,255,255,0.4);
+        }
+        .news-slider-dots {
+          display: flex;
+          justify-content: center;
+          gap: 5px;
+          padding: 7px 0;
+          background: #fff;
+        }
+        .news-slider-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #ddd;
+          border: none;
+          cursor: pointer;
+          transition: all 0.25s;
+          padding: 0;
+        }
+        .news-slider-dot.active {
+          width: 20px;
+          border-radius: 4px;
+          background: var(--color-brand);
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+          .news-slider-img {
+            aspect-ratio: 4/3;
+          }
+          .news-slider-text {
+            padding: 0 14px 14px;
+          }
+          .news-slider-title {
+            font-size: 19px;
+            line-height: 1.4;
+            -webkit-line-clamp: 3;
+          }
+          .news-slider-summary {
+            display: none;
+          }
+          .news-slider-meta {
+            font-size: 10px;
+          }
+          .news-slider-arrow {
+            width: 30px;
+            height: 30px;
+            opacity: 1;
+          }
+          .news-slider-arrow svg {
+            width: 14px;
+            height: 14px;
+          }
+        }
+
+        /* Tablet */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .news-slider-title {
+            font-size: 20px;
+          }
+          .news-slider-summary {
+            font-size: 12px;
+            -webkit-line-clamp: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

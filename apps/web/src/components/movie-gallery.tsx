@@ -155,7 +155,7 @@ export function TrendingReels({ items }: { items: { id: string; title: string; i
       {/* Instagram Reels Viewer */}
       {reelOpen && (
         <ReelsViewer
-          reels={trendingReels}
+          reels={reelItems}
           startIndex={reelIndex}
           onClose={() => setReelOpen(false)}
         />
@@ -170,7 +170,7 @@ function ReelsViewer({
   startIndex,
   onClose,
 }: {
-  reels: typeof trendingReels;
+  reels: { id: string; title: string; image: string; views: string }[];
   startIndex: number;
   onClose: () => void;
 }) {

@@ -3,6 +3,7 @@ import { Footer } from "@/components/footer";
 import { NewsSlider } from "@/components/news-slider";
 import { LatestNewsSidebar } from "@/components/latest-news-sidebar";
 import { NewsGrid } from "@/components/news-grid";
+import { DistrictNewsGrid } from "@/components/district-news-grid";
 import { VideoWidget } from "@/components/video-widget";
 import { PhotoGallery } from "@/components/photo-gallery";
 import {
@@ -10,15 +11,26 @@ import {
   AdBannerMid,
   AdInFeedBanner,
   AdLeaderboard,
+  AdHeaderLeaderboard,
+  AdSidebarSticky,
 } from "@/components/ad-slots";
 import { MovieGallery, TrendingReels } from "@/components/movie-gallery";
 import { YettetaCartoon } from "@/components/yetteta-cartoon";
 import { WebStories } from "@/components/web-stories";
+import { WeatherWidget } from "@/components/weather-widget";
+import { PollWidget } from "@/components/poll-widget";
+import { HoroscopeWidget } from "@/components/horoscope-widget";
+import { ReturnVisitBanner } from "@/components/return-visit-banner";
+// MarketTicker removed - using individual widgets instead
+import { BullionWidget, ForexWidget, CricketWidget, MandiWidget } from "@/components/market-widgets";
 import { getFullHomepageData } from "@/lib/db-queries";
+import { cookies } from "next/headers";
 
 export default async function HomePage() {
+  const cookieStore = await cookies();
+  const myDistrictSlug = cookieStore.get("my-district")?.value || null;
   // Fetch ALL data from PostgreSQL - articles, videos, galleries, reels, stories, cartoons, ads
-  const { featured, latest, breakingNews, articlesByCategory, categories, videos, galleries, webStories, reels, cartoons, ads } = await getFullHomepageData();
+  const { featured, latest, breakingNews, articlesByCategory, categories, videos, galleries, webStories, reels, cartoons, ads, config, districtArticles } = await getFullHomepageData(myDistrictSlug);
 
   // Map DB articles to slider format
   const sliderItems = featured.map((a) => ({
@@ -84,43 +96,63 @@ export default async function HomePage() {
     image: g.coverImage,
     count: g._count.photos,
   }));
+
+  // Serialize ads for client components
+  const adItems = ads.map((a) => ({ id: a.id, position: a.position, htmlContent: a.htmlContent, imageUrl: a.imageUrl, linkUrl: a.linkUrl, name: a.name }));
+
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header />
+      <ReturnVisitBanner />
+      <Header config={config} breakingNews={breakingNews.map((b) => ({ id: b.id, text: b.headline }))} />
+
+      <AdHeaderLeaderboard ads={adItems} />
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "2px 8px 0" }}>
         {/* ===== SECTION 1: Slider + తాజా వార్తలు ===== */}
-        <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+        <div className="home-section-1">
           {/* Left: Slider + News Grid */}
-          <div className="panel" style={{ flex: "0 0 63%", overflow: "hidden" }}>
+          <div className="panel home-main">
             <NewsSlider items={sliderItems} />
-            <AdBannerMid />
-            <NewsGrid items={newsGridItems} />
+            <AdBannerMid ads={adItems} />
+            <DistrictNewsGrid districts={Object.values(districtArticles).map((d) => ({
+              district: d.district,
+              articles: d.articles.map((a) => ({
+                ...a,
+                publishedAt: a.publishedAt?.toISOString() || null,
+              })),
+            }))} />
           </div>
           {/* Right: Latest News sidebar */}
-          <div className="panel" style={{ flex: "1 1 auto", overflow: "hidden" }}>
+          <div className="panel home-sidebar">
             <LatestNewsSidebar items={latestNewsItems} />
-            <AdSidebarSquare />
+            <CricketWidget />
+            <BullionWidget />
+            <ForexWidget />
+            <MandiWidget />
+            <WeatherWidget />
+            <HoroscopeWidget />
+            <PollWidget />
+            <AdSidebarSquare ads={adItems} />
           </div>
         </div>
 
         {/* ===== SECTION 2: Video + Movies + Reels ===== */}
-        <div style={{ display: "flex", marginTop: 4, gap: 4, alignItems: "stretch" }}>
-          <div className="category-card" style={{ flex: "1 1 33.33%", minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div className="home-section-media">
+          <div className="category-card">
             <VideoWidget videos={videoItems} />
           </div>
-          <div className="category-card" style={{ flex: "1 1 33.33%", minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <div className="category-card">
             <MovieGallery items={webStories.slice(0, 6).map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, tag: s.category || "", tagColor: "#DB2777", subtitle: s.category || "" }))} />
           </div>
-          <div className="category-card" style={{ flex: "1 1 33.33%", minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <div className="category-card">
             <TrendingReels items={reels.map((r) => ({ id: r.id, title: r.title, image: r.thumbnailUrl, views: r.views }))} />
           </div>
         </div>
 
         {/* ===== BELOW FOLD: 3-col cards + right strip (like Eenadu) ===== */}
-        <div style={{ display: "flex", marginTop: 4, gap: 4 }}>
+        <div className="home-section-content">
           {/* LEFT: 3-column category grid */}
-          <div style={{ flex: "1 1 auto" }} className="space-y-2">
+          <div className="home-content-left space-y-2">
 
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -132,12 +164,12 @@ export default async function HomePage() {
             {/* Row 2 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <CategoryCard title={catName("national")} slug="national" articles={catArticles("national")} />
-              <CategoryCard title={catName("district-news")} slug="district-news" articles={catArticles("district-news")} />
+              <CategoryCard title={catName("international")} slug="international" articles={catArticles("international")} />
               <CategoryCard title={catName("agriculture")} slug="agriculture" articles={catArticles("agriculture")} />
             </div>
 
             {/* Banner Ad */}
-            <AdLeaderboard />
+            <AdLeaderboard ads={adItems} />
 
             {/* Row 3 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -152,18 +184,18 @@ export default async function HomePage() {
             {/* Photo Gallery */}
             <PhotoGallery photos={photoGalleryItems} />
 
-            <AdInFeedBanner />
+            <AdInFeedBanner ads={adItems} />
 
           </div>
 
           {/* RIGHT: ఎట్టెట Cartoon column */}
-          <div style={{ flex: "0 0 180px" }} className="hidden lg:block">
+          <div className="home-content-right hidden lg:block">
             <YettetaCartoon items={cartoons.map((c) => ({ id: c.id, title: c.title, caption: c.caption, image: c.imageUrl, date: c.date.toLocaleDateString("te-IN", { month: "long", day: "numeric" }) }))} />
           </div>
         </div>
       </main>
 
-      <Footer />
+      <Footer config={config} />
     </div>
   );
 }

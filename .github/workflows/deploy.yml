@@ -1,0 +1,87 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Azure VM
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: 20.198.2.80
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -e
+            export PATH="$HOME/.bun/bin:$PATH"
+
+            echo "=== Pull latest code ==="
+            cd /home/azureuser/app
+
+            # Clone or pull
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/mailtomcs2023/rayalaseema-express.git .
+            else
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            echo "=== Install dependencies ==="
+            bun install --frozen-lockfile || bun install
+
+            echo "=== Generate Prisma client ==="
+            cd packages/db
+            bunx prisma generate
+            bunx prisma db push --skip-generate --accept-data-loss
+            cd ../..
+
+            echo "=== Create production env files ==="
+            cat > apps/web/.env << 'ENV'
+            DATABASE_URL="postgresql://reapp:RayalaseemaExpress2026!@localhost:5432/rayalaseema_express"
+            SITE_URL="https://rayalaseemaexpress.com"
+            AZURE_OPENAI_ENDPOINT="https://rayalaseema-ai.openai.azure.com/"
+            AZURE_OPENAI_KEY="${{ secrets.AZURE_OPENAI_KEY }}"
+            AZURE_OPENAI_DEPLOYMENT="gpt51"
+            AZURE_OPENAI_API_VERSION="2024-10-21"
+            ENV
+
+            cat > apps/admin/.env << 'ENV'
+            DATABASE_URL="postgresql://reapp:RayalaseemaExpress2026!@localhost:5432/rayalaseema_express"
+            NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
+            NEXTAUTH_URL="https://rayalaseemaexpress.com/admin"
+            AZURE_OPENAI_ENDPOINT="https://rayalaseema-ai.openai.azure.com/"
+            AZURE_OPENAI_KEY="${{ secrets.AZURE_OPENAI_KEY }}"
+            AZURE_OPENAI_DEPLOYMENT="gpt51"
+            AZURE_OPENAI_API_VERSION="2024-10-21"
+            NEWSDATA_API_KEY="${{ secrets.NEWSDATA_API_KEY }}"
+            ENV
+
+            echo "=== Build apps ==="
+            export NODE_OPTIONS="--max-old-space-size=3072"
+            cd apps/web && bun run build && cd ../..
+            cd apps/admin && bun run build && cd ../..
+
+            echo "=== Seed database (first deploy only) ==="
+            cd packages/db
+            bunx tsx prisma/seed.ts 2>/dev/null || echo "Seed skipped (already seeded)"
+            cd ../..
+
+            echo "=== Restart with PM2 ==="
+            pm2 delete all 2>/dev/null || true
+
+            pm2 start "bun run start" --name "web" --cwd /home/azureuser/app/apps/web -- -p 3000
+            pm2 start "bun run start" --name "admin" --cwd /home/azureuser/app/apps/admin -- -p 3001
+
+            pm2 save
+
+            echo "=== Deploy complete! ==="
+            pm2 list

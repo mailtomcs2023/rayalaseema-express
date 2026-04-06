@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // Rayalaseema districts ARE the main nav - this is a Rayalaseema newspaper
@@ -16,7 +16,7 @@ const mainNavItems = [
   { name: "చిత్తూరు", slug: "/district/chittoor" },
   { name: "క్రీడలు", slug: "/category/sports" },
   { name: "సినిమా", slug: "/category/entertainment" },
-  { name: "రాశి ఫలాలు", slug: "/category/rasi-phalalu" },
+  { name: "రాశి ఫలాలు", slug: "/horoscope" },
   { name: "మరిన్ని ❯", slug: "#", isDropdown: true },
 ];
 
@@ -48,18 +48,29 @@ const dropdownItems = [
   { name: "పజిల్స్", slug: "/category/puzzles" },
 ];
 
-const breakingHeadlines = [
-  "తుంగభద్ర డ్యామ్ నుండి 1 లక్ష క్యూసెక్కుల నీటి విడుదల - కర్నూలు, నంద్యాల జిల్లాల్లో అప్రమత్తం",
-  "కడప స్టీల్ ప్లాంట్ ఏర్పాటుకు కేంద్ర కేబినెట్ ఆమోదం - రూ.12,000 కోట్ల పెట్టుబడి",
-  "తిరుపతి బ్రహ్మోత్సవాలు ప్రారంభం - 10 లక్షల భక్తులు అంచనా, భారీ భద్రతా ఏర్పాట్లు",
-  "అనంతపురం కియా EV ప్లాంట్ శంకుస్థాపన - 5,000 కొత్త ఉద్యోగాలు",
-  "బనగానపల్లె మామిడికి GI ట్యాగ్ - అంతర్జాతీయ మార్కెట్లో ఎగుమతులు రెట్టింపు",
-];
+interface HeaderProps {
+  config?: Record<string, string>;
+  breakingNews?: { id: string; text: string }[];
+}
 
-export function Header() {
+export function Header({ config: initialConfig = {}, breakingNews: initialBreaking = [] }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [config, setConfig] = useState(initialConfig);
+  const [breakingNews, setBreakingNews] = useState(initialBreaking);
+
+  // Self-fetch if no data was passed (for pages that don't pass props)
+  useEffect(() => {
+    if (breakingNews.length === 0) {
+      fetch("/api/breaking-news").then((r) => r.json()).then((data) => {
+        if (Array.isArray(data)) setBreakingNews(data.map((b: any) => ({ id: b.id, text: b.headline || b.text })));
+      }).catch(() => {});
+    }
+    if (Object.keys(config).length === 0) {
+      fetch("/api/config").then((r) => r.json()).then(setConfig).catch(() => {});
+    }
+  }, []);
 
   return (
     <header className="bg-white">
@@ -70,13 +81,13 @@ export function Header() {
             BREAKING
           </span>
           <div style={{ overflow: "hidden", flex: 1, padding: "6px 0" }}>
-            <div className="animate-marquee" style={{ display: "inline-block", whiteSpace: "nowrap" as const }}>
-              {breakingHeadlines.map((tag, i) => (
-                <span key={i}>
+            <div className="animate-marquee" style={{ display: "inline-block", whiteSpace: "nowrap" as const, animationDuration: `${(config.ticker_speed || 30)}s` }}>
+              {breakingNews.map((item, i) => (
+                <span key={item.id || i}>
                   <a href="#" style={{ color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none", marginLeft: 24, marginRight: 24 }}>
-                    {tag}
+                    {item.text}
                   </a>
-                  {i < breakingHeadlines.length - 1 && <span style={{ color: "var(--color-brand)" }}>●</span>}
+                  {i < breakingNews.length - 1 && <span style={{ color: "var(--color-brand)" }}>●</span>}
                 </span>
               ))}
             </div>
@@ -96,85 +107,94 @@ export function Header() {
       {searchOpen && (
         <div className="bg-gray-50 border-b border-gray-200 py-3">
           <div className="container-news">
-            <div className="flex items-center bg-white border border-gray-300 rounded-lg px-4 py-2 max-w-xl mx-auto">
+            <form action="/search" method="GET" className="flex items-center bg-white border border-gray-300 rounded-lg px-4 py-2 max-w-xl mx-auto">
               <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 type="text"
-                placeholder="వార్తలు వెతకండి..."
+                name="q"
+                placeholder="వార్తలు వెతకండి... (Telugu or English)"
                 className="flex-1 outline-none text-sm font-telugu"
                 autoFocus
               />
-              <button onClick={() => setSearchOpen(false)} className="text-gray-400 hover:text-gray-600 ml-2">✕</button>
-            </div>
+              <button onClick={() => setSearchOpen(false)} type="button" className="text-gray-400 hover:text-gray-600 ml-2">✕</button>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Masthead */}
+      {/* Masthead - Eenadu style: Logo left, ad center, links right */}
       <div className="container-news">
-        <div className="flex items-center justify-between py-3">
-          {/* Left Ad */}
-          <div className="hidden lg:block w-[160px] shrink-0">
-            <div className="bg-gradient-to-b from-blue-900 to-blue-800 text-white rounded p-2 text-center">
-              <p className="text-[9px] text-blue-200">Planning to prepare for</p>
-              <p className="text-lg font-black text-yellow-400">IAS/IPS?</p>
-              <p className="text-[9px] text-blue-200">Choose <span className="text-yellow-300 font-bold">La Excellence</span></p>
-              <p className="text-[8px] text-blue-300 mt-1">📞 9052 29 29 29</p>
-            </div>
-          </div>
-
-          {/* Center: Logo & Date */}
-          <div className="flex-1 flex flex-col items-center">
+        <div className="flex items-center py-2 gap-4">
+          {/* Left: Logo + Date */}
+          <div className="shrink-0 flex items-center gap-4">
             <Link href="/" className="block">
               <img
                 src="/logo.svg"
-                alt="రాయలసీమ ఎక్స్‌ప్రెస్ - Rayalaseema Express"
-                className="h-16 md:h-20 w-auto"
+                alt="రాయలసీమ ఎక్స్‌ప్రెస్"
+                className="h-12 md:h-16 w-auto"
               />
             </Link>
-            <p className="text-xs text-gray-500 mt-1 font-telugu">
-              {new Date().toLocaleDateString("te-IN", { weekday: "long" })},{" "}
-              {new Date().toLocaleDateString("te-IN", { month: "long", day: "numeric", year: "numeric" })}
-            </p>
+            <div className="hidden md:block border-l border-gray-200 pl-4">
+              <p className="text-sm font-bold text-gray-700 font-telugu">
+                {new Date().toLocaleDateString("te-IN", { weekday: "long" })}
+              </p>
+              <p className="text-xs text-gray-500 font-telugu">
+                {new Date().toLocaleDateString("te-IN", { day: "numeric", month: "long", year: "numeric" })}
+              </p>
+            </div>
           </div>
 
-          {/* Right: Ad + Quick Links */}
-          <div className="hidden lg:flex items-center gap-4">
-            <div className="w-[300px] bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded p-2.5">
-              <p className="text-sm font-bold text-amber-800">🏠 MY HOME UDYAN</p>
-              <p className="text-xs text-amber-700">2, 2.5, 3 & 4 BHK Premium Homes</p>
-              <p className="text-[10px] text-gray-500">at TELLAPUR | Starting ₹45 Lakhs*</p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", gap: 4 }}>
-                <a href="#" style={{ padding: "5px 10px", fontSize: 11, fontWeight: 700, color: "#555", textDecoration: "none", borderBottom: "2px solid #f59e0b" }}>
-                  ⚡ Latest
-                </a>
-                <a href="#" style={{ padding: "5px 10px", fontSize: 11, fontWeight: 700, color: "#555", textDecoration: "none", borderBottom: "2px solid var(--color-brand)" }}>
-                  🔴 Breaking
-                </a>
-              </div>
-              <Link href="/epaper" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "6px 16px", background: "var(--color-brand)", borderRadius: 4, fontSize: 12, fontWeight: 800, color: "#fff", textDecoration: "none", letterSpacing: "0.05em" }}>
-                E-PAPER
+          {/* Center: spacer (desktop only) */}
+          <div className="hidden lg:block flex-1" />
+
+          {/* Right: Tabs + E-Paper (desktop) */}
+          <div className="hidden lg:flex flex-col items-end gap-2 shrink-0">
+            {/* Top row: Latest & Breaking tabs */}
+            <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+              <Link href="/" className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border-r border-gray-200 transition-colors">
+                <svg width="14" height="14" fill="none" stroke="#f59e0b" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                తాజా వార్తలు
+              </Link>
+              <Link href="/search" className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 border-r border-gray-200 transition-colors">
+                <svg width="13" height="13" fill="none" stroke="#888" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                వెతకండి
+              </Link>
+              <Link href="/" className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-[var(--color-brand)] bg-red-50 hover:bg-red-100 transition-colors">
+                <span className="w-2 h-2 bg-[var(--color-brand)] rounded-full animate-pulse" />
+                బ్రేకింగ్
               </Link>
             </div>
+            {/* Bottom row: E-Paper + Google News Follow */}
+            <div className="flex gap-2">
+              <Link href="/epaper" className="group flex items-center gap-2 px-4 py-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-dark)] text-white rounded-lg transition-all shadow-sm hover:shadow-md">
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2"/></svg>
+                <span className="text-xs font-black tracking-wide">E-PAPER</span>
+              </Link>
+              <a href="https://news.google.com/publications/CAAqBwgKMIGwlgswrOWEAw?hl=te&gl=IN&ceid=IN:te" target="_blank" rel="noopener noreferrer"
+                className="group flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:border-blue-400 hover:bg-blue-50 rounded-lg transition-all">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.077 12c0-5.523-4.477-10-10-10S2.077 6.477 2.077 12s4.477 10 10 10 10-4.477 10-10z" fill="#4285F4"/><path d="M22.077 12c0-5.523-4.477-10-10-10" fill="#EA4335"/><path d="M2.077 12c0 5.523 4.477 10 10 10" fill="#34A853"/><path d="M2.077 12c0-5.523 4.477-10 10-10" fill="#FBBC05"/><path d="M12.077 7v10" stroke="#fff" strokeWidth="2"/><path d="M7.077 12h10" stroke="#fff" strokeWidth="2"/></svg>
+                <span className="text-xs font-bold text-gray-700 group-hover:text-blue-600">Follow</span>
+              </a>
+            </div>
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
+          {/* Mobile: hamburger */}
+          <div className="lg:hidden ml-auto">
+            <button
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -300,9 +320,9 @@ export function Header() {
             <Link href="/epaper" className="flex-1 text-center bg-[#FF2C2C] text-white py-2.5 rounded-lg font-bold text-sm" onClick={() => setMobileMenuOpen(false)}>
               E-PAPER
             </Link>
-            <a href="#" className="flex-1 text-center bg-gray-800 text-white py-2.5 rounded-lg font-bold text-sm">
-              APP
-            </a>
+            <Link href="/search" className="flex-1 text-center bg-gray-800 text-white py-2.5 rounded-lg font-bold text-sm" onClick={() => setMobileMenuOpen(false)}>
+              వెతకండి
+            </Link>
           </div>
         </div>
       )}

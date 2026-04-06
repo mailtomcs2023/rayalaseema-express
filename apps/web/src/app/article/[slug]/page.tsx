@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import { Badge } from "@rayalaseema/ui";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { TTSButton } from "@/components/tts-button";
+import { CommentsSection } from "@/components/comments-section";
+import { ScrollShareNudge } from "@/components/scroll-share-nudge";
+import { ShareBar } from "@/components/share-bar";
 import { getArticleBySlug, getTrendingArticles, getArticlesByCategory } from "@/lib/db-queries";
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -16,8 +20,41 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     getArticlesByCategory(article.category.slug, 4),
   ]);
 
+  const siteUrl = process.env.SITE_URL || "https://rayalaseemaexpress.com";
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    headline: article.title,
+    description: article.summary || "",
+    image: article.featuredImage || undefined,
+    datePublished: article.publishedAt?.toISOString(),
+    dateModified: article.updatedAt?.toISOString(),
+    author: { "@type": "Person", name: article.author.name },
+    publisher: {
+      "@type": "Organization",
+      name: "Rayalaseema Express",
+      logo: { "@type": "ImageObject", url: `${siteUrl}/logo.svg` },
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${siteUrl}/article/${slug}` },
+    articleSection: article.category.nameEn,
+    inLanguage: "te",
+  };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: article.category.name, item: `${siteUrl}/category/${article.category.slug}` },
+      { "@type": "ListItem", position: 3, name: article.title },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <ScrollShareNudge title={article.title} slug={slug} />
       <Header />
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
@@ -30,9 +67,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <span style={{ color: "#555" }}>{article.title.substring(0, 40)}...</span>
         </nav>
 
-        <div style={{ display: "flex", gap: 24 }}>
+        <div className="article-layout" style={{ display: "flex", gap: 24 }}>
           {/* Article Content */}
-          <article style={{ flex: 1 }}>
+          <article style={{ flex: 1, minWidth: 0 }}>
             {/* Category badge */}
             <Badge color={article.category.color || "#FF2C2C"}>{article.category.name}</Badge>
 
@@ -44,7 +81,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             {/* Meta */}
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, paddingBottom: 12, borderBottom: "1px solid #eee" }}>
               <div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#333" }}>{article.author.name}</p>
+                <a href={`/author/${article.author.id}`} style={{ fontSize: 14, fontWeight: 700, color: "#333", textDecoration: "none" }} className="hover:underline">{article.author.name}</a>
                 <p style={{ fontSize: 12, color: "#888" }}>
                   {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString("te-IN", { day: "numeric", month: "long", year: "numeric" }) : ""}
                 </p>
@@ -54,15 +91,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               </div>
             </div>
 
-            {/* Share buttons */}
-            <div style={{ display: "flex", gap: 6, padding: "10px 0", borderBottom: "1px solid #eee" }}>
-              <span style={{ fontSize: 12, color: "#888", marginRight: 8 }}>Share:</span>
-              {["WhatsApp", "Facebook", "Twitter", "Telegram"].map((p) => (
-                <button key={p} style={{ width: 30, height: 30, borderRadius: "50%", background: "#f3f4f6", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, color: "#666" }}>
-                  {p[0]}
-                </button>
-              ))}
+            {/* TTS + Share */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
+              <TTSButton text={article.body || ""} />
             </div>
+            <ShareBar title={article.title} slug={slug} siteUrl={siteUrl} body={article.body || ""} />
 
             {/* Featured Image */}
             {article.featuredImage && (
@@ -97,7 +130,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: "#000", marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
                   Related Articles
                 </h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="related-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                   {related.filter((r) => r.slug !== slug).slice(0, 4).map((r) => (
                     <Link key={r.id} href={`/article/${r.slug}`} style={{ display: "flex", gap: 10, textDecoration: "none" }}>
                       {r.featuredImage && (
@@ -114,10 +147,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 </div>
               </div>
             )}
+            {/* Comments */}
+            <CommentsSection articleId={article.id} />
           </article>
 
           {/* Sidebar */}
-          <aside style={{ width: 320, flexShrink: 0 }}>
+          <aside className="article-sidebar" style={{ width: 320, flexShrink: 0 }}>
             {/* Trending */}
             <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16 }}>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>

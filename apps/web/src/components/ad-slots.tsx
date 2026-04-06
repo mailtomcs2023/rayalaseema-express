@@ -1,132 +1,163 @@
 "use client";
 
-// Dummy ads for development - will be replaced with real AdSense/ad network
+import { useEffect, useRef, useState } from "react";
 
-export function AdBannerTop() {
+// ========== DB ADS (from admin panel) ==========
+
+interface DbAd {
+  id: string;
+  position: string;
+  htmlContent?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  name: string;
+}
+
+function DbAdRenderer({ ad }: { ad?: DbAd | null }) {
+  if (!ad) return null;
+  if (ad.htmlContent) return <div dangerouslySetInnerHTML={{ __html: ad.htmlContent }} />;
+  if (ad.imageUrl) {
+    const img = <img src={ad.imageUrl} alt={ad.name} style={{ width: "100%", display: "block", borderRadius: 4 }} />;
+    return ad.linkUrl ? <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer">{img}</a> : img;
+  }
+  return null;
+}
+
+// ========== GOOGLE ADSENSE ==========
+// Reads adsense ID from config. If not configured, shows DB ad or nothing.
+
+// Slot name → config key mapping
+const slotConfigKeys: Record<string, string> = {
+  header_leaderboard: "adsense_slot_header",
+  banner_mid: "adsense_slot_banner_mid",
+  sidebar_square: "adsense_slot_sidebar",
+  sidebar_sticky: "adsense_slot_sidebar_sticky",
+  in_feed: "adsense_slot_in_feed",
+  in_article: "adsense_slot_in_article",
+  mobile_anchor: "adsense_slot_mobile_anchor",
+};
+
+function AdSenseUnit({ slot, format, style, responsive }: {
+  slot: string;
+  format?: string;
+  style?: React.CSSProperties;
+  responsive?: boolean;
+}) {
+  const adRef = useRef<HTMLModElement>(null);
+  const [adsenseId, setAdsenseId] = useState("");
+  const [slotId, setSlotId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/config").then((r) => r.json()).then((cfg) => {
+      if (cfg.google_adsense_id) {
+        setAdsenseId(cfg.google_adsense_id);
+        const configKey = slotConfigKeys[slot];
+        if (configKey && cfg[configKey]) setSlotId(cfg[configKey]);
+      }
+    }).catch(() => {});
+  }, [slot]);
+
+  useEffect(() => {
+    if (!adsenseId || !slotId || !adRef.current) return;
+    try {
+      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+    } catch {}
+  }, [adsenseId, slotId]);
+
+  if (!adsenseId || !slotId) return null;
+
   return (
-    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div>
-          <p className="text-[10px] text-gray-400 mb-1">ADVERTISEMENT</p>
-          <p className="text-lg font-bold text-amber-800">🏠 MY HOME GROUP</p>
-          <p className="text-sm text-amber-700">2, 2.5, 3 & 4 BHK Premium Homes</p>
-          <p className="text-xs text-gray-500 mt-1">at TELLPUR | Starting ₹45 Lakhs*</p>
-        </div>
-        <div className="text-right">
-          <p className="text-2xl font-black text-amber-600">UDYAN</p>
-          <p className="text-[10px] text-gray-500">WELCOME TO THE PARK LIFE</p>
-        </div>
-      </div>
+    <ins
+      ref={adRef}
+      className="adsbygoogle"
+      style={{ display: "block", ...style }}
+      data-ad-client={adsenseId}
+      data-ad-slot={slotId}
+      data-ad-format={format || "auto"}
+      data-full-width-responsive={responsive !== false ? "true" : "false"}
+    />
+  );
+}
+
+// ========== COMBINED AD COMPONENTS ==========
+// Each tries: DB ad first → AdSense fallback → nothing
+
+export function AdBannerMid({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAd = ads.find((a) => a.position === "BANNER_MID");
+  if (dbAd) return <DbAdRenderer ad={dbAd} />;
+  return (
+    <div style={{ textAlign: "center", padding: "4px 0" }}>
+      <AdSenseUnit slot="banner_mid" format="horizontal" style={{ minHeight: 90 }} />
     </div>
   );
 }
 
-export function AdSidebarSquare() {
+export function AdSidebarSquare({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAd = ads.find((a) => a.position === "SIDEBAR_SQUARE");
+  if (dbAd) return <DbAdRenderer ad={dbAd} />;
   return (
-    <div className="bg-gradient-to-b from-blue-900 to-blue-800 text-white rounded overflow-hidden p-4 text-center">
-      <p className="text-[9px] text-blue-300 mb-2">ADVERTISEMENT</p>
-      <p className="text-xs text-blue-200">Planning to prepare for</p>
-      <p className="text-3xl font-black text-yellow-400 my-2">IAS/IPS?</p>
-      <p className="text-sm">Choose the best institute</p>
-      <p className="text-lg font-bold text-yellow-300 mt-1">La Excellence</p>
-      <div className="mt-3 space-y-1 text-[11px] text-left text-blue-200">
-        <p>✓ Inter with civils</p>
-        <p>✓ Degree with civils</p>
-        <p>✓ Inter with CLAT</p>
-      </div>
-      <div className="mt-3 bg-yellow-400 text-blue-900 rounded px-3 py-1.5 text-sm font-bold inline-block">
-        86 Ranks in 2025
-      </div>
-      <p className="text-xs text-blue-300 mt-2">📞 9052 29 29 29</p>
+    <div style={{ marginTop: 8 }}>
+      <AdSenseUnit slot="sidebar_square" style={{ minHeight: 250, width: "100%" }} />
     </div>
   );
 }
 
-export function AdSidebarTall() {
+export function AdLeaderboard({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAd = ads.find((a) => a.position === "LEADERBOARD");
+  if (dbAd) return <DbAdRenderer ad={dbAd} />;
   return (
-    <div className="bg-gradient-to-b from-indigo-50 to-purple-50 border border-indigo-200 rounded overflow-hidden p-4 text-center">
-      <p className="text-[9px] text-gray-400 mb-2">ADVERTISEMENT</p>
-      <p className="text-2xl font-black text-indigo-700 font-telugu">జాతక ఫలం</p>
-      <p className="text-sm text-indigo-600 font-telugu mt-1">అడగండి ప్రశ్నే</p>
-      <div className="my-4 text-5xl">🔮</div>
-      <p className="text-xs text-gray-600 font-telugu">మీ జాతకం గురించి తెలుసుకోండి</p>
-      <button className="mt-3 bg-indigo-600 text-white rounded px-4 py-1.5 text-sm font-medium">
-        Click here
-      </button>
+    <div style={{ textAlign: "center", padding: "8px 0" }}>
+      <AdSenseUnit slot="leaderboard" format="horizontal" style={{ minHeight: 90 }} />
     </div>
   );
 }
 
-export function AdBannerMid() {
+export function AdInFeedBanner({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAd = ads.find((a) => a.position === "IN_FEED");
+  if (dbAd) return <DbAdRenderer ad={dbAd} />;
   return (
-    <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded py-2.5 px-4 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <p className="text-[9px] text-gray-400">AD</p>
-        <p className="text-sm font-bold text-red-700 font-telugu">
-          రాయలసీమ ఎక్స్‌ప్రెస్ — మీ జిల్లా వార్తలు, మీ భాషలో, మీ ఫోన్‌లో
-        </p>
-      </div>
-      <button className="bg-[#FF2C2C] text-white text-xs px-3 py-1 rounded font-bold shrink-0">
-        APP Download
-      </button>
+    <div style={{ padding: "6px 0" }}>
+      <AdSenseUnit slot="in_feed" format="fluid" style={{ minHeight: 60 }} />
     </div>
   );
 }
 
-export function AdVerticalStrip() {
+// In-article ad (inside article body)
+export function AdInArticle() {
   return (
-    <div className="bg-gradient-to-b from-blue-900 to-blue-800 text-white rounded overflow-hidden p-3 text-center sticky top-[120px]">
-      <p className="text-[8px] text-blue-300 mb-2">AD</p>
-      <p className="text-[10px] text-blue-200">Planning to prepare for</p>
-      <p className="text-xl font-black text-yellow-400 my-1">IAS<br/>IPS?</p>
-      <p className="text-[10px] text-blue-200 mt-1">Choose</p>
-      <p className="text-sm font-bold text-yellow-300">La Excellence</p>
-      <div className="mt-2 text-[9px] text-left text-blue-200 space-y-0.5">
-        <p>✓ Inter with civils</p>
-        <p>✓ Degree with civils</p>
-        <p>✓ Inter with CLAT</p>
-      </div>
-      <div className="mt-2 bg-yellow-400 text-blue-900 rounded px-2 py-1 text-[10px] font-bold">
-        86 Ranks
-      </div>
-      <p className="text-[9px] text-blue-300 mt-2">📞 9052 29 29 29</p>
+    <div style={{ margin: "24px 0", textAlign: "center" }}>
+      <AdSenseUnit slot="in_article" format="fluid" responsive />
     </div>
   );
 }
 
-export function AdInFeedBanner() {
+// Header leaderboard (728x90)
+export function AdHeaderLeaderboard({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAd = ads.find((a) => a.position === "HEADER_LEADERBOARD");
+  if (dbAd) return <DbAdRenderer ad={dbAd} />;
   return (
-    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded overflow-hidden">
-      <div className="flex items-center gap-4 px-4 py-3">
-        <div className="text-4xl">🏗️</div>
-        <div>
-          <p className="text-[9px] text-gray-400">ADVERTISEMENT</p>
-          <p className="text-sm font-bold text-green-800">లగ్జరీ ఫ్లాట్.. బడ్జెట్ ధర</p>
-          <p className="text-xs text-green-700">ప్రతి అడుగులో సౌకర్యం.. సౌగతే</p>
-          <p className="text-[10px] text-gray-500 mt-0.5">ధర.. ప్రతి అడుగులో సౌకర్యం | 2 & 3 BHK</p>
-        </div>
-        <div className="ml-auto">
-          <button className="bg-green-600 text-white text-xs px-3 py-1.5 rounded font-medium">
-            Book Now
-          </button>
-        </div>
-      </div>
+    <div className="hidden md:block" style={{ textAlign: "center", padding: "4px 0", background: "#f9fafb" }}>
+      <AdSenseUnit slot="header_leaderboard" format="horizontal" style={{ minHeight: 90, maxWidth: 728, margin: "0 auto" }} />
     </div>
   );
 }
 
-export function AdLeaderboard() {
+// Sticky sidebar ad (300x600)
+export function AdSidebarSticky({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAd = ads.find((a) => a.position === "SIDEBAR_TALL");
+  if (dbAd) return <div style={{ position: "sticky", top: 80 }}><DbAdRenderer ad={dbAd} /></div>;
   return (
-    <div className="bg-white border border-gray-200 rounded overflow-hidden">
-      <div className="flex items-center justify-center gap-6 px-4 py-4">
-        <img src="/logo.svg" alt="Rayalaseema Express" className="h-10 w-auto" />
-        <div className="border-l border-gray-200 pl-6">
-          <p className="text-[9px] text-gray-400 mb-0.5">ADVERTISE WITH US</p>
-          <p className="text-sm text-gray-600 font-telugu">మీ వ్యాపార ప్రకటన ఇక్కడ</p>
-          <p className="text-sm font-bold text-gray-800">ads@rayalaseemaexpress.com</p>
-          <p className="text-xs text-gray-500">📞 98765 43210</p>
-        </div>
-      </div>
+    <div style={{ position: "sticky", top: 80, marginTop: 8 }}>
+      <AdSenseUnit slot="sidebar_sticky" style={{ minHeight: 600, width: "100%" }} />
+    </div>
+  );
+}
+
+// Mobile anchor ad (sticky bottom)
+export function AdMobileAnchor() {
+  return (
+    <div className="md:hidden" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9990, textAlign: "center", background: "#fff", borderTop: "1px solid #eee", padding: "2px 0" }}>
+      <AdSenseUnit slot="mobile_anchor" format="horizontal" style={{ minHeight: 50 }} />
     </div>
   );
 }

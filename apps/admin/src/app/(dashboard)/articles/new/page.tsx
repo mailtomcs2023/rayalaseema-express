@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
-import { RichEditor } from "@/components/rich-editor";
+import { RichEditor, type RichEditorRef } from "@/components/rich-editor";
 import { TeluguInput } from "@/components/telugu-input";
+import { ImageUpload } from "@/components/image-upload";
 
 interface Category {
   id: string;
@@ -29,6 +30,10 @@ export default function NewArticlePage() {
   const [status, setStatus] = useState("DRAFT");
   const [featured, setFeatured] = useState(false);
   const [breaking, setBreaking] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAction, setAiAction] = useState("");
+  const [success, setSuccess] = useState("");
+  const editorRef = useRef<RichEditorRef>(null);
 
   // Load categories
   useEffect(() => {
@@ -94,6 +99,53 @@ export default function NewArticlePage() {
     router.refresh();
   };
 
+  const handleAI = async (action: string) => {
+    const text = body || summary || title;
+    if (!text) { setError("No content to process - write something first"); return; }
+    setAiLoading(true);
+    setAiAction(action);
+    setError("");
+    try {
+      const res = await fetch("/api/ai/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: `Title: ${title}\n\nSummary: ${summary}\n\nBody: ${body.replace(/<[^>]+>/g, " ").trim()}`,
+          action,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); }
+      else if (data.result) {
+        if (action === "summarize") {
+          setSummary(data.result.replace(/<[^>]+>/g, "").trim());
+          setSuccess("Summary generated!");
+        } else if (action === "headline") {
+          setSuccess(data.result);
+        } else if (action === "proofread") {
+          setBody(data.result);
+          editorRef.current?.setContent(data.result);
+          setSuccess("Proofread complete!");
+        } else {
+          // Translation or editorial - update title, summary, body
+          const h2Match = data.result.match(/<h2[^>]*>(.*?)<\/h2>/);
+          if (h2Match) setTitle(h2Match[1].replace(/<[^>]+>/g, "").trim());
+          const pMatch = data.result.match(/<p[^>]*>(.*?)<\/p>/);
+          if (pMatch) {
+            const firstPara = pMatch[1].replace(/<[^>]+>/g, "").trim();
+            if (firstPara.length > 20) setSummary(firstPara.substring(0, 200));
+          }
+          setBody(data.result);
+          editorRef.current?.setContent(data.result);
+          setSuccess(`Translated! (${data.tokens?.total_tokens || 0} tokens)`);
+        }
+      }
+    } catch (e: any) { setError(e.message); }
+    setAiLoading(false);
+    setAiAction("");
+    setTimeout(() => setSuccess(""), 6000);
+  };
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f3f4f6" }}>
       <Sidebar />
@@ -133,6 +185,12 @@ export default function NewArticlePage() {
         {error && (
           <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#dc2626" }}>
             {error}
+          </div>
+        )}
+        {/* Success */}
+        {success && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 16px", marginBottom: 16, fontSize: 13, color: "#166534", whiteSpace: "pre-wrap" }}>
+            {success}
           </div>
         )}
 
@@ -176,9 +234,40 @@ export default function NewArticlePage() {
               <p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{summary.split(/\s+/).filter(Boolean).length} / 60 words</p>
             </div>
 
+            {/* AI Tools Bar */}
+            <div style={{ background: "#111827", borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#9ca3af" }}>AI (GPT-5.1):</span>
+              <button onClick={() => handleAI("translate")} disabled={aiLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: aiLoading ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, background: aiLoading && aiAction === "translate" ? "#4b5563" : "#3b82f6", color: "#fff" }}>
+                {aiLoading && aiAction === "translate" ? "Translating..." : "తెలుగులో రాయండి"}
+              </button>
+              <button onClick={() => handleAI("editorial")} disabled={aiLoading}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: aiLoading ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700, background: aiLoading && aiAction === "editorial" ? "#4b5563" : "#FF2C2C", color: "#fff" }}>
+                {aiLoading && aiAction === "editorial" ? "Writing..." : "రాయలసీమ ఎడిటోరియల్"}
+              </button>
+              <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                <button onClick={() => handleAI("proofread")} disabled={aiLoading}
+                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #374151", background: "transparent", color: "#9ca3af", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Proofread
+                </button>
+                <button onClick={() => handleAI("summarize")} disabled={aiLoading}
+                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #374151", background: "transparent", color: "#9ca3af", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Summary
+                </button>
+                <button onClick={() => handleAI("headline")} disabled={aiLoading}
+                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #374151", background: "transparent", color: "#9ca3af", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Headlines
+                </button>
+                <button onClick={() => handleAI("expand")} disabled={aiLoading}
+                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #374151", background: "transparent", color: "#9ca3af", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Expand
+                </button>
+              </div>
+            </div>
+
             {/* Body - Rich Text Editor */}
             <div style={{ marginBottom: 16 }}>
-              <RichEditor content={body} onChange={setBody} />
+              <RichEditor ref={editorRef} content={body} onChange={setBody} />
             </div>
           </div>
 
@@ -203,18 +292,7 @@ export default function NewArticlePage() {
 
             {/* Featured Image */}
             <div style={{ background: "#fff", borderRadius: 10, padding: 20, marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#555", marginBottom: 8 }}>Featured Image URL</label>
-              <input
-                type="url"
-                value={featuredImage}
-                onChange={(e) => setFeaturedImage(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-                style={{ width: "100%", border: "1px solid #eee", borderRadius: 8, padding: "10px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }}
-              />
-              {featuredImage && (
-                <img src={featuredImage} alt="Preview" style={{ width: "100%", borderRadius: 6, marginTop: 8, aspectRatio: "16/9", objectFit: "cover" }} />
-              )}
-              <p style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>Image upload coming soon. Use URL for now.</p>
+              <ImageUpload value={featuredImage} onChange={setFeaturedImage} />
             </div>
 
             {/* Options */}

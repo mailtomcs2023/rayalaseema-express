@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(az vm:*)",
+      "Bash(curl -s -X PUT https://api.godaddy.com/v1/domains/rayalaseemaexpress.com/records/A/@ -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW' -H 'Content-Type: application/json' -d '[{\"data\":\"20.198.2.80\",\"ttl\":600}]')",
+      "Bash(curl -s -X PUT https://api.godaddy.com/v1/domains/rayalaseemaexpress.com/records/CNAME/www -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW' -H 'Content-Type: application/json' -d '[{\"data\":\"rayalaseemaexpress.com\",\"ttl\":600}]')",
+      "Bash(curl -s -X PUT https://api.godaddy.com/v1/domains/rayalaseemaexpress.in/records/A/@ -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW' -H 'Content-Type: application/json' -d '[{\"data\":\"20.198.2.80\",\"ttl\":600}]')",
+      "Bash(curl -s https://api.godaddy.com/v1/domains/rayalaseemaexpress.com/records/A/@ -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW')",
+      "Bash(gh secret:*)",
+      "Bash(ssh azureuser@20.198.2.80 'bash -s')"
+    ]
+  }
+}

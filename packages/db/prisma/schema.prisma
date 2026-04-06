@@ -76,6 +76,7 @@ model Article {
   category        Category      @relation(fields: [categoryId], references: [id])
   tags            ArticleTag[]
   socialPosts     SocialPost[]
+  comments        Comment[]
 
   // Location tagging
   constituencyId  String?
@@ -421,4 +422,62 @@ model Ad {
 
   @@index([position, active])
   @@map("ads")
+}
+
+// ============ COMMENTS ============
+
+model Comment {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  content   String   @db.Text
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([articleId, approved])
+  @@map("comments")
+}
+
+// ============ MANDI PRICES ============
+
+model MandiPrice {
+  id        String   @id @default(cuid())
+  commodity String   // e.g. "మిర్చి", "పత్తి"
+  commodityEn String // e.g. "Chilli", "Cotton"
+  market    String   // e.g. "కర్నూలు"
+  marketEn  String   // e.g. "Kurnool"
+  price     Float    // price per quintal in Rs
+  unit      String   @default("క్వింటల్")
+  change    Float    @default(0) // daily change percentage
+  date      DateTime @default(now())
+  active    Boolean  @default(true)
+
+  @@index([date, active])
+  @@map("mandi_prices")
+}
+
+// ============ POLLS ============
+
+model Poll {
+  id        String       @id @default(cuid())
+  question  String
+  active    Boolean      @default(true)
+  options   PollOption[]
+  createdAt DateTime     @default(now())
+  expiresAt DateTime?
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  poll   Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  text   String
+  votes  Int    @default(0)
+
+  @@index([pollId])
+  @@map("poll_options")
 }
