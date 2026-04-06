@@ -33,6 +33,8 @@ export default function EditArticlePage() {
   const [status, setStatus] = useState("DRAFT");
   const [featured, setFeatured] = useState(false);
   const [breaking, setBreaking] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAction, setAiAction] = useState("");
 
   // Load article and categories
   useEffect(() => {
@@ -84,6 +86,45 @@ export default function EditArticlePage() {
       setTimeout(() => setSuccess(""), 3000);
     }
     setSaving(false);
+  };
+
+  const handleAI = async (action: string) => {
+    const text = body || summary || title;
+    if (!text) { setError("No content to process"); return; }
+    setAiLoading(true);
+    setAiAction(action);
+    setError("");
+    try {
+      // Extract source URL from body if present
+      const urlMatch = body.match(/href="(https?:\/\/[^"]+)"/);
+      const sourceUrl = urlMatch ? urlMatch[1] : undefined;
+
+      const res = await fetch("/api/ai/rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: `Title: ${title}\n\nSummary: ${summary}\n\nBody: ${body.replace(/<[^>]+>/g, " ").trim()}`,
+          action,
+          sourceUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); }
+      else if (data.result) {
+        if (action === "summarize") {
+          setSummary(data.result);
+          setSuccess("Summary generated!");
+        } else if (action === "headline") {
+          setSuccess(data.result);
+        } else {
+          setBody(data.result);
+          setSuccess(`AI ${action} complete! (${data.tokens?.total || 0} tokens used)`);
+        }
+      }
+    } catch (e: any) { setError(e.message); }
+    setAiLoading(false);
+    setAiAction("");
+    setTimeout(() => setSuccess(""), 5000);
   };
 
   const handleDelete = async () => {
@@ -182,6 +223,32 @@ export default function EditArticlePage() {
                 multiline rows={3}
                 style={{ border: "1px solid #eee", borderRadius: 8, padding: 12, fontSize: 14, resize: "vertical" }}
               />
+            </div>
+
+            {/* AI Tools Bar */}
+            <div style={{ background: "#111827", borderRadius: 10, padding: "10px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#9ca3af", marginRight: 4 }}>AI Tools (GPT-5.1):</span>
+              {[
+                { action: "translate", label: "Translate to Telugu", icon: "🔄" },
+                { action: "rewrite", label: "Rewrite in Rayalaseema Style", icon: "✍️" },
+                { action: "summarize", label: "Generate Summary", icon: "📝" },
+                { action: "headline", label: "Suggest Headlines", icon: "💡" },
+                { action: "proofread", label: "Proofread & Fix", icon: "✅" },
+              ].map((tool) => (
+                <button
+                  key={tool.action}
+                  onClick={() => handleAI(tool.action)}
+                  disabled={aiLoading}
+                  style={{
+                    padding: "6px 14px", borderRadius: 6, border: "none", cursor: aiLoading ? "not-allowed" : "pointer",
+                    fontSize: 12, fontWeight: 700,
+                    background: aiLoading && aiAction === tool.action ? "#4b5563" : "#374151",
+                    color: "#fff", transition: "all 0.15s",
+                  }}
+                >
+                  {aiLoading && aiAction === tool.action ? "Processing..." : `${tool.icon} ${tool.label}`}
+                </button>
+              ))}
             </div>
 
             {/* Body - Rich Editor */}

@@ -5,45 +5,64 @@ const KEY = process.env.AZURE_OPENAI_KEY!;
 const DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt51";
 const API_VERSION = process.env.AZURE_OPENAI_API_VERSION || "2024-10-21";
 
-const SYSTEM_PROMPT = `You are a senior Telugu newspaper editor for "Rayalaseema Express" (రాయలసీమ ఎక్స్‌ప్రెస్), a newspaper covering the Rayalaseema region of Andhra Pradesh.
+const SYSTEM_PROMPT = `You are a senior Telugu newspaper editor for "Rayalaseema Express", covering Rayalaseema region of Andhra Pradesh.
 
-Your job is to rewrite news articles in authentic, bold, newspaper-style Telugu. Follow these rules:
-1. Write in pure Telugu - no English words unless they are proper nouns (names, places, organizations)
-2. Use Rayalaseema dialect flavor where appropriate
-3. Write in newspaper headline style - bold, impactful, attention-grabbing
-4. Include relevant local context for Rayalaseema readers
-5. Structure with proper HTML: <h2> for subheadings, <p> for paragraphs, <blockquote> for quotes
-6. Keep facts accurate - never fabricate information
-7. Add a compelling headline suggestion at the top
-8. Keep the article between 300-500 words`;
+Rewrite news in authentic, bold, newspaper-style Telugu:
+1. Pure Telugu - no English except proper nouns
+2. Rayalaseema dialect flavor where appropriate
+3. Bold newspaper headline style
+4. Structure: <h2> subheadings, <p> paragraphs, <blockquote> quotes
+5. Keep facts accurate - never fabricate
+6. Start with compelling headline in <h2>
+7. Article 300-500 words
+8. Local context for Rayalaseema readers`;
+
+// Scrape full article text from source URL
+async function scrapeSource(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; RayalaseemaExpress/1.0)" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const html = await res.text();
+    // Strip scripts, styles, nav, ads - keep article text
+    return html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
+      .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ")
+      .trim()
+      .substring(0, 5000);
+  } catch { return ""; }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, action, language } = await req.json();
+    const { text, action, sourceUrl } = await req.json();
+    if (!text && !sourceUrl) return NextResponse.json({ error: "Text or source URL required" }, { status: 400 });
 
-    if (!text) return NextResponse.json({ error: "Text is required" }, { status: 400 });
-
-    let userPrompt = "";
-
-    switch (action) {
-      case "rewrite":
-        userPrompt = `Rewrite this news article in Rayalaseema Telugu newspaper style. Return HTML with headline:\n\n${text}`;
-        break;
-      case "translate":
-        userPrompt = `Translate this English news to Telugu in Rayalaseema newspaper style. Return HTML:\n\n${text}`;
-        break;
-      case "summarize":
-        userPrompt = `Summarize this article in 60 words in Telugu (for short news app):\n\n${text}`;
-        break;
-      case "headline":
-        userPrompt = `Suggest 5 catchy Telugu headlines for this article. Return as numbered list:\n\n${text}`;
-        break;
-      case "proofread":
-        userPrompt = `Proofread and fix any Telugu spelling/grammar errors. Return corrected HTML:\n\n${text}`;
-        break;
-      default:
-        userPrompt = `Rewrite in Telugu newspaper style:\n\n${text}`;
+    // Scrape source URL for full content (saves money vs paid API)
+    let fullText = text || "";
+    if (sourceUrl) {
+      const scraped = await scrapeSource(sourceUrl);
+      if (scraped.length > 100) {
+        fullText = `FULL ARTICLE FROM SOURCE (${sourceUrl}):\n${scraped}\n\nSHORT DESCRIPTION:\n${text}`;
+      }
     }
+
+    const prompts: Record<string, string> = {
+      rewrite: `Rewrite this news in Rayalaseema Telugu newspaper style. Full article with headline, subheadings, paragraphs:\n\n${fullText}`,
+      translate: `Translate this English news to Telugu in Rayalaseema newspaper style. Full article:\n\n${fullText}`,
+      summarize: `Summarize in exactly 60 words in Telugu. Only return summary:\n\n${fullText}`,
+      headline: `Suggest 5 catchy Telugu headlines. Numbered list:\n\n${fullText}`,
+      proofread: `Proofread and fix Telugu spelling/grammar. Return corrected HTML:\n\n${fullText}`,
+      expand: `Read the source content and write a full 400-word Telugu newspaper article:\n\n${fullText}`,
+    };
 
     const res = await fetch(
       `${ENDPOINT}openai/deployments/${DEPLOYMENT}/chat/completions?api-version=${API_VERSION}`,
@@ -53,27 +72,22 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userPrompt },
+            { role: "user", content: prompts[action] || prompts.rewrite },
           ],
-          max_completion_tokens: 1500,
+          max_completion_tokens: 2000,
           temperature: 0.7,
         }),
       }
     );
 
     const data = await res.json();
-
-    if (data.error) {
-      return NextResponse.json({ error: data.error.message }, { status: 500 });
-    }
-
-    const output = data.choices?.[0]?.message?.content || "";
-    const usage = data.usage || {};
+    if (data.error) return NextResponse.json({ error: data.error.message }, { status: 500 });
 
     return NextResponse.json({
-      result: output,
-      tokens: { prompt: usage.prompt_tokens, completion: usage.completion_tokens, total: usage.total_tokens },
+      result: data.choices?.[0]?.message?.content || "",
+      tokens: data.usage || {},
       model: data.model,
+      sourceScraped: !!sourceUrl,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
