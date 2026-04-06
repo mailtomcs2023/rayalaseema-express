@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const query = searchParams.get("q") || "Rayalaseema OR Kurnool OR Anantapur OR Kadapa OR Tirupati OR Chittoor";
   const category = searchParams.get("category") || "";
   const language = searchParams.get("language") || "te,en";
-  const size = searchParams.get("size") || "10";
+  const size = Math.min(parseInt(searchParams.get("size") || "10"), 10).toString();
 
   try {
     let url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_API_KEY}&q=${encodeURIComponent(query)}&language=${language}&size=${size}`;

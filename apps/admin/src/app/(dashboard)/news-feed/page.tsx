@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 
@@ -25,19 +25,37 @@ export default function NewsFeedPage() {
   const [language, setLanguage] = useState("te,en");
   const [importing, setImporting] = useState<string | null>(null);
   const [imported, setImported] = useState<Set<string>>(new Set());
+  const [error, setError] = useState("");
 
-  const fetchNews = async (searchQuery?: string) => {
-    const q = searchQuery || query;
+  const fetchNews = useCallback(async (searchQuery?: string) => {
+    const q = (typeof searchQuery === "string" ? searchQuery : "") || query;
+    if (!q || !q.trim()) return;
     setLoading(true);
+    setError("");
     try {
-      const res = await fetch(`/api/fetch-news?q=${encodeURIComponent(q)}&language=${language}&size=20`);
+      const url = `/api/fetch-news?q=${encodeURIComponent(q)}&language=${language}&size=10`;
+      console.log("Fetching:", url);
+      const res = await fetch(url);
+      if (!res.ok) {
+        setError(`API error: ${res.status}`);
+        setLoading(false);
+        return;
+      }
       const data = await res.json();
+      console.log("Got", data.articles?.length, "articles");
       setArticles(data.articles || []);
-    } catch (e) {
+      if (data.articles?.length === 0) setError("No results found. Try different keywords.");
+    } catch (e: any) {
       console.error("Fetch error:", e);
+      setError(e.message || "Failed to fetch news");
     }
     setLoading(false);
-  };
+  }, [query, language]);
+
+  // Auto-load on page open
+  useEffect(() => {
+    fetchNews("Rayalaseema");
+  }, []);
 
   const importArticle = async (article: NewsItem) => {
     setImporting(article.externalId);
@@ -80,7 +98,7 @@ export default function NewsFeedPage() {
             <option value="te">Telugu Only</option>
             <option value="en">English Only</option>
           </select>
-          <button onClick={fetchNews} disabled={loading} style={{ padding: "10px 24px", background: "#FF2C2C", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={() => fetchNews()} disabled={loading} style={{ padding: "10px 24px", background: "#FF2C2C", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
             {loading ? "Searching..." : "Search"}
           </button>
         </div>
@@ -94,10 +112,24 @@ export default function NewsFeedPage() {
           ))}
         </div>
 
+        {/* Error */}
+        {error && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 16px", marginBottom: 12, fontSize: 13, color: "#dc2626" }}>
+            {error}
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign: "center", padding: 40, background: "#fff", borderRadius: 10, color: "#888" }}>
+            <p style={{ fontSize: 16 }}>Searching news...</p>
+          </div>
+        )}
+
         {/* Results */}
-        {articles.length === 0 && !loading && (
+        {articles.length === 0 && !loading && !error && (
           <div style={{ textAlign: "center", padding: 60, background: "#fff", borderRadius: 10, color: "#aaa" }}>
-            <p style={{ fontSize: 16 }}>Click "Search" to browse latest news</p>
+            <p style={{ fontSize: 16 }}>Loading latest Rayalaseema news...</p>
             <p style={{ fontSize: 13, marginTop: 8 }}>Powered by NewsData.io API</p>
           </div>
         )}
