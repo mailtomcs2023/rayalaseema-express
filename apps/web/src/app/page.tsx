@@ -136,18 +136,14 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* ===== SECTION 2: Video + Movies + Reels ===== */}
-        <div className="home-section-media">
-          <div className="category-card">
-            <VideoWidget videos={videoItems} />
+        {/* ===== SECTION 2: Video + Movies + Reels (only if content exists) ===== */}
+        {(videos.length > 0 || webStories.length > 0 || reels.length > 0) && (
+          <div className="home-section-media">
+            {videos.length > 0 && <div className="category-card"><VideoWidget videos={videoItems} /></div>}
+            {webStories.length > 0 && <div className="category-card"><MovieGallery items={webStories.slice(0, 6).map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, tag: s.category || "", tagColor: "#DB2777", subtitle: s.category || "" }))} /></div>}
+            {reels.length > 0 && <div className="category-card"><TrendingReels items={reels.map((r) => ({ id: r.id, title: r.title, image: r.thumbnailUrl, views: r.views }))} /></div>}
           </div>
-          <div className="category-card">
-            <MovieGallery items={webStories.slice(0, 6).map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, tag: s.category || "", tagColor: "#DB2777", subtitle: s.category || "" }))} />
-          </div>
-          <div className="category-card">
-            <TrendingReels items={reels.map((r) => ({ id: r.id, title: r.title, image: r.thumbnailUrl, views: r.views }))} />
-          </div>
-        </div>
+        )}
 
         {/* ===== BELOW FOLD: 3-col cards + right strip (like Eenadu) ===== */}
         <div className="home-section-content">
@@ -179,19 +175,21 @@ export default async function HomePage() {
             </div>
 
             {/* Web Stories */}
-            <WebStories items={webStories.map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, category: s.category || "" }))} />
+            {webStories.length > 0 && <WebStories items={webStories.map((s) => ({ id: s.id, title: s.title, image: s.imageUrl, category: s.category || "" }))} />}
 
             {/* Photo Gallery */}
-            <PhotoGallery photos={photoGalleryItems} />
+            {galleries.length > 0 && <PhotoGallery photos={photoGalleryItems} />}
 
             <AdInFeedBanner ads={adItems} />
 
           </div>
 
           {/* RIGHT: ఎట్టెట Cartoon column */}
-          <div className="home-content-right hidden lg:block">
-            <YettetaCartoon items={cartoons.map((c) => ({ id: c.id, title: c.title, caption: c.caption, image: c.imageUrl, date: c.date.toLocaleDateString("te-IN", { month: "long", day: "numeric" }) }))} />
-          </div>
+          {cartoons.length > 0 && (
+            <div className="home-content-right hidden lg:block">
+              <YettetaCartoon items={cartoons.map((c) => ({ id: c.id, title: c.title, caption: c.caption, image: c.imageUrl, date: c.date.toLocaleDateString("te-IN", { month: "long", day: "numeric" }) }))} />
+            </div>
+          )}
         </div>
       </main>
 

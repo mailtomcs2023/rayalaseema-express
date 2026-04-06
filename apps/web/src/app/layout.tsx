@@ -61,7 +61,7 @@ export default async function RootLayout({
           publishingPrinciples: "https://rayalaseemaexpress.com/about",
         }) }} />
       </head>
-      <body className="font-telugu antialiased">{children}<DistrictPicker /><WhatsAppFloat /><CookieConsent /><PushNotifications /></body>
+      <body className="font-telugu antialiased" suppressHydrationWarning>{children}<DistrictPicker /><WhatsAppFloat /><CookieConsent /><PushNotifications /></body>
     </html>
   );
 }
