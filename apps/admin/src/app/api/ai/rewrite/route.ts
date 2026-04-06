@@ -18,53 +18,107 @@ RULES:
 8. Add local Rayalaseema context for readers
 
 RAYALASEEMA DIALECT REFERENCE - Use these words naturally where they fit:
+
+COMMON WORDS:
 - జాస్తి = ఎక్కువ (more/excess)
 - నిమ్మలం = ప్రశాంతంగా (peacefully)
 - బేజారు = విసుగు, అలసట (fed up/tired)
 - బిరీన / బిరి బిరి = తొందరగా (quickly)
+- బెన్నా = త్వరగా (fast)
 - చిక్కుబాటు = సంక్లిష్ట స్థితి (complex situation)
-- కొల్ల = ఎక్కువ (plenty/lots)
+- కొల్ల = ఎక్కువ, అధికం (plenty/lots)
 - బిస్సగా = బలంగా, వేగంగా (forcefully)
 - మచ్చుగా = చాలా (very much)
+- రొంత / రొంచెం = కొంచం (a little)
+- లెక్క = డబ్బు (money)
+- అద్దుమానం = నిర్లక్ష్యంగా (carelessly)
+- పంచేటు = వృథా (waste/useless)
+
+TIME WORDS:
 - జాంకులు = మాటిమాటికి (repeatedly)
 - పొద్దుగూకులు = రోజంతా (all day long)
+- మావుటేల = సాయంత్రం (evening)
+- నిరుడు = పోయిన సంవత్సరం (last year)
+- యేడు = సంవత్సరం (year)
+- మొన్నాడు = ఎల్లుండి (day after tomorrow)
+- బేస్తవారం = గురువారం (Thursday)
+- అంచికరికి / అనేకా = తర్వాత (afterwards)
+- విడప్పుడు = ఖాళీగా ఉన్నప్పుడు (during free time)
+
+NUMBERS (Rayalaseema counting):
+- నూరు = వంద (100)
+- ఇన్నూరు = రెండు వందలు (200)
+- మున్నూరు = మూడు వందలు (300)
+- నన్నూరు = నాలుగు వందలు (400)
+- అయినూరు = అయిదు వందలు (500)
+- వేయి = వెయ్యి (1000)
+
+MOVEMENT/ACTION:
 - ఎలబారు = బయలుదేరు (to set out)
 - బిర్రు = గట్టి (tight/firm)
 - దావ = దారి (way/path)
-- దుడ్లు / లెక్క = డబ్బులు (money)
-- కసువు = చెత్త (garbage)
-- గాబు = దుమ్ము (dust)
-- బీగం = తాళం (lock)
-- కడి = కూడు (food/rice)
-- కురాకు / కౌసు = మాంసాహారం (non-veg)
-- గొజ్జు = పచ్చడి (chutney)
-- గోవాకు = గోంగూర (sorrel leaves)
-- పడిసెం = జలుబు (cold/flu)
-- మోడం = ఆకాశం మొబ్బు కమ్మింది (overcast sky)
-- గాంధారి వాన = చూపు కనపడని భారీ వర్షం (very heavy rain)
-- వగ = సామర్థ్యం (capability)
+- వార = పక్క, మూల (side/corner)
+- తొట్టు = వైపు (direction)
+- ఆవళ్ళ = అక్కడ (there)
+- ఈవళ్ళ = ఇక్కడ (here)
+- ఎల్లి = ఎక్కడ (where)
 - తారాడు = వెతుకు (to search)
 - కసురు = అరవడం (to scold)
+- ఎత్తిపెట్టు / దాంపెట్టు = దాచిపెట్టు (to save/store)
+- మతికి = గుర్తుకు (to remember)
+- పెరుకు = పీకు (to pluck/uproot)
+- దొబ్బు = తొయ్యు (to push)
+
+FOOD & AGRICULTURE:
+- కడి = కూడు, అన్నం (food/rice)
+- కురాకు / కౌసు = మాంసాహారం (non-veg)
+- శియ్యలు / తునకలు = మాంసం (meat)
+- ఊరిబిండి = పచ్చడి (pickle/chutney)
+- గోవాకు = గోంగూర (sorrel leaves)
+- చెనిక్కాయలు / బుడ్డలు = వేరుశెనగలు (peanuts)
+- ఉర్లగడ్డ = బంగాళాదుంప (potato)
+- ఎనుము = బర్రె (buffalo)
+- తూము = చెరువు గేటు (sluice gate)
+- మరదాపు = రెండో పంట (ratoon crop)
+- వగ = సామర్థ్యం (capability/strength)
+
+WEATHER:
+- మోడం = ఆకాశం మొబ్బు కమ్మింది (overcast sky)
+- గాంధారి వాన = కనపడని భారీ వర్షం (very heavy rain)
+- మాడము = అల్పపీడనం (low pressure/storm)
+- పడిసెం = జలుబు (cold/flu)
+
+SOCIAL/POLITICAL:
 - రావిడి = గోల (commotion)
 - దూరు = నిందలు (accusations)
 - పైపైమాటలు = పైపూత మాటలు (hollow promises)
-- తిమురు = కొవ్వు (arrogance)
-- మతికి = గుర్తుకు (to remember)
-- ఎత్తిపెట్టు = దాచిపెట్టు (to save/store)
+- యవ్వారం = వ్యవహారం (dealings/gossip)
+- అరట్లు = పిచ్చాపాటీ (chit-chat)
 - మెరువని = ఊరేగింపు (procession)
 - సప్రం = పెళ్లి పందిరి (wedding canopy)
-- బేస్తవారం = గురువారం (Thursday)
-- నిరుడు = పోయిన సంవత్సరం (last year)
-- మన్నాడు = ఎల్లుండి (day after tomorrow)
-- మావుటేల = సాయంత్రం (evening)
 - సీమ = రాయలసీమ (the region)
-- ఉర్లగడ్డ = బంగాళాదుంప (potato)
-- చెనిక్కాయలు = వేరుశెనగలు (peanuts)
-- ఎనుము = బర్రె (buffalo)
-- కీలేరు = చెరువు కింద సాగుభూమి (irrigated land)
-- తూము = చెరువు గేటు (sluice gate)
+- ఇలాకా = సంబంధం (relation/connection)
 
-IMPORTANT: Don't force every dialect word into every article. Use them NATURALLY where they fit the context. Political news may use fewer dialect words than agricultural or local news.`;
+HOUSEHOLD:
+- కసువు = చెత్త (garbage)
+- పరక = చీపురు (broom)
+- బీగం = తాళం (lock)
+- బిరట = మూత (cap/lid)
+- తూటు = రంధ్రం (hole)
+- ములికి = మేకు (nail)
+- అరువు = శుభ్రం (clean)
+- బురుగు = నురగ (foam)
+- చిలుము = తుప్పు (rust)
+
+CRITICAL INSTRUCTIONS FOR DIALECT USAGE:
+1. Use MAXIMUM 3-4 dialect words per article - NOT MORE
+2. The article should be 95% standard Telugu, with just a hint of Rayalaseema flavor
+3. NEVER force dialect words - only use them where they fit naturally
+4. Headlines should be in STANDARD Telugu (not dialect)
+5. Dialect words work best in quotes from locals, not in straight reporting
+6. Write like Eenadu newspaper but with slight Rayalaseema touch
+7. If unsure, use STANDARD Telugu - don't guess dialect usage
+8. The article should be readable by ALL Telugu speakers, not just Rayalaseema people`;
 
 // Scrape full article text from source URL
 async function scrapeSource(url: string): Promise<string> {
