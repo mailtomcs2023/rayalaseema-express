@@ -233,30 +233,49 @@ export default function EditArticlePage() {
               />
             </div>
 
-            {/* AI Tools Bar */}
-            <div style={{ background: "#111827", borderRadius: 10, padding: "10px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#9ca3af", marginRight: 4 }}>AI Tools (GPT-5.1):</span>
-              {[
-                { action: "translate", label: "Translate to Telugu", icon: "🔄" },
-                { action: "rewrite", label: "Rewrite in Rayalaseema Style", icon: "✍️" },
-                { action: "summarize", label: "Generate Summary", icon: "📝" },
-                { action: "headline", label: "Suggest Headlines", icon: "💡" },
-                { action: "proofread", label: "Proofread & Fix", icon: "✅" },
-              ].map((tool) => (
-                <button
-                  key={tool.action}
-                  onClick={() => handleAI(tool.action)}
-                  disabled={aiLoading}
-                  style={{
-                    padding: "6px 14px", borderRadius: 6, border: "none", cursor: aiLoading ? "not-allowed" : "pointer",
-                    fontSize: 12, fontWeight: 700,
-                    background: aiLoading && aiAction === tool.action ? "#4b5563" : "#374151",
-                    color: "#fff", transition: "all 0.15s",
-                  }}
-                >
-                  {aiLoading && aiAction === tool.action ? "Processing..." : `${tool.icon} ${tool.label}`}
+            {/* AI Tools Bar - Just 2 buttons */}
+            <div style={{ background: "#111827", borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#9ca3af" }}>AI (GPT-5.1):</span>
+
+              {/* Button 1: Standard Telugu */}
+              <button
+                onClick={() => handleAI("translate")}
+                disabled={aiLoading}
+                style={{
+                  padding: "8px 20px", borderRadius: 8, border: "none", cursor: aiLoading ? "not-allowed" : "pointer",
+                  fontSize: 13, fontWeight: 700,
+                  background: aiLoading && aiAction === "translate" ? "#4b5563" : "#3b82f6",
+                  color: "#fff",
+                }}
+              >
+                {aiLoading && aiAction === "translate" ? "Translating..." : "తెలుగులో రాయండి (Standard Telugu)"}
+              </button>
+
+              {/* Button 2: Rayalaseema Editorial */}
+              <button
+                onClick={() => handleAI("editorial")}
+                disabled={aiLoading}
+                style={{
+                  padding: "8px 20px", borderRadius: 8, border: "none", cursor: aiLoading ? "not-allowed" : "pointer",
+                  fontSize: 13, fontWeight: 700,
+                  background: aiLoading && aiAction === "editorial" ? "#4b5563" : "#FF2C2C",
+                  color: "#fff",
+                }}
+              >
+                {aiLoading && aiAction === "editorial" ? "Writing..." : "రాయలసీమ ఎడిటోరియల్"}
+              </button>
+
+              {/* Small utility buttons */}
+              <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                <button onClick={() => handleAI("summarize")} disabled={aiLoading}
+                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #374151", background: "transparent", color: "#9ca3af", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Summary
                 </button>
-              ))}
+                <button onClick={() => handleAI("headline")} disabled={aiLoading}
+                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #374151", background: "transparent", color: "#9ca3af", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                  Headlines
+                </button>
+              </div>
             </div>
 
             {/* Body - Rich Editor */}
