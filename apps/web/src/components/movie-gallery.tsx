@@ -2,69 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const cinemaCards = [
-  {
-    id: "c1",
-    title: "పుష్ప 3 షూటింగ్ రాయలసీమ అడవుల్లో ప్రారంభం",
-    subtitle: "అల్లు అర్జున్ | దర్శకుడు సుకుమార్",
-    tag: "షూటింగ్",
-    tagColor: "#FF2C2C",
-    image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=600&h=900&fit=crop",
-  },
-  {
-    id: "c2",
-    title: "సమంత కొత్త వెబ్ సిరీస్ టీజర్ విడుదల.. అభిమానుల ఆనందం",
-    subtitle: "సమంత | Amazon Prime Video",
-    tag: "OTT",
-    tagColor: "#7C3AED",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&h=900&fit=crop",
-  },
-  {
-    id: "c3",
-    title: "నిర్మాతగా నిహారిక కొణిదెల.. సూపర్ హిట్!",
-    subtitle: "నిహారిక కొణిదెల | మెగా ఫ్యామిలీ",
-    tag: "ఎక్స్‌క్లూజివ్",
-    tagColor: "#DB2777",
-    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=900&fit=crop",
-  },
-  {
-    id: "c4",
-    title: "రాజమౌళి-మహేష్ బాబు కాంబో ప్రకటన.. ఫ్యాన్స్ ఫీవర్",
-    subtitle: "మహేష్ బాబు | రాజమౌళి",
-    tag: "అప్‌డేట్",
-    tagColor: "#2563EB",
-    image: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=900&fit=crop",
-  },
-  {
-    id: "c5",
-    title: "దేవర 2 ఫస్ట్ లుక్ విడుదల - NTR మాస్ గెటప్",
-    subtitle: "Jr NTR | కొరటాల శివ",
-    tag: "ఫస్ట్ లుక్",
-    tagColor: "#16A34A",
-    image: "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=900&fit=crop",
-  },
-  {
-    id: "c6",
-    title: "ఈ వారం బాక్సాఫీస్ కలెక్షన్స్ - టాప్ 5 సినిమాలు",
-    subtitle: "బాక్సాఫీస్ రిపోర్ట్ | ఏప్రిల్ 2026",
-    tag: "బాక్సాఫీస్",
-    tagColor: "#EA580C",
-    image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=900&fit=crop",
-  },
-];
-
-const trendingReels = [
-  { id: "r1", title: "తిరుమల వాహన సేవ అద్భుత దృశ్యాలు", views: "2.5L", image: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=200&h=300&fit=crop" },
-  { id: "r2", title: "కర్నూలు బేలం గుహల లైట్ షో", views: "1.8L", image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=200&h=300&fit=crop" },
-  { id: "r3", title: "బనగానపల్లె మామిడి తోటల్లో పర్యటన", views: "95K", image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=200&h=300&fit=crop" },
-  { id: "r4", title: "అనంతపురం కియా ఫ్యాక్టరీ లోపల", views: "1.2L", image: "https://images.unsplash.com/photo-1565043666747-69f6646db940?w=200&h=300&fit=crop" },
-  { id: "r5", title: "రాయలసీమ సంప్రదాయ వివాహం", views: "3.1L", image: "https://images.unsplash.com/photo-1519741497674-611481863552?w=200&h=300&fit=crop" },
-  { id: "r6", title: "లేపాక్షి నంది విగ్రహం రహస్యాలు", views: "2.2L", image: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=200&h=300&fit=crop" },
-];
+// NO hardcoded data - everything comes from DB via props
 
 /* ===== Cinema Gallery - opens in new page ===== */
-export function MovieGallery({ items }: { items?: { id: string; title: string; image: string; tag: string; tagColor: string; subtitle: string }[] }) {
-  const cards = items || cinemaCards;
+export function MovieGallery({ items }: { items: { id: string; title: string; image: string; tag: string; tagColor: string; subtitle: string }[] }) {
+  const cards = items;
+  if (!cards || cards.length === 0) return null;
   return (
       <div className="bg-white h-full flex flex-col">
         {/* Header tab */}
@@ -141,8 +84,9 @@ export function MovieGallery({ items }: { items?: { id: string; title: string; i
 }
 
 /* ===== Trending Reels - Instagram Reels style ===== */
-export function TrendingReels({ items }: { items?: { id: string; title: string; image: string; views: string }[] }) {
-  const reelItems = items || trendingReels.map(r => ({ id: r.id, title: r.title, image: r.thumbnailUrl, views: r.views }));
+export function TrendingReels({ items }: { items: { id: string; title: string; image: string; views: string }[] }) {
+  const reelItems = items;
+  if (!reelItems || reelItems.length === 0) return null;
   const [reelOpen, setReelOpen] = useState(false);
   const [reelIndex, setReelIndex] = useState(0);
 

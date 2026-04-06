@@ -27,7 +27,7 @@ export default async function HomePage() {
     summary: a.summary || "",
     slug: a.slug,
     category: { name: a.category.name, color: a.category.color || "#FF2C2C", slug: a.category.slug },
-    featuredImage: a.featuredImage || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1400&h=700&fit=crop",
+    featuredImage: a.featuredImage || "",
     publishedAt: a.publishedAt?.toISOString() || new Date().toISOString(),
     author: { name: a.author.name },
   }));

@@ -2,80 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const webStories = [
-  {
-    id: "ws1",
-    title: "శ్రీ వేంకటేశ్వర స్వామి - తిరుమల 7 కొండల రహస్యాలు",
-    image: "https://images.unsplash.com/photo-1604948501466-4e9c339b9c24?w=300&h=500&fit=crop",
-    category: "ఆధ్యాత్మికం",
-  },
-  {
-    id: "ws2",
-    title: "శ్రీ కృష్ణదేవరాయలు - విజయనగర సామ్రాజ్యం వైభవం",
-    image: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=300&h=500&fit=crop",
-    category: "చరిత్ర",
-  },
-  {
-    id: "ws3",
-    title: "బేలం గుహలు - భారతదేశంలో రెండవ పెద్ద గుహలు",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=300&h=500&fit=crop",
-    category: "ట్రావెల్",
-  },
-  {
-    id: "ws4",
-    title: "బనగానపల్లె మామిడి - ప్రపంచ ప్రసిద్ధ రుచి",
-    image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=300&h=500&fit=crop",
-    category: "ఫుడ్",
-  },
-  {
-    id: "ws5",
-    title: "కర్నూలు - రాయలసీమ న్యాయ రాజధాని",
-    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=300&h=500&fit=crop",
-    category: "నగరం",
-  },
-  {
-    id: "ws6",
-    title: "లేపాక్షి నంది - వీరభద్రుని ఆలయ అద్భుతాలు",
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=500&fit=crop",
-    category: "హెరిటేజ్",
-  },
-  {
-    id: "ws7",
-    title: "పెనుకొండ కోట - చరిత్ర ఘనత నిలిచిన ప్రదేశం",
-    image: "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=300&h=500&fit=crop",
-    category: "చరిత్ర",
-  },
-  {
-    id: "ws8",
-    title: "అహోబిలం - నరసింహ స్వామి 9 రూపాల దర్శనం",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=300&h=500&fit=crop",
-    category: "ఆధ్యాత్మికం",
-  },
-  {
-    id: "ws9",
-    title: "గండికోట - భారతదేశపు గ్రాండ్ కాన్యన్",
-    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&h=500&fit=crop",
-    category: "ట్రావెల్",
-  },
-  {
-    id: "ws10",
-    title: "హార్సిలీ హిల్స్ - ఆంధ్రప్రదేశ్ ఊటీ",
-    image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=300&h=500&fit=crop",
-    category: "ట్రావెల్",
-  },
-  {
-    id: "ws11",
-    title: "రాయలసీమ వంటకాలు - రుచికి మారుపేరు",
-    image: "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=300&h=500&fit=crop",
-    category: "ఫుడ్",
-  },
-  {
-    id: "ws12",
-    title: "పుట్టపర్తి - శ్రీ సత్యసాయి బాబా ఆశ్రమం",
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=300&h=500&fit=crop",
-    category: "ఆధ్యాత్మికం",
-  },
-];
+// All data comes from DB via props - no hardcoded content
 
 // Fullscreen story viewer
 function StoryViewer({ story, onClose, onNext, onPrev, index, total }: {
@@ -177,8 +104,9 @@ function StoryViewer({ story, onClose, onNext, onPrev, index, total }: {
   );
 }
 
-export function WebStories({ items }: { items?: { id: string; title: string; image: string; category: string }[] }) {
-  const storyItems = items || webStories.map(s => ({ id: s.id, title: s.title, image: s.imageUrl, category: s.category || "" }));
+export function WebStories({ items }: { items: { id: string; title: string; image: string; category: string }[] }) {
+  const storyItems = items;
+  if (!storyItems || storyItems.length === 0) return null;
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
 

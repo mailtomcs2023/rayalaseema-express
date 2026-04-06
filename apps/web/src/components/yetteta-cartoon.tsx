@@ -2,46 +2,11 @@
 
 import { useState } from "react";
 
-const cartoons = [
-  {
-    id: "ct1",
-    title: "నీళ్ల కోసం రాయలసీమ",
-    caption: "తుంగభద్ర నీళ్లు ఎప్పుడొస్తాయో... ఎవరికీ తెలియదు!",
-    date: "ఏప్రిల్ 5",
-    image: "https://images.unsplash.com/photo-1614107151491-6876eecbff89?w=400&h=400&fit=crop",
-  },
-  {
-    id: "ct2",
-    title: "ఎన్నికల వాగ్దానాలు",
-    caption: "రోడ్లు వేస్తాం... బ్రిడ్జిలు కడతాం... ఓట్లు వేయండి!",
-    date: "ఏప్రిల్ 4",
-    image: "https://images.unsplash.com/photo-1580477667995-2b94f01c9516?w=400&h=400&fit=crop",
-  },
-  {
-    id: "ct3",
-    title: "సోలార్ పార్క్ వెలుగులు",
-    caption: "సూర్యుడి దగ్గర కరెంట్ ఉంది... మా ఊళ్ళో మాత్రం కట్!",
-    date: "ఏప్రిల్ 3",
-    image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=400&fit=crop",
-  },
-  {
-    id: "ct4",
-    title: "మామిడి సీజన్",
-    caption: "బనగానపల్లె మామిడి... ధర విన్నాక కళ్ళు తిరిగాయి!",
-    date: "ఏప్రిల్ 2",
-    image: "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=400&h=400&fit=crop",
-  },
-  {
-    id: "ct5",
-    title: "తిరుపతి దర్శనం",
-    caption: "48 గంటల వేచి ఉండాలి... భగవంతుడా నీకే కష్టం!",
-    date: "ఏప్రిల్ 1",
-    image: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400&h=400&fit=crop",
-  },
-];
+// All data from DB via props - no hardcoded content
 
-export function YettetaCartoon({ items }: { items?: { id: string; title: string; caption: string; image: string; date: string }[] }) {
-  const allCartoons = items || cartoons;
+export function YettetaCartoon({ items }: { items: { id: string; title: string; caption: string; image: string; date: string }[] }) {
+  const allCartoons = items;
+  if (!allCartoons || allCartoons.length === 0) return null;
   const [current, setCurrent] = useState(0);
   const cartoon = allCartoons[current];
 
