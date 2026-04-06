@@ -118,15 +118,22 @@ export default function EditArticlePage() {
         } else if (action === "headline") {
           setSuccess(data.result);
         } else {
-          // Extract Telugu title from AI output (first h2 tag)
+          // Extract Telugu title from first h2 tag
           const h2Match = data.result.match(/<h2[^>]*>(.*?)<\/h2>/);
           if (h2Match) {
-            const teluguTitle = h2Match[1].replace(/<[^>]+>/g, "").trim();
-            setTitle(teluguTitle);
+            setTitle(h2Match[1].replace(/<[^>]+>/g, "").trim());
+          }
+          // Extract summary from first paragraph
+          const pMatch = data.result.match(/<p[^>]*>(.*?)<\/p>/);
+          if (pMatch) {
+            const firstPara = pMatch[1].replace(/<[^>]+>/g, "").trim();
+            if (firstPara.length > 20) {
+              setSummary(firstPara.substring(0, 200));
+            }
           }
           setBody(data.result);
           editorRef.current?.setContent(data.result);
-          setSuccess(`AI ${action} complete! Title + body updated. (${data.tokens?.total_tokens || data.tokens?.total || 0} tokens)`);
+          setSuccess(`Title, summary & body translated! (${data.tokens?.total_tokens || data.tokens?.total || 0} tokens)`);
         }
       }
     } catch (e: any) { setError(e.message); }
