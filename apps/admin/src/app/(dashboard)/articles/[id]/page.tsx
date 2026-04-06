@@ -113,14 +113,20 @@ export default function EditArticlePage() {
       if (data.error) { setError(data.error); }
       else if (data.result) {
         if (action === "summarize") {
-          setSummary(data.result);
+          setSummary(data.result.replace(/<[^>]+>/g, "").trim());
           setSuccess("Summary generated!");
         } else if (action === "headline") {
           setSuccess(data.result);
         } else {
+          // Extract Telugu title from AI output (first h2 tag)
+          const h2Match = data.result.match(/<h2[^>]*>(.*?)<\/h2>/);
+          if (h2Match) {
+            const teluguTitle = h2Match[1].replace(/<[^>]+>/g, "").trim();
+            setTitle(teluguTitle);
+          }
           setBody(data.result);
           editorRef.current?.setContent(data.result);
-          setSuccess(`AI ${action} complete! (${data.tokens?.total_tokens || data.tokens?.total || 0} tokens used)`);
+          setSuccess(`AI ${action} complete! Title + body updated. (${data.tokens?.total_tokens || data.tokens?.total || 0} tokens)`);
         }
       }
     } catch (e: any) { setError(e.message); }
