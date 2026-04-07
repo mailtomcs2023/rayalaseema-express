@@ -59,7 +59,12 @@
       "Bash(curl -s https://api.godaddy.com/v1/domains/rayalaseemaexpress.com/records/A/admin -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW')",
       "Bash(curl -s -o /dev/null -w \"Dashboard \\(no auth\\): %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/)",
       "Bash(curl -s -o /dev/null -w \"Articles \\(no auth\\): %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/articles)",
-      "Bash(curl -s -o /dev/null -w \"Login page: %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/login)"
+      "Bash(curl -s -o /dev/null -w \"Login page: %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/login)",
+      "Bash(ssh azureuser@20.198.2.80 'curl -s -o /dev/null -w \"Dashboard \\(no redirect follow\\): %{http_code}\\\\n\" http://localhost:3001/ && curl -s -o /dev/null -w \"Dashboard \\(follow redirect\\): %{http_code} -> %{redirect_url}\\\\n\" -L http://localhost:3001/')",
+      "Bash(ssh azureuser@20.198.2.80 'ls -la /home/azureuser/app/apps/admin/.next/server/middleware* 2>/dev/null; ls /home/azureuser/app/apps/admin/.next/server/edge/chunks/ 2>/dev/null | head -5')",
+      "Bash(ssh azureuser@20.198.2.80 'cat /home/azureuser/app/apps/admin/.next/server/middleware-manifest.json')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('middleware',{}\\), indent=2\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{redirect_url}\\\\n\" --no-keepalive -H \"Cookie: \" https://admin.rayalaseemaexpress.com/)"
     ]
   }
 }

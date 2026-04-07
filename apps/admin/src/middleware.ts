@@ -1,30 +1,35 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const isLoginPage = req.nextUrl.pathname === "/login";
-  const isApiRoute = req.nextUrl.pathname.startsWith("/api");
-  const isStaticFile = req.nextUrl.pathname.startsWith("/_next") ||
-    req.nextUrl.pathname === "/favicon.ico" ||
-    req.nextUrl.pathname === "/logo.svg" ||
-    req.nextUrl.pathname.startsWith("/uploads");
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-  // Allow static files and API routes
-  if (isStaticFile || isApiRoute) return NextResponse.next();
-
-  // Redirect logged-in users away from login page
-  if (isLoginPage && isLoggedIn) {
-    return NextResponse.redirect(new URL("/", req.url));
+  // Allow these paths without auth
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/logo.svg" ||
+    pathname.startsWith("/uploads")
+  ) {
+    return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to login
-  if (!isLoginPage && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  // Check for valid session token
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET || "rayalaseema-express-admin-secret-key-2026",
+  });
+
+  if (!token) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|logo.svg|uploads).*)"],
