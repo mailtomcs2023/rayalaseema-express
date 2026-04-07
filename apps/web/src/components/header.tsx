@@ -267,65 +267,98 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
         )}
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Slides up from bottom like Eenadu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-gray-200 shadow-lg fixed inset-x-0 top-[120px] bottom-0 z-50 overflow-y-auto">
-          {/* Mobile Search */}
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center bg-gray-100 rounded-lg px-4 py-2.5">
-              <svg className="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" placeholder="వార్తలు వెతకండి..." className="bg-transparent outline-none text-sm w-full font-telugu" />
+        <>
+          {/* Backdrop */}
+          <div
+            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          {/* Menu panel from bottom */}
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto mobile-menu-slide">
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
             </div>
-          </div>
 
-          {/* District Section */}
-          <div className="px-4 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-[#FF2C2C] font-bold mb-1">రాయలసీమ జిల్లాలు</p>
-          </div>
-          <ul>
-            {mainNavItems.filter(i => !i.isDropdown && i.slug !== "/").map((item) => (
-              <li key={item.slug} className="border-b border-gray-50">
-                <Link
-                  href={item.slug}
-                  className="block px-5 py-3 text-sm font-semibold text-gray-700 hover:text-[#FF2C2C] hover:bg-red-50 font-telugu"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+            {/* Close + Title */}
+            <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
+              <span className="text-sm font-bold text-gray-800">మెనూ</span>
+              <button onClick={() => setMobileMenuOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                <svg className="w-4 h-4" fill="none" stroke="#666" strokeWidth={2.5} viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
 
-          {/* Other Sections */}
-          <div className="px-4 py-2 mt-2 bg-gray-50">
-            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1">ఇతర విభాగాలు</p>
-          </div>
-          <ul>
-            {dropdownItems.map((item) => (
-              <li key={item.slug} className="border-b border-gray-50">
-                <Link
-                  href={item.slug}
-                  className="block px-5 py-2.5 text-sm text-gray-600 hover:text-[#FF2C2C] hover:bg-red-50 font-telugu"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+            {/* Quick Actions */}
+            <div className="grid grid-cols-4 gap-2 p-3 border-b border-gray-100">
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-50">
+                <svg className="w-5 h-5 text-[var(--color-brand)]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span className="text-[10px] font-bold text-[var(--color-brand)]">హోమ్</span>
+              </Link>
+              <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-50">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <span className="text-[10px] font-bold text-blue-600">వెతకండి</span>
+              </Link>
+              <Link href="/epaper" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-green-50">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2"/></svg>
+                <span className="text-[10px] font-bold text-green-600">ePaper</span>
+              </Link>
+              <Link href="/horoscope" onClick={() => setMobileMenuOpen(false)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-50">
+                <span className="text-lg">⭐</span>
+                <span className="text-[10px] font-bold text-purple-600">రాశులు</span>
+              </Link>
+            </div>
 
-          <div className="p-4 flex gap-2">
-            <Link href="/epaper" className="flex-1 text-center bg-[#FF2C2C] text-white py-2.5 rounded-lg font-bold text-sm" onClick={() => setMobileMenuOpen(false)}>
-              E-PAPER
-            </Link>
-            <Link href="/search" className="flex-1 text-center bg-gray-800 text-white py-2.5 rounded-lg font-bold text-sm" onClick={() => setMobileMenuOpen(false)}>
-              వెతకండి
-            </Link>
+            {/* Districts - horizontal scroll chips */}
+            <div className="px-3 py-2 border-b border-gray-100">
+              <p className="text-[10px] uppercase tracking-wider text-[var(--color-brand)] font-extrabold mb-2">రాయలసీమ జిల్లాలు</p>
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                {mainNavItems.filter(i => !i.isDropdown && !i.isHome).map((item) => (
+                  <Link
+                    key={item.slug}
+                    href={item.slug}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="shrink-0 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-bold text-gray-700 hover:bg-red-50 hover:text-[var(--color-brand)]"
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Categories - grid */}
+            <div className="px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-extrabold mb-2">విభాగాలు</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {dropdownItems.map((item) => (
+                  <Link
+                    key={item.slug}
+                    href={item.slug}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-3 py-2.5 rounded-lg bg-gray-50 text-xs font-bold text-gray-700 text-center hover:bg-red-50 hover:text-[var(--color-brand)] transition-colors"
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom safe area */}
+            <div className="h-6" />
           </div>
-        </div>
+        </>
       )}
+
+      <style>{`
+        .mobile-menu-slide {
+          animation: slideFromBottom 0.3s ease-out;
+        }
+        @keyframes slideFromBottom {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+      `}</style>
     </header>
   );
 }
