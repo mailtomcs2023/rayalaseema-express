@@ -10,9 +10,10 @@ datasource db {
 // ============ USER & AUTH ============
 
 enum Role {
-  ADMIN
-  EDITOR
-  REPORTER
+  ADMIN           // Full access - everything
+  CHIEF_SUB_EDITOR // Edit all categories, publish, breaking news
+  SUB_EDITOR      // Edit assigned categories, review articles, can't publish
+  REPORTER        // Write articles, upload photos, submit for review only
 }
 
 model User {
@@ -23,23 +24,65 @@ model User {
   role          Role      @default(REPORTER)
   avatar        String?
   bio           String?
+  phone         String?
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Category assignments (for SUB_EDITOR role)
+  assignedCategories UserCategory[]
+
+  // Articles authored
   articles      Article[]
   media         Media[]
 
+  // Articles reviewed/edited by this user
+  reviewedArticles ArticleReview[]
+
   @@map("users")
+}
+
+// ============ USER CATEGORY ASSIGNMENTS ============
+
+model UserCategory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+  @@index([userId])
+  @@map("user_categories")
+}
+
+// ============ ARTICLE REVIEW LOG ============
+
+model ArticleReview {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // "submitted", "reviewed", "approved", "rejected", "published", "edited"
+  note      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([userId])
+  @@map("article_reviews")
 }
 
 // ============ CONTENT ============
 
 enum ArticleStatus {
-  DRAFT
-  IN_REVIEW
-  PUBLISHED
-  ARCHIVED
+  DRAFT        // Reporter working on it
+  SUBMITTED    // Reporter submitted for review
+  IN_REVIEW    // Sub-editor is reviewing
+  APPROVED     // Chief sub-editor approved, ready to publish
+  PUBLISHED    // Live on website
+  REJECTED     // Sent back to reporter with notes
+  ARCHIVED     // Removed from site
 }
 
 enum Language {
@@ -87,6 +130,14 @@ model Article {
   // Analytics
   viewCount       Int           @default(0)
 
+  // Editorial workflow
+  rejectionNote   String?       @db.Text  // Feedback when rejected
+  reviewedById    String?                 // Who reviewed this article
+  reviewedAt      DateTime?               // When it was reviewed
+  approvedById    String?                 // Who approved for publish
+  approvedAt      DateTime?               // When approved
+  reviews         ArticleReview[]
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -114,6 +165,7 @@ model Category {
 
   articles    Article[]
   videos      Video[]
+  assignedUsers UserCategory[]
 
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

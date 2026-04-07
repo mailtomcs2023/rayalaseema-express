@@ -198,6 +198,23 @@ export default function EditArticlePage() {
               Save
             </button>
 
+            {/* Submit for Review (Reporter/Draft) */}
+            {(status === "DRAFT" || status === "REJECTED") && (
+              <button onClick={() => handleSave("SUBMITTED")} disabled={saving}
+                style={{ padding: "8px 16px", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                Submit for Review
+              </button>
+            )}
+
+            {/* Approve (Sub-editor/Chief) */}
+            {(status === "SUBMITTED" || status === "IN_REVIEW") && (
+              <button onClick={() => handleSave("APPROVED")} disabled={saving}
+                style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                Approve ✓
+              </button>
+            )}
+
+            {/* Publish (Chief/Admin) */}
             {status !== "PUBLISHED" && (
               <button onClick={() => handleSave("PUBLISHED")} disabled={saving}
                 style={{ padding: "8px 16px", background: "#FF2C2C", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -205,6 +222,7 @@ export default function EditArticlePage() {
               </button>
             )}
 
+            {/* Unpublish */}
             {status === "PUBLISHED" && (
               <button onClick={() => handleSave("DRAFT")} disabled={saving}
                 style={{ padding: "8px 16px", background: "#f59e0b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>

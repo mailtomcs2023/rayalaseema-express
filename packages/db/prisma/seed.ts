@@ -14,11 +14,18 @@ async function main() {
     create: { email: "admin@rayalaseemaexpress.com", name: "Admin", passwordHash: adminPwd, role: Role.ADMIN },
   });
 
-  const editorPwd = await hash("editor123", 12);
+  const chiefSubPwd = await hash("chief123", 12);
   await prisma.user.upsert({
-    where: { email: "editor@rayalaseemaexpress.com" },
+    where: { email: "chief@rayalaseemaexpress.com" },
     update: {},
-    create: { email: "editor@rayalaseemaexpress.com", name: "Editor", passwordHash: editorPwd, role: Role.EDITOR },
+    create: { email: "chief@rayalaseemaexpress.com", name: "Chief Sub-Editor", passwordHash: chiefSubPwd, role: Role.CHIEF_SUB_EDITOR },
+  });
+
+  const subEditorPwd = await hash("subeditor123", 12);
+  await prisma.user.upsert({
+    where: { email: "subeditor@rayalaseemaexpress.com" },
+    update: {},
+    create: { email: "subeditor@rayalaseemaexpress.com", name: "Sub-Editor", passwordHash: subEditorPwd, role: Role.SUB_EDITOR },
   });
 
   const reporterPwd = await hash("reporter123", 12);
@@ -27,7 +34,7 @@ async function main() {
     update: {},
     create: { email: "reporter@rayalaseemaexpress.com", name: "Reporter", passwordHash: reporterPwd, role: Role.REPORTER },
   });
-  console.log("  3 users created");
+  console.log("  4 users created (Admin, Chief Sub-Editor, Sub-Editor, Reporter)");
 
   // ========== CATEGORIES ==========
   const categories = [
