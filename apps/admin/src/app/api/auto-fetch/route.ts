@@ -21,6 +21,17 @@ const categoryQueries: Record<string, { q: string; newsCategory?: string }> = {
   "technology": { q: "technology India OR AI OR smartphone", newsCategory: "technology" },
   "health": { q: "health India OR medical OR hospital Andhra Pradesh", newsCategory: "health" },
   "district-news": { q: "Kurnool OR Anantapur OR Kadapa OR Tirupati OR Chittoor OR Nandyal" },
+  // Missing categories
+  "devotional": { q: "Hindu temple India OR Tirupati OR pilgrimage India" },
+  "jobs": { q: "government jobs India OR UPSC OR AP jobs recruitment 2026" },
+  "movie-reviews": { q: "Telugu movie OR Tollywood OR Bollywood movie review", newsCategory: "entertainment" },
+  "exam-results": { q: "exam results India OR university results OR board results", newsCategory: "education" },
+  "nri": { q: "Indian diaspora OR Indians USA OR NRI OR Indian abroad", newsCategory: "world" },
+  "navyaseema": { q: "Andhra Pradesh development OR Rayalaseema development OR new projects AP" },
+  "real-estate": { q: "real estate India OR property prices Hyderabad OR housing India" },
+  "editorial": { q: "India analysis opinion OR Indian politics analysis OR economy analysis India" },
+  "rasi-phalalu": { q: "horoscope today OR zodiac OR astrology prediction" },
+  "weather": { q: "India weather forecast OR cyclone India OR monsoon Andhra Pradesh" },
   // District-specific (mapped to district-news category but tagged to districts)
   "district-kurnool": { q: "Kurnool district Andhra Pradesh" },
   "district-nandyal": { q: "Nandyal district Andhra Pradesh" },

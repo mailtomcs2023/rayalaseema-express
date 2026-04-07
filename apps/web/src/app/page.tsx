@@ -152,15 +152,15 @@ export default async function HomePage() {
 
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title={catName("entertainment")} slug="entertainment" articles={catArticles("entertainment")} />
-              <CategoryCard title={catName("business")} slug="business" articles={catArticles("business")} />
+              <CategoryCard title={catName("politics")} slug="politics" articles={catArticles("politics")} />
               <CategoryCard title={catName("sports")} slug="sports" articles={catArticles("sports")} />
+              <CategoryCard title={catName("entertainment")} slug="entertainment" articles={catArticles("entertainment")} />
             </div>
 
             {/* Row 2 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <CategoryCard title={catName("national")} slug="national" articles={catArticles("national")} />
-              <CategoryCard title={catName("international")} slug="international" articles={catArticles("international")} />
+              <CategoryCard title={catName("business")} slug="business" articles={catArticles("business")} />
               <CategoryCard title={catName("agriculture")} slug="agriculture" articles={catArticles("agriculture")} />
             </div>
 
@@ -169,9 +169,9 @@ export default async function HomePage() {
 
             {/* Row 3 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <CategoryCard title={catName("education")} slug="education" articles={catArticles("education")} />
+              <CategoryCard title={catName("international")} slug="international" articles={catArticles("international")} />
               <CategoryCard title={catName("crime")} slug="crime" articles={catArticles("crime")} />
-              <CategoryCard title={catName("politics")} slug="politics" articles={catArticles("politics")} />
+              <CategoryCard title={catName("technology")} slug="technology" articles={catArticles("technology")} />
             </div>
 
             {/* Web Stories */}

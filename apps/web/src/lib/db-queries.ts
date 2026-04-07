@@ -73,7 +73,7 @@ export async function getHomepageData() {
         author: { select: { name: true } },
       },
       orderBy: { publishedAt: "desc" },
-      take: 50,
+      take: 500,
     }),
   ]);
 
