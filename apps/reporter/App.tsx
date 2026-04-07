@@ -6,6 +6,7 @@ import { LoginScreen } from "./src/screens/LoginScreen";
 import { RegisterScreen } from "./src/screens/RegisterScreen";
 import { DashboardScreen } from "./src/screens/DashboardScreen";
 import { EarningsScreen } from "./src/screens/EarningsScreen";
+import { NewArticleScreen } from "./src/screens/NewArticleScreen";
 import { ActivityIndicator, View } from "react-native";
 
 const Stack = createNativeStackNavigator();
@@ -33,6 +34,7 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: true, title: "Register", headerTintColor: "#FF2C2C" }} />
         <Stack.Screen name="Main" component={DashboardScreen} />
+        <Stack.Screen name="NewArticle" component={NewArticleScreen} options={{ headerShown: true, title: "New Article", headerTintColor: "#FF2C2C" }} />
         <Stack.Screen name="Earnings" component={EarningsScreen} options={{ headerShown: true, title: "My Earnings", headerTintColor: "#FF2C2C" }} />
       </Stack.Navigator>
     </NavigationContainer>
