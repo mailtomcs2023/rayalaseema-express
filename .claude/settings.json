@@ -52,7 +52,14 @@
       "Bash(curl -s \"http://localhost:3000/api/horoscope?bust=10\")",
       "Bash(python3 -c \" import sys,json d=json.load\\(sys.stdin\\) print\\('Source:', d.get\\('source',''\\)\\) print\\('Date:', d.get\\('date',''\\)\\) for r in d.get\\('rashis',[]\\)[:3]: print\\(f\\\\\"\\\\n{r['name']} \\({r['nameEn']}\\):\\\\\"\\) print\\(f\\\\\" Telugu: {r['prediction'][:80]}\\\\\"\\) print\\(f\\\\\" English: {r['predictionEn'][:80]}\\\\\"\\) \")",
       "Bash(curl -s \"http://localhost:3000/api/panchangam\")",
-      "Bash(python3 -c \" import sys,json d=json.load\\(sys.stdin\\) t = d.get\\('today',{}\\) print\\('Source:', d.get\\('source',''\\)\\) print\\('Date:', t.get\\('date',''\\)\\) print\\('Varam:', t.get\\('varam',''\\)\\) print\\('Nakshatra:', t.get\\('nakshatra',''\\)\\) print\\('Tithi:', t.get\\('tithi',''\\)\\) print\\('Yoga:', t.get\\('yoga',''\\)\\) print\\('Sunrise:', t.get\\('sunrise',''\\)\\) print\\('Rahu Kalam:', t.get\\('rahuKalam',''\\)\\) \")"
+      "Bash(python3 -c \" import sys,json d=json.load\\(sys.stdin\\) t = d.get\\('today',{}\\) print\\('Source:', d.get\\('source',''\\)\\) print\\('Date:', t.get\\('date',''\\)\\) print\\('Varam:', t.get\\('varam',''\\)\\) print\\('Nakshatra:', t.get\\('nakshatra',''\\)\\) print\\('Tithi:', t.get\\('tithi',''\\)\\) print\\('Yoga:', t.get\\('yoga',''\\)\\) print\\('Sunrise:', t.get\\('sunrise',''\\)\\) print\\('Rahu Kalam:', t.get\\('rahuKalam',''\\)\\) \")",
+      "Bash(ssh azureuser@20.198.2.80 'pm2 restart all && sleep 3 && curl -s -o /dev/null -w \"Web:%{http_code} Admin:%{http_code}\\\\n\" http://localhost:3000 http://localhost:3001')",
+      "Bash(ssh azureuser@20.198.2.80 'cat /etc/nginx/sites-available/rayalaseema')",
+      "Bash(curl -s -X PUT https://api.godaddy.com/v1/domains/rayalaseemaexpress.com/records/A/admin -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW' -H 'Content-Type: application/json' -d '[{\"data\":\"20.198.2.80\",\"ttl\":600}]')",
+      "Bash(curl -s https://api.godaddy.com/v1/domains/rayalaseemaexpress.com/records/A/admin -H 'Authorization: sso-key dKYSZJzqLvq8_3QR2gPBwefbx416wfz6JMm:LM1S7T7hRhu4nsBdc6GeVW')",
+      "Bash(curl -s -o /dev/null -w \"Dashboard \\(no auth\\): %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/)",
+      "Bash(curl -s -o /dev/null -w \"Articles \\(no auth\\): %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/articles)",
+      "Bash(curl -s -o /dev/null -w \"Login page: %{http_code}\\\\n\" https://admin.rayalaseemaexpress.com/login)"
     ]
   }
 }
