@@ -73,7 +73,10 @@
       "Bash(curl -s -X POST http://localhost:3000/api/tts -H 'Content-Type: application/json' -d '{\"text\":\"నమస్కారం ఇది రాయలసీమ ఎక్స్ ప్రెస్ వార్తలు. కర్నూలు జిల్లాలో వర్షాలు కురిశాయి.\"}' -o 'D:/Rayalaseema express/test_tts.mp3' -w 'Status: %{http_code} Size: %{size_download}\\\\n')",
       "Bash(curl -s -X POST http://localhost:3000/api/tts -H 'Content-Type: application/json' -d '{\"text\":\"Hello this is test\"}' -w '\\\\nStatus: %{http_code} Size: %{size_download} Type: %{content_type}\\\\n')",
       "Bash(curl -s -X POST https://centralindia.tts.speech.microsoft.com/cognitiveservices/v1 -H 'Ocp-Apim-Subscription-Key: 44704b838e0c427eb2f01ef2d46e10bd' -H 'Content-Type: application/ssml+xml' -H 'X-Microsoft-OutputFormat: audio-48khz-192kbitrate-mono-mp3' -d '<speak version=\"1.0\" xml:lang=\"te-IN\"><voice name=\"te-IN-ShrutiNeural\">కర్నూలు జిల్లాలో భారీ వర్షాలు కురిశాయి. రైతులు అప్రమత్తంగా ఉండాలని అధికారులు హెచ్చరించారు. తుంగభద్ర డ్యామ్ నుండి నీటి విడుదల జరుగుతోంది, దిగువ ప్రాంతాల ప్రజలు జాగ్రత్తగా ఉండాలి.</voice></speak>' -o 'D:/Rayalaseema express/test_plain.mp3' -w 'Size: %{size_download}')",
-      "Bash(python3 -c \" import sys,json voices = json.load\\(sys.stdin\\) for v in voices: name = v.get\\('ShortName',''\\) if 'Multilingual' in name: print\\(f\\\\\"{name:50s} {v['Gender']:8s}\\\\\"\\) \")"
+      "Bash(python3 -c \" import sys,json voices = json.load\\(sys.stdin\\) for v in voices: name = v.get\\('ShortName',''\\) if 'Multilingual' in name: print\\(f\\\\\"{name:50s} {v['Gender']:8s}\\\\\"\\) \")",
+      "Bash(npx create-expo-app@latest apps/reporter --template blank-typescript)",
+      "Bash(npx expo:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f' {k}: {v}'\\) for k,v in {**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}.items\\(\\)]\")"
     ]
   }
 }

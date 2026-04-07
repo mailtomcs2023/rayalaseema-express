@@ -39,6 +39,10 @@ model User {
   // Articles reviewed/edited by this user
   reviewedArticles ArticleReview[]
 
+  // Journalist profile (for REPORTER role)
+  journalistProfile JournalistProfile?
+  payments          ArticlePayment[]
+
   @@map("users")
 }
 
@@ -137,6 +141,7 @@ model Article {
   approvedById    String?                 // Who approved for publish
   approvedAt      DateTime?               // When approved
   reviews         ArticleReview[]
+  payment         ArticlePayment?
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -532,4 +537,148 @@ model PollOption {
 
   @@index([pollId])
   @@map("poll_options")
+}
+
+// ============ JOURNALIST PROFILE & KYC ============
+
+enum KycStatus {
+  PENDING
+  SUBMITTED
+  VERIFIED
+  REJECTED
+}
+
+model JournalistProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal
+  fullName        String
+  fatherName      String?
+  dateOfBirth     DateTime?
+  gender          String?
+  address         String?   @db.Text
+  city            String?
+  pincode         String?
+
+  // District assignment
+  primaryDistrict String?   // District slug they cover
+  secondaryDistricts String[] // Additional districts
+
+  // KYC documents
+  kycStatus       KycStatus @default(PENDING)
+  aadhaarNumber   String?
+  aadhaarFrontUrl String?   // Uploaded image
+  aadhaarBackUrl  String?
+  panNumber       String?
+  panCardUrl      String?
+  idCardUrl       String?   // Press/company ID
+  photoUrl        String?   // Passport photo
+
+  // Bank / Payment
+  upiId           String?
+  bankName        String?
+  bankAccount     String?
+  bankIfsc        String?
+  bankBranch      String?
+
+  // Experience
+  experience      String?   @db.Text // Previous media experience
+  languages       String[]            // ["Telugu", "English", "Hindi"]
+  specialization  String?             // "Politics", "Crime", etc.
+
+  // App specific
+  deviceToken     String?   // Push notification token
+  lastActiveAt    DateTime?
+
+  kycRejectionNote String?
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("journalist_profiles")
+}
+
+// ============ PAYMENT CONFIG (admin-configurable rates) ============
+
+model PaymentConfig {
+  id          String   @id @default(cuid())
+  articleType String   @unique // "text_news", "photo_news", "video_story", "exclusive", "breaking"
+  name        String            // Display name: "Text News (300+ words)"
+  nameTE      String?           // Telugu name
+  rate        Float             // Base rate in Rs
+  minWords    Int     @default(0)  // Minimum word count required
+  requiresImage Boolean @default(false)
+  requiresVideo Boolean @default(false)
+  bonusRate   Float   @default(0) // Bonus per 1000 views
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payments    ArticlePayment[]
+
+  @@map("payment_configs")
+}
+
+// ============ ARTICLE PAYMENT ============
+
+enum PaymentStatus {
+  CALCULATED  // Auto-calculated when article published
+  APPROVED    // Admin approved for payout
+  PROCESSING  // Payment being processed
+  PAID        // Money transferred
+  DISPUTED    // Journalist raised dispute
+}
+
+model ArticlePayment {
+  id            String        @id @default(cuid())
+  articleId     String        @unique
+  article       Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  journalistId  String
+  journalist    User          @relation(fields: [journalistId], references: [id])
+  configId      String?
+  config        PaymentConfig? @relation(fields: [configId], references: [id])
+
+  // Payment details
+  baseAmount    Float         // Rate from config
+  bonusAmount   Float         @default(0)  // View-based bonus
+  deductions    Float         @default(0)  // Any deductions
+  totalAmount   Float         // Final amount
+  currency      String        @default("INR")
+
+  status        PaymentStatus @default(CALCULATED)
+  approvedById  String?
+  approvedAt    DateTime?
+  paidAt        DateTime?
+  transactionId String?       // UPI/bank ref number
+  paymentMethod String?       // "UPI", "bank_transfer"
+
+  note          String?       // Admin note
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([journalistId, status])
+  @@index([status])
+  @@map("article_payments")
+}
+
+// ============ PAYOUT BATCH ============
+
+model PayoutBatch {
+  id            String   @id @default(cuid())
+  month         Int      // 1-12
+  year          Int
+  totalAmount   Float
+  totalArticles Int
+  totalJournalists Int
+  status        String   @default("DRAFT") // DRAFT, APPROVED, PROCESSING, COMPLETED
+  approvedById  String?
+  approvedAt    DateTime?
+  completedAt   DateTime?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@unique([month, year])
+  @@map("payout_batches")
 }
