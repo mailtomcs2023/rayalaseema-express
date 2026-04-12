@@ -108,13 +108,18 @@ export async function POST(req: NextRequest) {
   const dryRun = searchParams.get("dry") === "true";
   const maxPerCategory = parseInt(searchParams.get("max") || "3");
   const articleStatus = searchParams.get("status") === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
+  const force = searchParams.get("force") === "true";
 
   const results: any[] = [];
   const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
   if (!admin) return NextResponse.json({ error: "No admin user" }, { status: 400 });
 
-  // Get all categories
-  const categories = await prisma.category.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
+  // Get categories (optionally filter by slug)
+  const filterSlugs = searchParams.get("categories")?.split(",").filter(Boolean);
+  const categories = await prisma.category.findMany({
+    where: { active: true, ...(filterSlugs ? { slug: { in: filterSlugs } } : {}) },
+    orderBy: { sortOrder: "asc" },
+  });
 
   // Count existing articles per category
   const existingCounts: Record<string, number> = {};
@@ -150,7 +155,7 @@ export async function POST(req: NextRequest) {
 
   for (const cat of categories) {
     const existing = existingCounts[cat.slug] || 0;
-    const needed = Math.max(0, maxPerCategory - existing);
+    const needed = force ? maxPerCategory : Math.max(0, maxPerCategory - existing);
     if (needed === 0) {
       results.push({ category: cat.nameEn, slug: cat.slug, existing, needed: 0, created: 0, status: "sufficient" });
       continue;
