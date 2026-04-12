@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const dryRun = searchParams.get("dry") === "true";
   const maxPerCategory = parseInt(searchParams.get("max") || "3");
+  const articleStatus = searchParams.get("status") === "PUBLISHED" ? "PUBLISHED" : "DRAFT";
 
   const results: any[] = [];
   const admin = await prisma.user.findFirst({ where: { role: "ADMIN" } });
@@ -210,16 +211,15 @@ export async function POST(req: NextRequest) {
             body: translated.body || `<p>${news.description}</p>`,
             featuredImage: news.image_url || null,
             language: "TELUGU",
-            status: "PUBLISHED",
-            featured: created === 0, // First article of category = featured
+            status: articleStatus,
+            featured: false,
             authorId: admin.id,
             categoryId: cat.id,
-            publishedAt: new Date(),
-            viewCount: Math.floor(Math.random() * 5000) + 100,
+            publishedAt: articleStatus === "PUBLISHED" ? new Date() : null,
           },
         });
         created++;
-        results.push({ category: cat.nameEn, title: translated.title, image: !!news.image_url, status: "published" });
+        results.push({ category: cat.nameEn, title: translated.title, image: !!news.image_url, status: articleStatus.toLowerCase() });
       } catch (e: any) {
         results.push({ category: cat.nameEn, title: news.title, error: e.message, status: "failed" });
       }
@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    total: results.filter((r) => r.status === "published").length,
+    total: results.filter((r) => r.status === articleStatus.toLowerCase()).length,
     results,
   });
 }

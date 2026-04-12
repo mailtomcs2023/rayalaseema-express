@@ -83,5 +83,13 @@ jobs:
 
             pm2 save
 
-            echo "=== Deploy complete! ==="
+            # Wait for processes to stabilize
+            sleep 5
+
+            echo "=== PM2 Status ==="
             pm2 list
+            echo "=== Admin Logs ==="
+            pm2 logs admin --nostream --lines 20 2>/dev/null || true
+            echo "=== Web Logs ==="
+            pm2 logs web --nostream --lines 20 2>/dev/null || true
+            echo "=== Deploy complete! ==="
