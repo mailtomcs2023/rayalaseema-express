@@ -57,7 +57,7 @@ jobs:
             cat > apps/admin/.env << 'ENV'
             DATABASE_URL="postgresql://reapp:RayalaseemaExpress2026!@localhost:5432/rayalaseema_express"
             NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
-            NEXTAUTH_URL="https://rayalaseemaexpress.com/admin"
+            NEXTAUTH_URL="https://admin.rayalaseemaexpress.com"
             AZURE_OPENAI_ENDPOINT="https://rayalaseema-ai.openai.azure.com/"
             AZURE_OPENAI_KEY="${{ secrets.AZURE_OPENAI_KEY }}"
             AZURE_OPENAI_DEPLOYMENT="gpt51"
