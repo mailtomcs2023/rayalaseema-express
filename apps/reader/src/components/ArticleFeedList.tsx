@@ -7,6 +7,7 @@ import {
   RefreshControl,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   ListRenderItemInfo,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -29,8 +30,9 @@ export interface ArticleFeedListHandle {
 // its category chips there).
 const ArticleFeedList = forwardRef<
   ArticleFeedListHandle,
-  { category: string | null; header?: React.ReactElement }
->(function ArticleFeedList({ category, header }, ref) {
+  { category: string | null; header?: React.ReactElement; swipeable?: boolean }
+>(function ArticleFeedList({ category, header, swipeable }, ref) {
+  const { width } = useWindowDimensions();
   const { t } = useT();
   const router = useRouter();
   const feed = useFeed(category);
@@ -64,14 +66,17 @@ const ArticleFeedList = forwardRef<
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<Article>) => (
-      <NewsCard
-        article={item}
-        saved={isSaved(item.id)}
-        onToggleSave={() => toggle(item)}
-        onPress={() => openReader(index)}
-      />
+      <View style={swipeable ? [styles.swipeItem, { width }] : undefined}>
+        <NewsCard
+          article={item}
+          saved={isSaved(item.id)}
+          onToggleSave={() => toggle(item)}
+          onPress={() => openReader(index)}
+          style={swipeable ? styles.swipeCard : undefined}
+        />
+      </View>
     ),
-    [isSaved, toggle, openReader],
+    [isSaved, toggle, openReader, swipeable, width],
   );
 
   if (feed.loading) {
@@ -102,37 +107,48 @@ const ArticleFeedList = forwardRef<
   }
 
   return (
-    <FlatList
-      ref={listRef}
-      data={feed.articles}
-      keyExtractor={(a) => a.id}
-      renderItem={renderItem}
-      ListHeaderComponent={header}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
-      onEndReachedThreshold={0.6}
-      onEndReached={feed.loadMore}
-      refreshControl={
-        <RefreshControl
-          refreshing={feed.refreshing}
-          onRefresh={feed.refresh}
-          colors={[colors.brand]}
-          tintColor={colors.brand}
-        />
-      }
-      ListEmptyComponent={
-        <View style={styles.centerInner}>
-          <Text style={styles.muted}>{t("feed.empty")}</Text>
-        </View>
-      }
-      ListFooterComponent={
-        feed.loadingMore ? (
-          <ActivityIndicator color={colors.brand} style={{ marginVertical: spacing.lg }} />
-        ) : feed.articles.length > 0 && !feed.hasMore ? (
-          <Text style={styles.endText}>{t("feed.end")}</Text>
-        ) : null
-      }
-    />
+    <View style={swipeable ? styles.swipeContainer : undefined}>
+      <FlatList
+        ref={listRef}
+        data={feed.articles}
+        keyExtractor={(a) => a.id}
+        renderItem={renderItem}
+        ListHeaderComponent={header}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={!swipeable}
+        showsHorizontalScrollIndicator={swipeable}
+        horizontal={swipeable}
+        pagingEnabled={swipeable}
+        snapToAlignment={swipeable ? "center" : undefined}
+        onEndReachedThreshold={0.6}
+        onEndReached={feed.loadMore}
+        refreshControl={
+          <RefreshControl
+            refreshing={feed.refreshing}
+            onRefresh={feed.refresh}
+            colors={[colors.brand]}
+            tintColor={colors.brand}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.centerInner}>
+            <Text style={styles.muted}>{t("feed.empty")}</Text>
+          </View>
+        }
+        ListFooterComponent={
+          swipeable
+            ? null
+            : feed.loadingMore ? (
+                <ActivityIndicator color={colors.brand} style={{ marginVertical: spacing.lg }} />
+              ) : feed.articles.length > 0 && !feed.hasMore ? (
+                <Text style={styles.endText}>{t("feed.end")}</Text>
+              ) : null
+        }
+      />
+      {swipeable && feed.loadingMore ? (
+        <ActivityIndicator color={colors.brand} style={{ marginVertical: spacing.lg }} />
+      ) : null}
+    </View>
   );
 });
 
@@ -154,6 +170,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     flexGrow: 1,
   },
+  swipeContainer: { flex: 1 },
+  swipeItem: { justifyContent: "center", paddingHorizontal: spacing.lg },
+  swipeCard: { marginHorizontal: 0 },
   muted: { color: colors.textMuted, fontSize: 14, textAlign: "center" },
   errorTitle: { color: colors.text, fontSize: 16, fontWeight: "700" },
   retryBtn: {

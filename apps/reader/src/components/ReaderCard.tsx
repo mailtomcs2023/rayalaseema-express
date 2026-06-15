@@ -3,7 +3,6 @@ import {
   View,
   Text,
   Pressable,
-  ScrollView,
   StyleSheet,
   Share,
 } from "react-native";
@@ -63,8 +62,8 @@ export default function ReaderCard({
   };
 
   return (
-    <View style={[styles.page, { width, height }]}>
-      <View style={[styles.imageWrap, { paddingTop: topInset }]}>
+    <View style={[styles.page, { width, height }]}> 
+      <View style={styles.imageWrap}>
         <Image
           source={hasImage ? { uri: article.featuredImage! } : LOGO_PLACEHOLDER}
           style={hasImage ? styles.image : styles.placeholder}
@@ -75,6 +74,18 @@ export default function ReaderCard({
           transition={0}
           cachePolicy="memory-disk"
         />
+        <View style={styles.imageOverlayActions}>
+          <Pressable style={styles.iconBtn} onPress={onToggleSave} hitSlop={8}>
+            <Ionicons
+              name={saved ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color="#FFFFFF"
+            />
+          </Pressable>
+          <Pressable style={styles.iconBtn} onPress={onShare} hitSlop={8}>
+            <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
+          </Pressable>
+        </View>
       </View>
 
       <View style={[styles.content, { paddingBottom: bottomInset + spacing.lg }]}>
@@ -83,40 +94,17 @@ export default function ReaderCard({
             <View style={styles.catChip}>
               <Text style={styles.catChipText}>{categoryLabel(article.category, lang)}</Text>
             </View>
-          ) : (
-            <View />
-          )}
+          ) : null}
           <Text style={styles.time}>{timeAgo(article.publishedAt, lang)}</Text>
         </View>
 
         <Text style={styles.title}>{article.title}</Text>
 
-        <ScrollView
-          style={styles.summaryScroll}
-          showsVerticalScrollIndicator={false}
-          // Nested vertical scroll inside the paging FlatList - only takes over
-          // the gesture when the summary is actually long enough to scroll.
-        >
-          <Text style={styles.summary}>{summary}</Text>
-        </ScrollView>
+        <Text style={styles.summary}>{summary}</Text>
 
-        <View style={styles.actionRow}>
-          <Pressable style={styles.readBtn} onPress={onReadFull}>
-            <Ionicons name="book-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.readBtnText}>{t("reader.readFull")}</Text>
-          </Pressable>
-
-          <Pressable style={styles.iconBtn} onPress={onToggleSave} hitSlop={8}>
-            <Ionicons
-              name={saved ? "bookmark" : "bookmark-outline"}
-              size={22}
-              color={saved ? colors.brand : colors.text}
-            />
-          </Pressable>
-          <Pressable style={styles.iconBtn} onPress={onShare} hitSlop={8}>
-            <Ionicons name="share-social-outline" size={22} color={colors.text} />
-          </Pressable>
-        </View>
+        <Pressable onPress={onReadFull} style={styles.readFullLink}>
+          <Text style={styles.readFullText}>{t("reader.readFull")}</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -128,8 +116,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   imageWrap: {
-    flex: 1,
-    backgroundColor: colors.readerBg,
+    height: "42%",
+    backgroundColor: colors.bgMuted,
+    position: "relative",
   },
   image: { flex: 1, width: "100%" },
   placeholder: { flex: 1, width: "100%", opacity: 0.5 },
@@ -137,12 +126,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     backgroundColor: colors.bg,
-    // Pull the card up slightly over the image for a sheet-like seam.
-    marginTop: -radius.lg,
+    // Pull the card higher over the image so the text is more visible.
+    marginTop: -spacing.xl * 1.4,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
-    // ~48% of the screen for text; image gets the rest.
     maxHeight: "52%",
+    position: "relative",
   },
   metaRow: {
     flexDirection: "row",
@@ -164,37 +153,41 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.text,
   },
-  summaryScroll: { marginTop: spacing.md, flexGrow: 0 },
   summary: {
     fontSize: 16,
     lineHeight: 25,
     color: colors.textMuted,
+    paddingRight: spacing.xl * 2,
   },
-  actionRow: {
+  readFullLink: {
+    position: "absolute",
+    bottom: spacing.lg,
+    right: spacing.lg,
+  },
+  readFullText: {
+    color: colors.brand,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  imageOverlayActions: {
+    position: "absolute",
+    right: spacing.lg,
+    bottom: spacing.xl * 1.5,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginTop: spacing.md,
   },
-  readBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.brand,
-    paddingVertical: spacing.md,
-    borderRadius: radius.pill,
-  },
-  readBtnText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   iconBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.bgMuted,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.brand,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });

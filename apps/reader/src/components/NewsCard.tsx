@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { Article } from "../api/client";
@@ -16,17 +16,18 @@ interface Props {
   onPress: () => void;
   saved: boolean;
   onToggleSave: () => void;
+  style?: ViewStyle;
 }
 
 // A single short-news card in the scrollable feed, stacked vertically: the
 // image on top, then the headline, then the summary, then the time + save row.
-function NewsCard({ article, onPress, saved, onToggleSave }: Props) {
+function NewsCard({ article, onPress, saved, onToggleSave, style }: Props) {
   const { t, lang } = useT();
   const summary = stripHtml(article.summary);
   const hasImage = !!article.featuredImage;
 
   return (
-    <Pressable style={styles.card} onPress={onPress} android_ripple={{ color: colors.bgMuted }}>
+    <Pressable style={[styles.card, style]} onPress={onPress} android_ripple={{ color: colors.bgMuted }}>
       <View style={styles.imageWrap}>
         <Image
           source={hasImage ? { uri: article.featuredImage! } : LOGO_PLACEHOLDER}

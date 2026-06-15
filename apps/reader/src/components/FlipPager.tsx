@@ -68,7 +68,7 @@ export default function FlipPager({
   }, []);
 
   const pan = Gesture.Pan()
-    .activeOffsetX([-15, 15])
+    .activeOffsetX([-10, 10])
     .failOffsetY([-14, 14])
     .onUpdate((e) => {
       "worklet";
@@ -83,15 +83,15 @@ export default function FlipPager({
     .onEnd((e) => {
       "worklet";
       const frac = pos.value - index; // >0 forward, <0 backward
-      const fast = Math.abs(e.velocityX) > 700;
+      const fast = Math.abs(e.velocityX) > 300;
       let target = index;
-      if ((frac > 0.25 || (fast && e.velocityX < 0)) && index < total - 1) {
+      if ((frac > 0.2 || (fast && e.velocityX < 0)) && index < total - 1) {
         target = index + 1;
-      } else if ((frac < -0.25 || (fast && e.velocityX > 0)) && index > 0) {
+      } else if ((frac < -0.2 || (fast && e.velocityX > 0)) && index > 0) {
         target = index - 1;
       }
       // pos lands exactly on an integer page; only then shift the window.
-      pos.value = withTiming(target, { duration: 300 }, (fin) => {
+      pos.value = withTiming(target, { duration: 200 }, (fin) => {
         if (fin && target !== index) runOnJS(commit)(target);
       });
     });

@@ -59,7 +59,7 @@ export default function CategoriesScreen() {
                     {label.trim().charAt(0)}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+                <Ionicons name="chevron-forward" size={20} color={accent} />
               </View>
               <Text style={styles.tileText} numberOfLines={2}>
                 {label}
