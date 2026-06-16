@@ -172,12 +172,12 @@ export function SectionHub({
             )}
           </div>
 
-          {/* RAIL - sticky Trending, same card UI as the article page.
-              Hidden when this section has no trending stories of its own.
-              top:96 clears the sticky primary nav (40px) + secondary header (40px). */}
-          {trending.length > 0 && (
-            <aside style={{ flex: "0 0 290px", position: "sticky", top: 96, alignSelf: "flex-start", maxHeight: "calc(100vh - 112px)", overflowY: "auto" }}>
-              <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16 }}>
+          {/* RAIL - sticky Trending + sidebar ad. The ad should still appear when
+              this section has no trending stories of its own. top:96 clears the
+              sticky primary nav (40px) + secondary header (40px). */}
+          <aside style={{ flex: "0 0 290px", position: "sticky", top: 96, alignSelf: "flex-start", maxHeight: "calc(100vh - 112px)", overflowY: "auto" }}>
+            {trending.length > 0 ? (
+              <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16, marginBottom: 16 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
                   Trending
                 </h3>
@@ -192,10 +192,10 @@ export function SectionHub({
                   </Link>
                 ))}
               </div>
-              {/* Ad below the trending list - page-targetable from Admin → Ads. */}
-              <RailAd position="SIDEBAR_SQUARE" />
-            </aside>
-          )}
+            ) : null}
+            {/* Ad below the trending list - page-targetable from Admin → Ads. */}
+            <RailAd position="SIDEBAR_SQUARE" />
+          </aside>
         </div>
         )}
       </main>
