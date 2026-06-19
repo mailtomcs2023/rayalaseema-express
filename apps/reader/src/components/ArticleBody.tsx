@@ -18,13 +18,29 @@ export default function ArticleBody({
   const blocks = useMemo(() => {
     let b = parseHtmlBlocks(html);
     if (title && b.length) {
-      const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+      const norm = (s: string) =>
+        s
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase()
+          // strip common punctuation that CMS / headline sources differ on
+          .replace(/[.!?:,;"'\u2018\u2019\u201c\u201d\u2026\u2014\u2013-]/g, "");
+      const normTitle = norm(title);
       const first = b[0];
       const firstText =
         first.kind === "heading" || first.kind === "para" || first.kind === "quote"
           ? first.spans.map((s) => s.text).join("")
           : "";
-      if (firstText && norm(firstText) === norm(title)) b = b.slice(1);
+      if (firstText) {
+        const normFirst = norm(firstText);
+        // Strip the first block if it's an exact match, a prefix of the title,
+        // or the title is a prefix of it (covers truncated / expanded headlines).
+        const isDuplicate =
+          normFirst === normTitle ||
+          normTitle.includes(normFirst) ||
+          normFirst.includes(normTitle);
+        if (isDuplicate) b = b.slice(1);
+      }
     }
     return b;
   }, [html, title]);

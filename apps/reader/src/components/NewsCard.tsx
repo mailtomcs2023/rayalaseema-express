@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Text, Pressable, StyleSheet, type ViewStyle } from "react-native";
+import { View, Text, Pressable, Share, StyleSheet, type ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import type { Article } from "../api/client";
 import { useT } from "../i18n";
 import { categoryLabel, stripHtml, timeAgo } from "../lib/format";
+import { articleUrl } from "../lib/article-url";
 import { colors, radius, spacing } from "../theme";
 
 // Brand logo shown on cards that have no featured image (per house style -
@@ -25,6 +26,17 @@ function NewsCard({ article, onPress, saved, onToggleSave, style }: Props) {
   const { t, lang } = useT();
   const summary = stripHtml(article.summary);
   const hasImage = !!article.featuredImage;
+
+  const onShare = async () => {
+    const url = articleUrl(article);
+    try {
+      await Share.share({
+        message: url ? `${article.title}\n\n${url}` : article.title,
+      });
+    } catch {
+      /* user dismissed */
+    }
+  };
 
   return (
     <Pressable style={[styles.card, style]} onPress={onPress} android_ripple={{ color: colors.bgMuted }}>
@@ -56,13 +68,22 @@ function NewsCard({ article, onPress, saved, onToggleSave, style }: Props) {
 
         <View style={styles.metaRow}>
           <Text style={styles.time}>{timeAgo(article.publishedAt, lang)}</Text>
-          <Pressable hitSlop={10} onPress={onToggleSave} style={styles.saveBtn}>
-            <Ionicons
-              name={saved ? "bookmark" : "bookmark-outline"}
-              size={18}
-              color={saved ? colors.brand : colors.textMuted}
-            />
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable hitSlop={10} onPress={onShare} style={styles.actionBtn}>
+              <Ionicons
+                name="share-social-outline"
+                size={18}
+                color={colors.textMuted}
+              />
+            </Pressable>
+            <Pressable hitSlop={10} onPress={onToggleSave} style={styles.actionBtn}>
+              <Ionicons
+                name={saved ? "bookmark" : "bookmark-outline"}
+                size={18}
+                color={saved ? colors.brand : colors.textMuted}
+              />
+            </Pressable>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -136,7 +157,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textFaint,
   },
-  saveBtn: {
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  actionBtn: {
     padding: 2,
   },
 });

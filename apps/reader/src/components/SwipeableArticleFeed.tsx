@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useRef,
   useState,
 } from "react";
 import {
@@ -28,7 +29,7 @@ import type { Article } from "../api/client";
 import { useFeed } from "../lib/use-feed";
 import { useBookmarks } from "../lib/bookmarks";
 import { useT } from "../i18n";
-import FlipPager from "./FlipPager";
+import ReelPager, { type ReelPagerHandle } from "./ReelPager";
 import ReaderCard from "./ReaderCard";
 import { colors, spacing } from "../theme";
 
@@ -47,6 +48,7 @@ function SwipeableArticleFeed(
   const { isSaved, toggle } = useBookmarks();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
+  const pagerRef = useRef<ReelPagerHandle>(null);
   const pullDistance = useSharedValue(0);
   const PULL_THRESHOLD = 80;
 
@@ -66,24 +68,7 @@ function SwipeableArticleFeed(
     feed.refresh();
   }, [feed]);
 
-  const pullGesture = Gesture.Pan()
-    .activeOffsetY([-10, 10])
-    .failOffsetX([-14, 14])
-    .enabled(!feed.refreshing)
-    .onUpdate((e) => {
-      "worklet";
-      if (e.translationY > 0) {
-        const distance = Math.min(e.translationY, PULL_THRESHOLD * 1.5);
-        pullDistance.value = distance;
-      }
-    })
-    .onEnd((e) => {
-      "worklet";
-      if (e.translationY > PULL_THRESHOLD && e.velocityY > 0) {
-        runOnJS(onRefreshTriggered)();
-      }
-      pullDistance.value = withTiming(0, { duration: 300 });
-    });
+
 
   const pullIndicatorStyle = useAnimatedStyle(() => {
     const opacity = interpolate(pullDistance.value, [0, PULL_THRESHOLD], [0, 1], Extrapolation.CLAMP);
@@ -96,7 +81,11 @@ function SwipeableArticleFeed(
 
   useImperativeHandle(ref, () => ({
     scrollToTopAndRefresh() {
-      setCurrentIndex(0);
+      if (pagerRef.current) {
+        pagerRef.current.scrollToIndex(0, true);
+      } else {
+        setCurrentIndex(0);
+      }
       feed.refresh();
     },
   }), [feed]);
@@ -147,34 +136,36 @@ function SwipeableArticleFeed(
   }
 
   return (
-    <GestureDetector gesture={pullGesture}>
-      <View style={styles.wrapper} onLayout={onLayout}>
-        {layoutHeight > 0 ? (
-          <FlipPager
-            articles={feed.articles}
-            initialIndex={currentIndex}
-            width={width}
-            height={layoutHeight}
-            renderPage={renderPage}
-            onIndexChange={setCurrentIndex}
-            onNearEnd={feed.loadMore}
-          />
-        ) : null}
-        {feed.loadingMore ? (
-          <ActivityIndicator color={colors.brand} style={styles.loadingMore} />
-        ) : null}
-        {!feed.loading && !feed.refreshing && (
-          <Animated.View style={[styles.pullIndicator, { top: insets.top + spacing.lg }, pullIndicatorStyle]}>
-            <Ionicons name="arrow-down" size={20} color={colors.brand} />
-          </Animated.View>
-        )}
-        {feed.refreshing && !feed.loading ? (
-          <View style={[styles.refreshLoader, { top: insets.top + spacing.sm }]} pointerEvents="none">
-            <ActivityIndicator color={colors.brand} />
-          </View>
-        ) : null}
-      </View>
-    </GestureDetector>
+    <View style={styles.wrapper} onLayout={onLayout}>
+      {layoutHeight > 0 ? (
+        <ReelPager
+          ref={pagerRef}
+          articles={feed.articles}
+          initialIndex={currentIndex}
+          width={width}
+          height={layoutHeight}
+          renderPage={renderPage}
+          onIndexChange={setCurrentIndex}
+          onNearEnd={feed.loadMore}
+          pullDistance={pullDistance}
+          onRefresh={onRefreshTriggered}
+          refreshing={feed.refreshing}
+        />
+      ) : null}
+      {feed.loadingMore ? (
+        <ActivityIndicator color={colors.brand} style={styles.loadingMore} />
+      ) : null}
+      {!feed.loading && !feed.refreshing && (
+        <Animated.View style={[styles.pullIndicator, { top: insets.top + spacing.lg }, pullIndicatorStyle]}>
+          <Ionicons name="arrow-down" size={20} color={colors.brand} />
+        </Animated.View>
+      )}
+      {feed.refreshing && !feed.loading ? (
+        <View style={[styles.refreshLoader, { top: insets.top + spacing.sm }]} pointerEvents="none">
+          <ActivityIndicator color={colors.brand} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 

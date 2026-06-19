@@ -14,7 +14,7 @@ import { takeReaderFeed, type ReaderPagination } from "../src/lib/feed-store";
 import { useBookmarks } from "../src/lib/bookmarks";
 import { useT } from "../src/i18n";
 import ReaderCard from "../src/components/ReaderCard";
-import FlipPager from "../src/components/FlipPager";
+import ReelPager from "../src/components/ReelPager";
 import { colors, spacing } from "../src/theme";
 
 // Full-screen, horizontally-paged news reader. Reads the list + start index
@@ -95,7 +95,7 @@ export default function ReaderScreen() {
 
   return (
     <View style={styles.root}>
-      <FlipPager
+      <ReelPager
         articles={articles}
         initialIndex={initial?.startIndex ?? 0}
         width={width}
@@ -117,7 +117,7 @@ export default function ReaderScreen() {
       {index === 0 ? (
         <View style={[styles.hint, { bottom: insets.bottom + 92 }]} pointerEvents="none">
           <Text style={styles.hintText}>{t("reader.swipeHint")}</Text>
-          <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+          <Ionicons name="chevron-up" size={18} color="#FFFFFF" />
         </View>
       ) : null}
     </View>

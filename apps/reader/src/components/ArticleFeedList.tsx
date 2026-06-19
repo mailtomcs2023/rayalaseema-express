@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import type { Article } from "../api/client";
 import { useFeed } from "../lib/use-feed";
 import { useBookmarks } from "../lib/bookmarks";
-import { setReaderFeed } from "../lib/feed-store";
+import { setOpenArticle } from "../lib/article-store";
 import { useT } from "../i18n";
 import { colors, spacing } from "../theme";
 import NewsCard from "./NewsCard";
@@ -51,17 +51,11 @@ const ArticleFeedList = forwardRef<
 
   const openReader = useCallback(
     (index: number) => {
-      // Hand the already-loaded list to the swipe reader so it opens instantly
-      // on the tapped story, plus the cursor so it can keep paginating exactly
-      // like this feed does.
-      setReaderFeed(feed.articles, index, {
-        category,
-        offset: feed.articles.length,
-        hasMore: feed.hasMore,
-      });
-      router.push("/reader");
+      const article = feed.articles[index];
+      setOpenArticle(article);
+      router.push({ pathname: "/article/[id]", params: { id: article.id } });
     },
-    [feed.articles, feed.hasMore, category, router],
+    [feed.articles, router],
   );
 
   const renderItem = useCallback(
