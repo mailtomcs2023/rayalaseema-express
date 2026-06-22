@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useKycGate } from "@/components/kyc-gated-link";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Block {
   id: string;
@@ -121,14 +123,37 @@ export default function EpaperEditorPageWrapper() {
 }
 
 function EpaperEditorPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryDate = searchParams.get("date");
+  const queryVariant = searchParams.get("variant") || "main";
+
   const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
-  const [variant, setVariant] = useState<string>("main");
+  const initialDate = (queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate)) ? queryDate : today;
+
+  const [date, setDate] = useState(initialDate);
+  const [variant, setVariant] = useState<string>(queryVariant);
   type EditionVariant = { id: string; edition: string; status: string; workflowState: string; pdfUrl: string | null; pageCount: number };
   const [variants, setVariants] = useState<EditionVariant[]>([]);
   const [edition, setEdition] = useState<Edition | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [generateDate, setGenerateDate] = useState(today);
+
+  useEffect(() => {
+    if (queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate) && queryDate !== date) {
+      setDate(queryDate);
+    }
+  }, [queryDate, date]);
+
+  useEffect(() => {
+    if (queryVariant && queryVariant !== variant) {
+      setVariant(queryVariant);
+    }
+  }, [queryVariant, variant]);
 
   const [activePageIdx, setActivePageIdx] = useState(0);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -180,9 +205,14 @@ function EpaperEditorPage() {
   // Jump to an existing edition from the Recent-editions panel (changing
   // date/variant triggers the load effect above).
   const openEdition = (e: { date: string; edition: string }) => {
-    setVariant(e.edition || "main");
+    const v = e.edition || "main";
+    setVariant(v);
     setDate(e.date);
     setEditionsPanelOpen(false);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("date", e.date);
+    params.set("variant", v);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   // Bulk-delete selected editions (pages/ads/comments/snapshots cascade).
@@ -327,7 +357,13 @@ function EpaperEditorPage() {
     finally { setBusy(null); }
   }, []);
 
-  useEffect(() => { loadEdition(date, variant); }, [date, variant, loadEdition]);
+  useEffect(() => {
+    if (queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate)) {
+      loadEdition(date, variant);
+    } else {
+      setEdition(null);
+    }
+  }, [queryDate, date, variant, loadEdition]);
 
   // Clone a district variant from the current edition.
   const cloneVariant = async () => {
@@ -350,6 +386,9 @@ function EpaperEditorPage() {
       if (!res.ok) throw new Error(data.error || "Clone failed");
       toast("success", `Variant '${slug}' created - ${data.pageCount} pages`);
       setVariant(slug);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("variant", slug);
+      router.push(`${pathname}?${params.toString()}`);
     } catch (e: any) { setError(e.message); }
     finally { setBusy(null); }
   };
@@ -380,9 +419,43 @@ function EpaperEditorPage() {
         setError(msg);
         return;
       }
-      await loadEdition(date);
+      setEdition(null);
       loadRecentEditions();
       toast("success", "Edition generated.");
+    } catch (e: any) {
+      toast("error", e.message || "Generate failed");
+      setError(e.message);
+    }
+    finally { setBusy(null); }
+  });
+
+  const generateForDate = kycGuard("generate the edition", async (targetDate: string) => {
+    setBusy("generating"); setError("");
+    try {
+      const res = await fetch("/api/epaper/generate-edition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: targetDate }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.kycRequired) {
+          toast("error", data.error || "Your KYC must be verified to generate editions.");
+          return;
+        }
+        const msg = data.error || `Generate failed (${res.status})`;
+        toast("error", msg);
+        setError(msg);
+        return;
+      }
+      setEdition(null);
+      loadRecentEditions();
+      toast("success", `Edition generated for ${targetDate}.`);
+      setGenerateDialogOpen(false);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("date", targetDate);
+      params.set("variant", "main");
+      router.push(`${pathname}?${params.toString()}`);
     } catch (e: any) {
       toast("error", e.message || "Generate failed");
       setError(e.message);
@@ -1350,6 +1423,43 @@ function EpaperEditorPage() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#f3f4f6" }}>
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
+      <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+        <DialogContent className="sm:max-w-md shadcn-scope">
+          <DialogHeader>
+            <DialogTitle>Generate Daily Edition</DialogTitle>
+            <DialogDescription>
+              Select a date to generate the e-paper edition. This will auto-fill templates with articles.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 flex flex-col gap-4">
+            <label className="text-sm font-semibold text-slate-700">Edition Date</label>
+            <div className="shadcn-scope" style={{ minWidth: 170 }}>
+              <DatePicker
+                value={generateDate}
+                onChange={(v) => setGenerateDate(v)}
+                placeholder="Pick edition date"
+                max={today}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setGenerateDialogOpen(false)}
+              disabled={busy === "generating"}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => generateForDate(generateDate)}
+              disabled={busy === "generating"}
+            >
+              {busy === "generating" ? "Generating..." : "Generate"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <PreflightPanel
         editionId={edition?.id ?? null}
         open={preflightOpen}
@@ -1784,44 +1894,61 @@ function EpaperEditorPage() {
             <h1 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.15 }}>ePaper Editor</h1>
             <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>Design &amp; render the daily edition</div>
           </div>
-          <div className="shadcn-scope" style={{ minWidth: 170 }}>
-            <DatePicker
-              value={date}
-              onChange={(v) => { setDate(v); setVariant("main"); }}
-              placeholder="Pick edition date"
-              max={today}
-            />
-          </div>
-          {variants.length > 0 && (
-            <WithTooltip text="Edition variant - main + per-district splits">
-              <select value={variant} onChange={(e) => setVariant(e.target.value)}
-                style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 13, fontWeight: 700, background: variant !== "main" ? "#fef3c7" : "#fff" }}>
-                {variants.map((v) => (
-                  <option key={v.id} value={v.edition}>
-                    {v.edition === "main" ? "Main edition" : `📰 ${v.edition}`} ({v.pageCount}p · {v.status})
-                  </option>
-                ))}
-              </select>
-            </WithTooltip>
-          )}
-          {edition && variant === "main" && (
-            <WithTooltip text="Clone the main edition into a district variant">
-              <button onClick={cloneVariant} disabled={busy === "cloning"}
-                style={{ padding: "6px 12px", background: "#fff", color: "#0891b2", border: "1px dashed #0891b2", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                {busy === "cloning" ? "Cloning…" : "+ Clone variant"}
+          {edition && (
+            <>
+              <div className="shadcn-scope" style={{ minWidth: 170 }}>
+                <DatePicker
+                  value={date}
+                  onChange={(v) => {
+                    setDate(v);
+                    setVariant("main");
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("date", v);
+                    params.set("variant", "main");
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
+                  placeholder="Pick edition date"
+                  max={today}
+                />
+              </div>
+              {variants.length > 0 && (
+                <WithTooltip text="Edition variant - main + per-district splits">
+                  <select value={variant} onChange={(e) => {
+                    const v = e.target.value;
+                    setVariant(v);
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("variant", v);
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
+                    style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 13, fontWeight: 700, background: variant !== "main" ? "#fef3c7" : "#fff" }}>
+                    {variants.map((v) => (
+                      <option key={v.id} value={v.edition}>
+                        {v.edition === "main" ? "Main edition" : `📰 ${v.edition}`} ({v.pageCount}p · {v.status})
+                      </option>
+                    ))}
+                  </select>
+                </WithTooltip>
+              )}
+              {variant === "main" && (
+                <WithTooltip text="Clone the main edition into a district variant">
+                  <button onClick={cloneVariant} disabled={busy === "cloning"}
+                    style={{ padding: "6px 12px", background: "#fff", color: "#0891b2", border: "1px dashed #0891b2", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                    {busy === "cloning" ? "Cloning…" : "+ Clone variant"}
+                  </button>
+                </WithTooltip>
+              )}
+              <button onClick={generate} disabled={busy === "generating"}
+                style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                {busy === "generating" ? "Generating…" : "Regenerate"}
               </button>
-            </WithTooltip>
+              <WithTooltip text="Browse all existing editions">
+                <button onClick={() => { setEditionsPanelOpen((o) => !o); loadRecentEditions(); }}
+                  style={{ padding: "8px 14px", background: editionsPanelOpen ? "#eef2ff" : "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  🗂 Editions{recentEditions.length ? ` (${recentEditions.length})` : ""}
+                </button>
+              </WithTooltip>
+            </>
           )}
-          <button onClick={generate} disabled={busy === "generating"}
-            style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-            {busy === "generating" ? "Generating…" : edition ? "Regenerate" : "Generate"}
-          </button>
-          <WithTooltip text="Browse all existing editions">
-            <button onClick={() => { setEditionsPanelOpen((o) => !o); loadRecentEditions(); }}
-              style={{ padding: "8px 14px", background: editionsPanelOpen ? "#eef2ff" : "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              🗂 Editions{recentEditions.length ? ` (${recentEditions.length})` : ""}
-            </button>
-          </WithTooltip>
           {edition && (
             <button onClick={renderEdition} disabled={busy === "rendering"}
               style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -1969,10 +2096,27 @@ function EpaperEditorPage() {
                     No edition for <b>{date}</b> yet - pick a date and click Generate, or open one below.
                   </p>
                 </div>
-                <button onClick={generate} disabled={busy === "generating"}
-                  style={{ padding: "9px 18px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-                  {busy === "generating" ? "Generating…" : "Generate edition"}
-                </button>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <div className="shadcn-scope" style={{ minWidth: 170 }}>
+                    <DatePicker
+                      value={date}
+                      onChange={(v) => {
+                        setDate(v);
+                        setVariant("main");
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set("date", v);
+                        params.set("variant", "main");
+                        router.push(`${pathname}?${params.toString()}`);
+                      }}
+                      placeholder="Pick edition date"
+                      max={today}
+                    />
+                  </div>
+                  <button onClick={() => { setGenerateDate(date); setGenerateDialogOpen(true); }} disabled={busy === "generating"}
+                    style={{ padding: "9px 18px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    Generate edition
+                  </button>
+                </div>
               </div>
               {renderEditionsTable()}
             </div>

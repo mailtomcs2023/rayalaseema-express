@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { prisma } from "@rayalaseema/db";
 import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 import { EpaperViewer } from "@/components/epaper-viewer";
 import { EpaperSearchInline } from "@/components/epaper-search-inline";
+import { EpaperDatePicker } from "@/components/epaper-date-picker";
 import { getSiteConfig } from "@/lib/db-queries";
 
 export const metadata: Metadata = {
@@ -26,6 +25,7 @@ function teluguDate(d: Date): string {
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${days[d.getUTCDay()]}`;
 }
 
+
 export default async function EpaperPage({
   searchParams,
 }: {
@@ -36,17 +36,11 @@ export default async function EpaperPage({
   const editionKey = edition || "main";
 
   // On the epaper.* subdomain the /epaper subtree is served at the root, so
-  // emit root-relative links ("/", "/search") instead of "/epaper..." to keep
-  // URLs clean and avoid a normalising redirect hop on every pill click.
+  // emit root-relative links instead of "/epaper..." to keep URLs clean.
   const host = ((await headers()).get("host") || "").toLowerCase();
   const onSub = host.startsWith("epaper.");
-  const epHref = (path: string, qs?: string) => {
-    const p = onSub ? path.replace(/^\/epaper/, "") || "/" : path;
-    return qs ? `${p}?${qs}` : p;
-  };
 
-  // Ready editions, newest first. Explicitly exclude KILLED workflow state
-  // even though killed editions have active=false too - defense in depth.
+  // Ready editions, newest first. Explicitly exclude KILLED workflow state.
   const editions = await prisma.epaperEdition.findMany({
     where: { active: true, status: "ready", NOT: { workflowState: "KILLED" } },
     orderBy: { date: "desc" },
@@ -55,65 +49,61 @@ export default async function EpaperPage({
   });
 
   const dates = [...new Set(editions.map((e) => e.date.toISOString().slice(0, 10)))];
-  const selDate = date && dates.includes(date) ? date : dates[0];
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const selDate = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr;
 
   const selected = selDate
-    ? await prisma.epaperEdition.findUnique({
-        where: { date_edition: { date: new Date(selDate), edition: editionKey } },
+    ? await prisma.epaperEdition.findFirst({
+        where: {
+          date: new Date(selDate),
+          edition: editionKey,
+          status: "ready",
+          active: true,
+          NOT: { workflowState: "KILLED" },
+        },
         include: { pages: { orderBy: { pageNumber: "asc" } } },
       })
     : null;
 
-  // Which editions exist for the selected date
-  const editionsForDate = selDate
-    ? editions.filter((e) => e.date.toISOString().slice(0, 10) === selDate).map((e) => e.edition)
+  // District editions available for the selected date (excluding "main")
+  const districtEditions = selDate
+    ? editions
+        .filter((e) => e.date.toISOString().slice(0, 10) === selDate)
+        .map((e) => e.edition)
+        .filter((ek) => ek !== "main")
     : [];
-
-  const pill = (active: boolean) => ({
-    fontFamily: "var(--font-telugu-body), sans-serif",
-    fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 999,
-    textDecoration: "none",
-    background: active ? "var(--brand)" : "#f3f4f6",
-    color: active ? "#fff" : "#374151",
-    border: "1px solid " + (active ? "var(--brand)" : "#e5e7eb"),
-  });
 
   return (
     <div className="min-h-screen" style={{ background: "#fff" }}>
       <SiteHeader config={config} breakingNews={[]} />
 
+      {/* ── Brand bar ── */}
       <div style={{ background: "var(--brand)", position: "relative", zIndex: 40 }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "12px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-          <span style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 26, fontWeight: 800, color: "#fff" }}>
-            ఈ-పేపర్
-          </span>
-          <EpaperSearchInline />
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "12px" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <span style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 26, lineHeight: 1, fontWeight: 800, color: "#fff" }}>
+              ఈ-పేపర్
+            </span>
+            <EpaperSearchInline />
+          </div>
         </div>
       </div>
 
-      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "18px 12px 48px" }}>
-        {/* Date picker */}
-        {dates.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-            {dates.map((ds) => (
-              <Link key={ds} href={epHref("/epaper", `date=${ds}&edition=${editionKey}`)} style={pill(ds === selDate)}>
-                {teluguDate(new Date(ds))}
-              </Link>
-            ))}
+      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "0 12px 24px" }}>
+        {/* Date picker + district edition buttons — rendered ABOVE the viewer */}
+        {selDate && districtEditions.length > 0 && (
+          <div className="pt-4 pb-2">
+            <EpaperDatePicker
+              availableDates={dates}
+              selectedDate={selDate}
+              editionKey={editionKey}
+              districtEditions={districtEditions}
+              onSub={onSub}
+            />
           </div>
         )}
 
-        {/* Edition switcher */}
-        {editionsForDate.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-            {editionsForDate.map((ek) => (
-              <Link key={ek} href={epHref("/epaper", `date=${selDate}&edition=${ek}`)} style={pill(ek === editionKey)}>
-                {EDITION_NAMES[ek] || ek}
-              </Link>
-            ))}
-          </div>
-        )}
-
+        {/* E-paper viewer */}
         {selected && selected.pages.length > 0 ? (
           <EpaperViewer
             pages={selected.pages.map((p) => ({
@@ -124,13 +114,25 @@ export default async function EpaperPage({
             }))}
             pdfUrl={selected.pdfUrl}
             editionId={selected.id}
-            dateLabel={`${teluguDate(selected.date)} · ${EDITION_NAMES[editionKey] || editionKey}`}
+            dateLabel={editionKey !== "main" ? (EDITION_NAMES[editionKey] || editionKey) : ""}
+            dateSlot={
+              selDate ? (
+                <EpaperDatePicker
+                  availableDates={dates}
+                  selectedDate={selDate}
+                  editionKey={editionKey}
+                  districtEditions={districtEditions}
+                  onSub={onSub}
+                  toolbarMode
+                />
+              ) : undefined
+            }
           />
         ) : (
           <div
             style={{
               background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8,
-              padding: 60, textAlign: "center",
+              padding: 60, textAlign: "center", marginTop: 16,
               fontFamily: "var(--font-telugu-body), sans-serif", color: "#6b7280",
             }}
           >
@@ -138,8 +140,6 @@ export default async function EpaperPage({
           </div>
         )}
       </main>
-
-      <SiteFooter config={config} />
     </div>
   );
 }

@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { articleHref } from "@/lib/article-href";
+import { Button } from "@/components/ui/button";
+import {
+  ChevronLeft, ChevronRight,
+  ZoomIn, ZoomOut,
+  Scissors, FileDown,
+} from "lucide-react";
 
 interface Hotspot { slug: string; href?: string; x: number; y: number; w: number; h: number; }
 interface EpaperPage {
@@ -21,12 +27,14 @@ interface EpaperPage {
  *  - Drag-to-clip + share modal preserved from v1
  */
 export function EpaperViewer({
-  pages, pdfUrl, dateLabel, editionId,
+  pages, pdfUrl, dateLabel, editionId, dateSlot,
 }: {
   pages: EpaperPage[];
   pdfUrl: string | null;
   dateLabel: string;
   editionId?: string;     // when present, viewer pings /api/epaper/track on every page view
+  /** Optional ReactNode to render instead of the plain dateLabel span (e.g. an interactive date picker) */
+  dateSlot?: React.ReactNode;
 }) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -151,27 +159,62 @@ export function EpaperViewer({
     <div className="ev">
       {/* TOP TOOLBAR */}
       <div className="ev-bar">
+        {/* Date / edition label */}
         <div className="ev-grp">
-          <span className="ev-date">{dateLabel}</span>
+          {dateSlot ?? <span className="ev-date">{dateLabel}</span>}
         </div>
+
+        {/* Page navigation */}
         <div className="ev-grp ev-nav">
-          <button onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous page">‹</button>
+          <Button
+            variant="secondary" size="icon-sm"
+            onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous page"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
           <span className="ev-pageno">పేజీ {idx + 1} / {pages.length}</span>
-          <button onClick={() => go(idx + 1)} disabled={idx === pages.length - 1} aria-label="Next page">›</button>
+          <Button
+            variant="secondary" size="icon-sm"
+            onClick={() => go(idx + 1)} disabled={idx === pages.length - 1} aria-label="Next page"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
         </div>
+
+        {/* Zoom + tools */}
         <div className="ev-grp">
-          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} aria-label="Zoom out">−</button>
+          <Button
+            variant="secondary" size="icon-sm"
+            onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} aria-label="Zoom out"
+          >
+            <ZoomOut className="size-4" />
+          </Button>
           <span className="ev-z">{Math.round(zoom * 100)}%</span>
-          <button onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in">+</button>
-          <button
-            className={clipMode ? "ev-clip on" : "ev-clip"}
-            onClick={() => { setClipMode(!clipMode); setSel(null); setClipUrl(null); }}>
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14, marginInlineEnd: 4, verticalAlign: "-2px" }}>
-              <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12" />
-            </svg>
+          <Button
+            variant="secondary" size="icon-sm"
+            onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in"
+          >
+            <ZoomIn className="size-4" />
+          </Button>
+
+          <Button
+            variant={clipMode ? "default" : "secondary"}
+            size="sm"
+            className={clipMode ? "bg-yellow-400 text-red-800 hover:bg-yellow-300 font-bold" : "font-bold"}
+            onClick={() => { setClipMode(!clipMode); setSel(null); setClipUrl(null); }}
+          >
+            <Scissors className="size-4" />
             క్లిప్
-          </button>
-          {pdfUrl && <a className="ev-dl" href={pdfUrl} target="_blank" rel="noopener">PDF ↓</a>}
+          </Button>
+
+          {pdfUrl && (
+            <Button variant="secondary" size="sm" className="font-bold" asChild>
+              <a href={pdfUrl} target="_blank" rel="noopener">
+                <FileDown className="size-4" />
+                PDF
+              </a>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -184,7 +227,7 @@ export function EpaperViewer({
         {pages.map((p, i) => (
           <button key={p.pageNumber} className={`ev-thumb${i === idx ? " active" : ""}`} onClick={() => go(i)}>
             <span className="ev-thumb-no">{String(p.pageNumber).padStart(2, "0")}</span>
-            <img src={p.imageUrl} alt={`Page ${p.pageNumber}`} loading="lazy" />
+            <img src={p.imageUrl || undefined} alt={`Page ${p.pageNumber}`} loading="lazy" />
             <span className="ev-thumb-label">{p.label}</span>
           </button>
         ))}
@@ -192,7 +235,13 @@ export function EpaperViewer({
 
       {/* STAGE - big page with side arrow buttons */}
       <div className="ev-stage-wrap">
-        <button className="ev-stage-arrow left" onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous">‹</button>
+        <Button
+          variant="secondary" size="icon"
+          className="ev-stage-arrow left absolute top-1/2 -translate-y-1/2 left-4 z-10 rounded-full text-[#B91414] shadow-lg hover:scale-105 disabled:opacity-30"
+          onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous"
+        >
+          <ChevronLeft className="size-6" />
+        </Button>
 
         <div className="ev-stage" ref={stageRef}>
           <div
@@ -202,7 +251,7 @@ export function EpaperViewer({
             onMouseMove={onMove}
             onMouseUp={onUp}
           >
-            <img ref={imgRef} className="ev-page" src={cur.imageUrl} alt={`${cur.label} - page ${cur.pageNumber}`} draggable={false} />
+            <img ref={imgRef} className="ev-page" src={cur.imageUrl || undefined} alt={`${cur.label} - page ${cur.pageNumber}`} draggable={false} />
 
             {!clipMode &&
               cur.hotspots.map((h, i) => (
@@ -227,7 +276,13 @@ export function EpaperViewer({
           </div>
         </div>
 
-        <button className="ev-stage-arrow right" onClick={() => go(idx + 1)} disabled={idx === pages.length - 1} aria-label="Next">›</button>
+        <Button
+          variant="secondary" size="icon"
+          className="ev-stage-arrow right absolute top-1/2 -translate-y-1/2 right-4 z-10 rounded-full text-[#B91414] shadow-lg hover:scale-105 disabled:opacity-30"
+          onClick={() => go(idx + 1)} disabled={idx === pages.length - 1} aria-label="Next"
+        >
+          <ChevronRight className="size-6" />
+        </Button>
       </div>
 
       {(clipBusy || clipUrl) && (
@@ -268,17 +323,7 @@ export function EpaperViewer({
         .ev-nav { background: rgba(0,0,0,0.18); border-radius: 6px; padding: 2px 6px; }
         .ev-date { font-family: var(--font-telugu-heading), serif; font-size: 15px; font-weight: 800; }
         .ev-pageno { font-family: var(--font-telugu-body), sans-serif; font-size: 13px; font-weight: 700; min-width: 90px; text-align: center; }
-        .ev-bar button, .ev-dl, .ev-clip {
-          background: rgba(255,255,255,0.16); color: #fff; border: none;
-          height: 32px; min-width: 32px; padding: 0 11px; border-radius: 4px; cursor: pointer;
-          font-size: 15px; font-weight: 700;
-          display: flex; align-items: center; justify-content: center;
-          font-family: var(--font-telugu-body), sans-serif; text-decoration: none;
-          transition: background 0.15s;
-        }
-        .ev-bar button:disabled { opacity: 0.4; cursor: default; }
-        .ev-bar button:hover:not(:disabled), .ev-dl:hover { background: rgba(255,255,255,0.32); }
-        .ev-clip.on { background: #FFD400; color: #B91414; }
+        /* toolbar buttons now use shadcn Button — no custom CSS needed */
         .ev-z { font-size: 12px; min-width: 42px; text-align: center; font-weight: 700; }
 
         .ev-hint {
@@ -346,19 +391,15 @@ export function EpaperViewer({
           background: rgba(255,212,0,0.18); pointer-events: none;
         }
 
-        /* SIDE NAV ARROWS */
+        /* SIDE NAV ARROWS — position/size only; visual style handled by shadcn Button */
         .ev-stage-arrow {
-          position: absolute; top: 50%; transform: translateY(-50%);
-          width: 48px; height: 48px; border-radius: 50%;
-          background: rgba(255,255,255,0.94); color: #B91414;
-          border: none; font-size: 32px; font-weight: 800;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-          z-index: 5; transition: background 0.15s, transform 0.15s;
-          line-height: 1;
+          position: absolute !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          width: 48px !important;
+          height: 48px !important;
         }
-        .ev-stage-arrow:hover:not(:disabled) { background: #fff; transform: translateY(-50%) scale(1.08); }
-        .ev-stage-arrow:disabled { opacity: 0.3; cursor: default; }
+        .ev-stage-arrow:hover:not(:disabled) { transform: translateY(-50%) scale(1.08) !important; }
         .ev-stage-arrow.left { left: 16px; }
         .ev-stage-arrow.right { right: 16px; }
 

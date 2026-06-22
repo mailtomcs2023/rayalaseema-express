@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -68,36 +69,31 @@ export function EpaperSearchInline() {
           e.preventDefault();
           if (q.trim().length >= 2) setOpen(true);
         }}
-        style={{ display: "flex", alignItems: "stretch", gap: 8 }}
+        className="flex items-center gap-2 w-full"
       >
-        <div style={{ position: "relative", flex: 1 }}>
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--brand)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 16, height: 16, pointerEvents: "none" }}
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
+        {/* Plain shadcn Input — no InputGroup, eliminates the has-[...]:ring-3 focus jump */}
+        <div className="relative flex-1">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 pointer-events-none"
+            style={{ color: "rgba(255,255,255,0.7)" }}
+          />
           <Input
             type="text"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onFocus={() => { if (q.trim().length >= 2) setOpen(true); }}
             placeholder="పాత ఎడిషన్‌లలో వెతుకు…"
-            className="h-9 rounded-full border-transparent bg-white pr-3 pl-9 text-[13px] text-foreground shadow-sm"
+            className="h-9 rounded-full pl-9 bg-white/20 border-white/30 text-white text-[13px] placeholder:text-white/60 focus-visible:ring-0 focus-visible:bg-white/30 focus-visible:border-white/50"
             style={{ fontFamily: "var(--font-telugu-body), sans-serif" }}
           />
         </div>
+
         <Button
           type="submit"
-          className="h-9 rounded-full px-4 font-bold text-white"
-          style={{ background: "var(--brand)", fontFamily: "var(--font-telugu-body), sans-serif" }}
+          size="sm"
+          className="rounded-full px-4 shrink-0 font-bold text-white border-white/30 hover:bg-white/20"
+          variant="outline"
+          style={{ fontFamily: "var(--font-telugu-body), sans-serif", background: "rgba(0,0,0,0.2)", borderColor: "rgba(255,255,255,0.3)" }}
         >
           వెతుకు
         </Button>
