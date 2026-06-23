@@ -1418,6 +1418,7 @@ h2[style*="color:var(--color-brand)"] {
   margin-top: 16px;
   width: 100%;
   aspect-ratio: 300 / 250;
+  min-height: 180px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1436,10 +1437,12 @@ h2[style*="color:var(--color-brand)"] {
 }
 
 /* Grow to fill the leftover rail height so there's no empty gap and the rail
-   bottom lines up with the main column. */
-.rail-ad--tall {
-  flex: 1 1 auto;
-  aspect-ratio: auto;
+   bottom lines up with the main column. Only apply on desktop viewports. */
+@media (min-width: 1025px) {
+  .rail-ad--tall {
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+  }
 }
 
 /* When a real house ad is configured, drop the striped chrome and keep it
