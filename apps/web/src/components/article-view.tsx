@@ -9,7 +9,6 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { TTSButton } from "@/components/tts-button";
 import { CommentsSection } from "@/components/comments-section";
-import { ScrollShareNudge } from "@/components/scroll-share-nudge";
 import { ShareBar } from "@/components/share-bar";
 import { DialectGlosser } from "@/components/dialect-glosser";
 import { injectInlineByline, formatRelativeTelugu } from "@/lib/byline";
@@ -150,15 +149,10 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
     ],
   });
 
-  // ScrollShareNudge takes the canonical slug (Content.slug) not the
-  // full URL, so cache it once here.
-  const slug = article.slug || "";
-
   return (
     <div className="min-h-screen bg-gray-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(newsArticleLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
-      <ScrollShareNudge title={article.title} slug={slug} articleUrl={canonical} />
       <SiteHeader activeSectionSlug={article.category?.slug} />
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
