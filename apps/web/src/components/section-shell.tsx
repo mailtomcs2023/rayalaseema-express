@@ -29,7 +29,7 @@ export function SectionShell({
       {children}
       {moreHref && (
         <Link href={moreHref} className="ss-more">
-          {moreLabel} →
+          {moreLabel}
         </Link>
       )}
       <style>{`

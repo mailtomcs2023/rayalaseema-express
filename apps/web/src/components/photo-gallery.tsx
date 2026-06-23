@@ -83,8 +83,6 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
           -webkit-box-orient: vertical;
           overflow: hidden;
           transition: background 0.2s ease;
-          /* hard ceiling so long Telugu captions can never spill to a 3rd line */
-          max-height: calc(2 * 1.4em + 34px);
         }
         .pg-item:hover .pg-title {
           background: rgba(15, 23, 42, 0.95);
