@@ -159,7 +159,7 @@ export function AboveFold({
           {/* Ad slots below the latest-5 headlines - admin-configurable house
               ads (Admin → Ads), striped placeholder until one is set. */}
           <RailAd position="SIDEBAR_SQUARE" />
-          <RailAd position="SIDEBAR_TALL" tall />
+          <RailAd position="SIDEBAR_SQUARE" />
         </aside>
       </div>
 

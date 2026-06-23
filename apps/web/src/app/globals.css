@@ -1416,7 +1416,8 @@ h2[style*="color:var(--color-brand)"] {
 /* ===== Shared rail/sidebar ad card (<RailAd>) - one look everywhere ===== */
 .rail-ad {
   margin-top: 16px;
-  min-height: 96px;
+  width: 100%;
+  aspect-ratio: 300 / 250;
   flex-shrink: 0;
   display: flex;
   align-items: center;
