@@ -52,7 +52,7 @@ export function ScrollShareNudge({ title, slug, articleUrl }: { title: string; s
     window.addEventListener("resize", measure, { passive: true });
     window.addEventListener("load", measure);
     const onScroll = () => {
-      if (firedRef.current || dismissed) return;
+      if (dismissed) return;
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
@@ -64,10 +64,14 @@ export function ScrollShareNudge({ title, slug, articleUrl }: { title: string; s
           if (pct >= 50 && pct < 55) g("event", "scroll_depth", { depth: 50, article: slug });
           if (pct >= 75 && pct < 80) g("event", "scroll_depth", { depth: 75, article: slug });
         }
-        if (pct >= 80 && !firedRef.current) {
-          firedRef.current = true;
-          setShow(true); // stays until shared/closed - no auto-dismiss
-          if (typeof g === "function") g("event", "engaged_reader", { article: slug });
+        if (pct >= 80) {
+          setShow(true);
+          if (!firedRef.current) {
+            firedRef.current = true;
+            if (typeof g === "function") g("event", "engaged_reader", { article: slug });
+          }
+        } else if (window.scrollY < 400) {
+          setShow(false);
         }
       });
     };
