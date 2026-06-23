@@ -1439,6 +1439,7 @@ h2[style*="color:var(--color-brand)"] {
    bottom lines up with the main column. */
 .rail-ad--tall {
   flex: 1 1 auto;
+  aspect-ratio: auto;
 }
 
 /* When a real house ad is configured, drop the striped chrome and keep it
