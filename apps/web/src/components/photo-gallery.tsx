@@ -57,14 +57,19 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
         }
         .pg-count {
           position: absolute; top: 8px; right: 8px;
-          display: inline-flex; align-items: center; gap: 3px;
-          background: rgba(15, 23, 42, 0.8);
+          display: inline-flex; align-items: center; gap: 4px;
+          background: rgba(15, 23, 42, 0.85);
           color: #fff;
-          font-family: var(--font-telugu-body), sans-serif;
+          font-family: system-ui, -apple-system, sans-serif;
           font-size: 11px; font-weight: 700;
-          padding: 2px 7px;
-          border-radius: 3px;
+          line-height: 1;
+          padding: 4px 6px;
+          border-radius: 4px;
           z-index: 2;
+        }
+        .pg-count svg {
+          display: block;
+          flex-shrink: 0;
         }
         .pg-title {
           position: absolute; bottom: 0; left: 0; right: 0;
