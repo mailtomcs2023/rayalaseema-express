@@ -13,17 +13,15 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
+      - name: Run SEO daily check on Azure VM
+        uses: appleboy/ssh-action@v1.2.1
         with:
-          bun-version: "1.3.5"
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Run SEO daily check
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_READONLY }}
-          SEO_HEALTH_WEBHOOK: ${{ secrets.SEO_HEALTH_WEBHOOK }}
-        run: bun packages/db/scripts/seo-daily-check.ts
+          host: 20.198.2.80
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            export PATH="$HOME/.bun/bin:$PATH"
+            cd /home/azureuser/app
+            DATABASE_URL="postgresql://reapp:RayalaseemaExpress2026!@localhost:5432/rayalaseema_express" \
+            SEO_HEALTH_WEBHOOK="${{ secrets.SEO_HEALTH_WEBHOOK }}" \
+            bun packages/db/scripts/seo-daily-check.ts

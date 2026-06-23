@@ -45,8 +45,8 @@ jobs:
           urls: |
             https://rayalaseemanews.com/
             https://rayalaseemanews.com/kurnool
-            https://rayalaseemanews.com/constituency/kurnool-137
-            https://rayalaseemanews.com/telugu-news/nandyal/srisailam-135/srisailam-dam-bus-stuck
+            https://rayalaseemanews.com/kurnool/kurnool
+            https://rayalaseemanews.com/telugu-news/nandyal/srisailam/srisailam-dam-bus-stuck
           uploadArtifacts: true
           temporaryPublicStorage: true
           configPath: ./.github/lighthouse-ci.json
