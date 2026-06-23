@@ -61,18 +61,28 @@ export function SectionShell({
           color: var(--n-500, #6b7280);
         }
         .ss-more {
-          display: block;
-          text-align: center;
-          margin-top: 14px;
-          padding-top: 12px;
-          border-top: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: fit-content;
+          margin: 18px auto 0;
+          padding: 8px 24px;
+          background: var(--brand, #E01B1B);
+          color: #fff;
           font-family: var(--font-telugu-body), sans-serif;
-          font-size: 13px;
+          font-size: 13.5px;
           font-weight: 800;
-          color: var(--brand, #E01B1B);
+          text-decoration: none;
+          border-radius: 6px;
+          box-shadow: 0 2px 4px rgba(224, 27, 27, 0.15);
+          transition: all 0.2s ease;
+        }
+        .ss-more:hover {
+          background: var(--brand-dark, #B91414);
+          box-shadow: 0 4px 10px rgba(185, 20, 20, 0.3);
+          transform: translateY(-1px);
           text-decoration: none;
         }
-        .ss-more:hover { text-decoration: underline; text-underline-offset: 3px; }
       `}</style>
     </section>
   );

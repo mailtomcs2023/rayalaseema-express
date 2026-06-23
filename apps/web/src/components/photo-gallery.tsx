@@ -68,7 +68,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
         }
         .pg-title {
           position: absolute; bottom: 0; left: 0; right: 0;
-          padding: 12px 12px 14px;
+          padding: 14px 12px 20px;
           background: rgba(15, 23, 42, 0.82);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
@@ -84,7 +84,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
           overflow: hidden;
           transition: background 0.2s ease;
           /* hard ceiling so long Telugu captions can never spill to a 3rd line */
-          max-height: calc(2 * 1.4em + 26px);
+          max-height: calc(2 * 1.4em + 34px);
         }
         .pg-item:hover .pg-title {
           background: rgba(15, 23, 42, 0.95);
