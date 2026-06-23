@@ -53,35 +53,41 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
           display: block;
         }
         .pg-shade {
-          position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 55%);
+          display: none;
         }
         .pg-count {
           position: absolute; top: 8px; right: 8px;
           display: inline-flex; align-items: center; gap: 3px;
-          background: rgba(0,0,0,0.7);
+          background: rgba(15, 23, 42, 0.8);
           color: #fff;
           font-family: var(--font-telugu-body), sans-serif;
           font-size: 11px; font-weight: 700;
           padding: 2px 7px;
           border-radius: 3px;
+          z-index: 2;
         }
         .pg-title {
           position: absolute; bottom: 0; left: 0; right: 0;
-          padding: 10px 10px 11px;
+          padding: 12px 12px 14px;
+          background: rgba(15, 23, 42, 0.82);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           font-family: var(--font-telugu-heading), serif;
-          font-size: 14px; font-weight: 700;
-          line-height: 1.35;
+          font-size: 14.5px; font-weight: 700;
+          line-height: 1.4;
           color: #fff;
-          text-shadow: 0 1px 3px rgba(0,0,0,0.7);
           margin: 0;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          transition: background 0.2s ease;
           /* hard ceiling so long Telugu captions can never spill to a 3rd line */
-          max-height: calc(2 * 1.35em);
+          max-height: calc(2 * 1.4em + 26px);
+        }
+        .pg-item:hover .pg-title {
+          background: rgba(15, 23, 42, 0.95);
         }
 
         @media (max-width: 768px) { .pg-grid { grid-template-columns: repeat(2, 1fr); } }
