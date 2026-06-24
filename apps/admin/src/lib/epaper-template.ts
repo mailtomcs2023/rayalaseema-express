@@ -118,7 +118,7 @@ export function renderBroadsheetPage(o: PageOptions): string {
   html,body{width:1200px;height:2000px}
   body{
     font-family:'Noto Serif Telugu',serif;
-    background:#FCFAF3;color:#14110b;
+    background:#FFFFFF;color:#14110b;
     padding:26px 30px;display:flex;flex-direction:column;
   }
 
@@ -173,7 +173,7 @@ export function renderBroadsheetPage(o: PageOptions): string {
     display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 
   /* ===== IMAGES ===== */
-  .ph{width:100%;overflow:hidden;background:#e9e3d4;border:1px solid #d3cab5}
+  .ph{width:100%;overflow:hidden;background:#FFFFFF;border:1px solid #d3cab5}
   .ph img{width:100%;height:100%;object-fit:cover;display:block}
   .ph.noimg{display:flex;align-items:center;justify-content:center;
     font-family:'Ramabhadra',serif;color:#bdb39c;font-size:24px}
@@ -188,7 +188,7 @@ export function renderBroadsheetPage(o: PageOptions): string {
   .brief span:last-child{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
   .dot{width:6px;height:6px;border-radius:50%;background:#A50D0D;flex-shrink:0;margin-top:7px}
 
-  .adzone{width:100%;overflow:hidden;border:1px solid #d3cab5;background:#f0ebdd}
+  .adzone{width:100%;overflow:hidden;border:1px solid #d3cab5;background:#FFFFFF}
   .adzone img{width:100%;display:block;object-fit:cover}
   .adzone.adtop{margin:10px 0 14px;max-height:150px}
   .adzone.adbot{margin:14px 0 0;max-height:130px}

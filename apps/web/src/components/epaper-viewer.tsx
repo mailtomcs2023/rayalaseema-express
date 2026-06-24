@@ -373,7 +373,7 @@ export function EpaperViewer({
           touch-action: pan-x pan-y;
         }
         .ev-pagewrap { position: relative; user-select: none; max-width: 1000px; }
-        .ev-page { width: 100%; height: auto; display: block; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #fff; }
+        .ev-page { width: 100%; height: auto; display: block; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #FFFFFF; }
         .ev-hotspot {
           position: absolute; display: block;
           background: rgba(0,120,255,0); transition: background 0.15s;

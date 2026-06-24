@@ -18,19 +18,19 @@ const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 export interface Block {
   id: string;
   type:
-    | "masthead"
-    | "section-band"
-    | "lead"
-    | "major"
-    | "secondary"
-    | "brief"
-    | "continuation"   // remainder of an overflow story, lives on a later page
-    | "image"
-    | "ad"
-    | "text"
-    | "story-jump"
-    | "pull-quote"   // #103 - emphasized excerpt block
-    | "folio";       // #146 - master footer with {{pageNumber}} / {{dateLabel}} / {{sectionLabel}}
+  | "masthead"
+  | "section-band"
+  | "lead"
+  | "major"
+  | "secondary"
+  | "brief"
+  | "continuation"   // remainder of an overflow story, lives on a later page
+  | "image"
+  | "ad"
+  | "text"
+  | "story-jump"
+  | "pull-quote"   // #103 - emphasized excerpt block
+  | "folio";       // #146 - master footer with {{pageNumber}} / {{dateLabel}} / {{sectionLabel}}
   x: number;
   y: number;
   w: number;
@@ -60,6 +60,7 @@ export interface Block {
     imageSize?: number;       // percent 10..70
     textColumns?: 1 | 2 | 3;
     hlScale?: number;
+    hlFontFamily?: string;
     hlColor?: string;
     hlBgColor?: string;
     blockBgColor?: string;
@@ -165,16 +166,16 @@ function blockStyle(b: Block, extra = ""): string {
   const parts: string[] =
     CURRENT_COORD_SYSTEM === "mm-v2"
       ? [
-          `position: absolute`,
-          `left: ${b.x.toFixed(2)}mm`,
-          `top: ${b.y.toFixed(2)}mm`,
-          `width: ${b.w.toFixed(2)}mm`,
-          `height: ${b.h.toFixed(2)}mm`,
-        ]
+        `position: absolute`,
+        `left: ${b.x.toFixed(2)}mm`,
+        `top: ${b.y.toFixed(2)}mm`,
+        `width: ${b.w.toFixed(2)}mm`,
+        `height: ${b.h.toFixed(2)}mm`,
+      ]
       : [
-          `grid-column: ${b.x + 1} / span ${b.w}`,
-          `grid-row: ${b.y + 1} / span ${b.h}`,
-        ];
+        `grid-column: ${b.x + 1} / span ${b.w}`,
+        `grid-row: ${b.y + 1} / span ${b.h}`,
+      ];
   if (s.blockBgColor) parts.push(`background-color: ${s.blockBgColor}`);
   if (s.textColor) parts.push(`color: ${s.textColor}`);
   if (typeof s.padding === "number") parts.push(`padding: ${s.padding}px`);
@@ -189,6 +190,7 @@ function hlInlineStyle(s: Block["style"] | undefined, basePx: number): string {
   if (s?.hlColor) out.push(`color:${s.hlColor}`);
   if (s?.hlBgColor) out.push(`background:${s.hlBgColor}`);
   if (s?.hlBgColor) out.push(`padding:6px 12px`);
+  if (s?.hlFontFamily) out.push(`font-family:${s.hlFontFamily}`);
   return out.length ? ` style="${out.join(";")}"` : "";
 }
 
@@ -228,12 +230,13 @@ function masthead(b: Block, opts: { dateLabel: string; totalPages: number; meta?
 
   // Three-column band: left ad | logo + tagline | right ad. Beneath: place/
   // date/volume/issue on left, price/pages/web on right, tagline center.
+  const emptyAdContent = `<span style="background:#fff;padding:2px 8px;border-radius:4px;">ADVERTISEMENT</span>`;
   const leftSlot = leftAd
     ? `<a href="${esc(leftAd.href || "#")}" class="mast-adslot"><img src="${esc(leftAd.imageUrl)}" alt="Sponsor"/></a>`
-    : `<div class="mast-adslot empty">అడ్వర్టైజ్‌మెంట్</div>`;
+    : `<div class="mast-adslot empty">${emptyAdContent}</div>`;
   const rightSlot = rightAd
     ? `<a href="${esc(rightAd.href || "#")}" class="mast-adslot"><img src="${esc(rightAd.imageUrl)}" alt="Sponsor"/></a>`
-    : `<div class="mast-adslot empty">అడ్వర్టైజ్‌మెంట్</div>`;
+    : `<div class="mast-adslot empty">${emptyAdContent}</div>`;
 
   return `<div class="masthead" style="${blockStyle(b)}">
     <div class="mast-row">
@@ -280,8 +283,8 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
     : "";
   const useFlex = imgPos === "left" || imgPos === "right";
   const wrapClass = imgPos === "left" ? "lead-flex-row"
-                  : imgPos === "right" ? "lead-flex-row-rev"
-                  : ""; // default top + wrap = no extra wrapper class
+    : imgPos === "right" ? "lead-flex-row-rev"
+      : ""; // default top + wrap = no extra wrapper class
   const imgWrapStyle = useFlex ? ` style="flex:0 0 ${imgSize}%"` : "";
   const hlStyle = hlInlineStyle(b.style, 42);
   const dekClass = `lead-dek${dropCap ? " drop-cap" : ""}${isWrap ? " has-wrap-image" : ""}`;
@@ -311,8 +314,8 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   // For left/right (flex-row), the wrapper holds the imgSize% basis.
   const imgHtml = img
     ? (useFlex
-        ? `<div class="lead-image-wrap"${imgWrapStyle}>${img}</div>`
-        : img)
+      ? `<div class="lead-image-wrap"${imgWrapStyle}>${img}</div>`
+      : img)
     : "";
   const inner = `
     <div class="block-inner ${wrapClass}">
@@ -455,7 +458,13 @@ function adBlock(b: Block, ads: RenderInput["ads"]): string {
   //   2. legacy: editor-level EpaperAd records keyed by slot, still passed
   //      via `ads[b.id]`. The caller maps both into the same shape.
   const ad = ads?.[b.id];
-  if (!ad) return `<div class="adzone block empty" style="${blockStyle(b)}"></div>`;
+  if (!ad) {
+    const style = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;` +
+      `background:repeating-linear-gradient(45deg,#f8f9fa,#f8f9fa 12px,#f1f5f9 12px,#f1f5f9 24px);` +
+      `border:2px solid #e2e8f0;border-radius:8px;`;
+    const textStyle = `color:#94a3b8;font-family:sans-serif;font-size:24px;font-weight:800;letter-spacing:6px;background:#fff;padding:4px 16px;border-radius:6px;`;
+    return `<div class="adzone block empty" style="${blockStyle(b)}"><div style="${style}"><span style="${textStyle}">ADVERTISEMENT</span></div></div>`;
+  }
   const link = ad.href ? `<a href="${esc(ad.href)}">${imageOrFallback(ad.imageUrl, "ad-img")}</a>` : imageOrFallback(ad.imageUrl, "ad-img");
   return `<div class="adzone block" style="${blockStyle(b)}">${link}</div>`;
 }
@@ -666,7 +675,7 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
   html,body{width:${coordSystem === "mm-v2" ? "330mm" : "1480px"};height:${coordSystem === "mm-v2" ? "520mm" : "2760px"};overflow:hidden}
   body{
     font-family:'Noto Serif Telugu',serif;
-    background:#FCFAF3;color:#14110b;
+    background:#FFFFFF;color:#14110b;
     padding:0;
     /* Baseline grid: 6 mm (~23 px @ 125 dpi) - all body line-heights snap to
        a multiple of this so text aligns horizontally across columns. */
@@ -762,15 +771,17 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
   /* Eenadu-style masthead: 3-col [ad | logo+tag | ad] band on top,
      bibliographic info row, cities band on the bottom. */
   .masthead { display: flex; flex-direction: column; height: 100%;
-    border-bottom: 2px solid #14110b; padding: 4px 10px 0; gap: 4px; }
+    border-bottom: 2px solid #14110b; padding: 0 10px 0; gap: 4px; }
   .mast-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex: 1; min-height: 0; }
-  .mast-adslot { flex: 0 0 18%; max-width: 220px; height: 100%; display: flex; align-items: center; justify-content: center;
+  .mast-adslot { flex: 0 0 25%; max-width: 320px; height: 100%; display: flex; align-items: center; justify-content: center;
     border: 1px dashed #d8d0bd; border-radius: 4px; overflow: hidden; }
   .mast-adslot img { max-width: 100%; max-height: 100%; object-fit: contain; }
-  .mast-adslot.empty { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px;
-    color: #b8ad94; text-transform: uppercase; letter-spacing: 2px; background: #faf6ec; }
-  .mast-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 0; min-height: 0; overflow: hidden; }
-  .mast-logo-img { height: 80%; max-width: 92%; width: auto; object-fit: contain; display: block; }
+  .mast-adslot.empty { font-family: sans-serif; font-size: 11px; font-weight: 800;
+    color: #94a3b8; text-transform: uppercase; letter-spacing: 2px;
+    background: repeating-linear-gradient(45deg,#f8f9fa,#f8f9fa 12px,#f1f5f9 12px,#f1f5f9 24px);
+    border: 2px solid #e2e8f0; border-radius: 8px; }
+  .mast-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0px; min-width: 0; min-height: 0; overflow: hidden; }
+  .mast-logo-img { height: 100%; max-width: 100%; width: auto; object-fit: contain; display: block; }
   .mast-logo { font-family: 'Ramabhadra', serif; font-size: 64px; color: #A50D0D; line-height: 1; }
   .mast-tag { font-family: 'Noto Sans Telugu', sans-serif; font-size: 13px; letter-spacing: 4px;
     color: #c2185b; font-style: italic; font-weight: 700; text-transform: uppercase; }
@@ -863,9 +874,9 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
   .dot{width:6px;height:6px;border-radius:50%;background:#A50D0D;flex-shrink:0;margin-top:7px}
 
   /* Ads */
-  .adzone{width:100%;overflow:hidden;border:1px solid #d3cab5;background:#f0ebdd;height:100%}
+  .adzone{width:100%;overflow:hidden;height:100%}
   .adzone img,.adzone .ad-img,.adzone .ph{width:100%;height:100%;object-fit:cover;display:block}
-  .adzone.empty{background:repeating-linear-gradient(45deg,#fafafa,#fafafa 8px,#f0ebdd 8px,#f0ebdd 16px)}
+  .adzone.empty{background:transparent}
 
   /* Jump */
   .jump{display:flex;align-items:center;justify-content:center;background:#fff3e0;border:1px dashed #A50D0D;border-radius:4px;height:100%}
@@ -983,7 +994,7 @@ export async function renderEpaperPageById(pageId: string): Promise<string> {
     }
   } catch { /* table optional; ignore */ }
 
-  const days = ["ఆదివారం","సోమవారం","మంగళవారం","బుధవారం","గురువారం","శుక్రవారం","శనివారం"];
+  const days = ["ఆదివారం", "సోమవారం", "మంగళవారం", "బుధవారం", "గురువారం", "శుక్రవారం", "శనివారం"];
 
   // Merge: master blocks first (so they render under page blocks visually),
   // then page blocks. Master blocks are always mm-v2; if the page is still

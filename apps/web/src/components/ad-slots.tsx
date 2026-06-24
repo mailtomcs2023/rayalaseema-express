@@ -101,7 +101,13 @@ function AdSenseUnit({ slot, format, style, responsive }: {
   useEffect(() => {
     if (!adsenseId || !slotId || !adRef.current) return;
     try {
-      ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+      // Guard against ad-blocker: if the adsbygoogle script was blocked,
+      // the global may not exist or may have been replaced with a non-array.
+      // Only push if it's a real array (i.e. the script actually loaded).
+      const agl = (window as any).adsbygoogle;
+      if (Array.isArray(agl) || agl === undefined) {
+        ((window as any).adsbygoogle = agl || []).push({});
+      }
     } catch {}
   }, [adsenseId, slotId]);
 

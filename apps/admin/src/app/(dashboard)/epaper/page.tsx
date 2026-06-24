@@ -20,6 +20,7 @@ import { migrateLegacyLayout } from "@/lib/epaper/migrate-layout";
 import { confirm, prompt } from "@/components/confirm-dialog";
 import { PreflightPanel, PreflightChip } from "@/components/epaper/preflight-panel";
 import { InlineTextEditor } from "@/components/epaper/inline-text-editor";
+import { BlockSettingsDialog } from "@/components/epaper/block-settings-dialog";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -51,6 +52,7 @@ interface Block {
     imageSize?: number;
     textColumns?: 1 | 2 | 3;
     hlScale?: number;
+    hlFontFamily?: string;
     hlColor?: string;
     hlBgColor?: string;
     blockBgColor?: string;
@@ -1888,187 +1890,215 @@ function EpaperEditorPage() {
         </div>
       )}
       <main style={{ marginLeft: 240, flex: 1, padding: 24, display: "flex", flexDirection: "column", gap: 16, height: "100vh", overflow: "hidden", minHeight: 0 }}>
-        {/* Top bar - clean toolbar card */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-          <div style={{ marginRight: 6 }}>
-            <h1 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.15 }}>ePaper Editor</h1>
-            <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>Design &amp; render the daily edition</div>
-          </div>
-          {edition && (
-            <>
-              <div className="shadcn-scope" style={{ minWidth: 170 }}>
-                <DatePicker
-                  value={date}
-                  onChange={(v) => {
-                    setDate(v);
-                    setVariant("main");
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.set("date", v);
-                    params.set("variant", "main");
-                    router.push(`${pathname}?${params.toString()}`);
-                  }}
-                  placeholder="Pick edition date"
-                  max={today}
-                />
+        {/* Top bar - split into two rows for cleaner UX */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+          {/* Row 1: Edition Context & Publishing */}
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ marginRight: 6 }}>
+                <h1 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.15 }}>ePaper Editor</h1>
+                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>Design &amp; render the daily edition</div>
               </div>
-              {variants.length > 0 && (
-                <WithTooltip text="Edition variant - main + per-district splits">
-                  <select value={variant} onChange={(e) => {
-                    const v = e.target.value;
-                    setVariant(v);
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.set("variant", v);
-                    router.push(`${pathname}?${params.toString()}`);
-                  }}
-                    style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 13, fontWeight: 700, background: variant !== "main" ? "#fef3c7" : "#fff" }}>
-                    {variants.map((v) => (
-                      <option key={v.id} value={v.edition}>
-                        {v.edition === "main" ? "Main edition" : `📰 ${v.edition}`} ({v.pageCount}p · {v.status})
-                      </option>
-                    ))}
-                  </select>
-                </WithTooltip>
-              )}
-              {variant === "main" && (
-                <WithTooltip text="Clone the main edition into a district variant">
-                  <button onClick={cloneVariant} disabled={busy === "cloning"}
-                    style={{ padding: "6px 12px", background: "#fff", color: "#0891b2", border: "1px dashed #0891b2", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                    {busy === "cloning" ? "Cloning…" : "+ Clone variant"}
+              {edition && (
+                <WithTooltip text="Back to edition list">
+                  <button
+                    onClick={() => {
+                      setEdition(null);
+                      router.push(pathname);
+                    }}
+                    style={{ padding: "7px 14px", background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
+                  >
+                    ← Back
                   </button>
                 </WithTooltip>
               )}
-              <button onClick={generate} disabled={busy === "generating"}
-                style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                {busy === "generating" ? "Generating…" : "Regenerate"}
-              </button>
-              <WithTooltip text="Browse all existing editions">
-                <button onClick={() => { setEditionsPanelOpen((o) => !o); loadRecentEditions(); }}
-                  style={{ padding: "8px 14px", background: editionsPanelOpen ? "#eef2ff" : "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  🗂 Editions{recentEditions.length ? ` (${recentEditions.length})` : ""}
-                </button>
-              </WithTooltip>
-            </>
-          )}
-          {edition && (
-            <button onClick={renderEdition} disabled={busy === "rendering"}
-              style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              {busy === "rendering" ? "Rendering…" : "Render PDF"}
-            </button>
-          )}
-          {edition && (
-            edition.pdfUrl ? (
-              <WithTooltip text="Open the most recently rendered PDF in a new tab">
-                <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                  📄 Preview PDF ↗
-                </a>
-              </WithTooltip>
-            ) : (
-              <WithTooltip text="No PDF yet - click to render now">
-                <button onClick={renderEdition} disabled={busy === "rendering"}
-                  style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  📄 Preview PDF (renders now)
-                </button>
-              </WithTooltip>
-            )
-          )}
-          {edition && (
-            <button onClick={() => { setHistoryOpen(true); loadSnapshots(); }}
-              style={{ padding: "8px 16px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              ↩ History
-            </button>
-          )}
-          {/* Preflight chip (#139) - opens side panel listing every issue. */}
-          {edition && <PreflightChip editionId={edition.id} onClick={() => setPreflightOpen(true)} reloadKey={preflightReload} />}
-          {edition && (
-            <button onClick={() => setCommentsOpen(true)}
-              style={{ padding: "8px 16px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              💬 Comments {comments.filter((c) => !c.resolved).length > 0 ? `(${comments.filter((c) => !c.resolved).length})` : ""}
-            </button>
-          )}
-          {activePage && (
-            <div style={{ display: "inline-flex", border: "1px solid #d1d5db", borderRadius: 8, overflow: "hidden" }}>
-              {(["edit", "split", "preview"] as const).map((m) => (
-                <button key={m} onClick={() => setViewMode(m)}
-                  style={{ padding: "6px 12px", background: viewMode === m ? "#4f46e5" : "#fff", color: viewMode === m ? "#fff" : "#374151", border: "none", borderRight: m !== "preview" ? "1px solid #d1d5db" : "none", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "capitalize" }}>
-                  {m}
-                </button>
-              ))}
-            </div>
-          )}
-          {activePage && (
-            <>
-              <WithTooltip text="Undo (Ctrl+Z)">
-                <button onClick={undo} disabled={!undoStacks[activePage.id]?.length}
-                  style={{ padding: "8px 12px", background: undoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: undoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: undoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
-                  ↶ Undo {undoStacks[activePage.id]?.length ? `(${undoStacks[activePage.id].length})` : ""}
-                </button>
-              </WithTooltip>
-              <WithTooltip text="Redo (Ctrl+Shift+Z)">
-                <button onClick={redo} disabled={!redoStacks[activePage.id]?.length}
-                  style={{ padding: "8px 12px", background: redoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: redoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: redoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
-                  ↷ Redo {redoStacks[activePage.id]?.length ? `(${redoStacks[activePage.id].length})` : ""}
-                </button>
-              </WithTooltip>
-              <div style={{ position: "relative" }}>
-                <WithTooltip text="Add a new block to this page">
-                  <button onClick={() => setAddBlockOpen((o) => !o)}
-                    style={{ padding: "8px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    + Add Block ▾
-                  </button>
-                </WithTooltip>
-                {addBlockOpen && (
-                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, minWidth: 220, padding: 6 }}>
-                    {[
-                      { t: "lead", lbl: "Lead story", hint: "8×12 - big headline + image" },
-                      { t: "major", lbl: "Major", hint: "4×6 - secondary story" },
-                      { t: "secondary", lbl: "Secondary", hint: "3×5 - sidebar story" },
-                      { t: "brief", lbl: "Brief", hint: "6×2 - short item" },
-                      { t: "image", lbl: "Image only", hint: "4×4" },
-                      { t: "text", lbl: "Text only", hint: "6×2" },
-                      { t: "ad", lbl: "Ad slot", hint: "12×3 full-width" },
-                      { t: "section-band", lbl: "Section band", hint: "12×2 colored header" },
-                      { t: "story-jump", lbl: "Story jump", hint: "4×1 continuation pointer" },
-                      { t: "pull-quote", lbl: "Pull quote", hint: "6×3 emphasized excerpt" },
-                    ].map((it) => (
-                      <button key={it.t} onClick={() => addBlock(it.t)}
-                        style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "transparent", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                        <div style={{ fontWeight: 700, color: "#111" }}>{it.lbl}</div>
-                        <div style={{ fontSize: 11, color: "#6b7280" }}>{it.hint}</div>
-                      </button>
-                    ))}
+              {edition && (
+                <>
+                  <div className="shadcn-scope" style={{ minWidth: 170 }}>
+                    <DatePicker
+                      value={date}
+                      onChange={(v) => {
+                        setDate(v);
+                        setVariant("main");
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set("date", v);
+                        params.set("variant", "main");
+                        router.push(`${pathname}?${params.toString()}`);
+                      }}
+                      placeholder="Pick edition date"
+                      max={today}
+                    />
                   </div>
-                )}
+                  {/* User requested to hide these buttons: variants dropdown, clone variant, and editions browser.
+                  {variants.length > 0 && (
+                    <WithTooltip text="Edition variant - main + per-district splits">
+                      <select value={variant} onChange={(e) => {
+                        const v = e.target.value;
+                        setVariant(v);
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set("variant", v);
+                        router.push(`${pathname}?${params.toString()}`);
+                      }}
+                        style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 13, fontWeight: 700, background: variant !== "main" ? "#fef3c7" : "#fff" }}>
+                        {variants.map((v) => (
+                          <option key={v.id} value={v.edition}>
+                            {v.edition === "main" ? "Main edition" : `📰 ${v.edition}`} ({v.pageCount}p · {v.status})
+                          </option>
+                        ))}
+                      </select>
+                    </WithTooltip>
+                  )}
+                  {variant === "main" && (
+                    <WithTooltip text="Clone the main edition into a district variant">
+                      <button onClick={cloneVariant} disabled={busy === "cloning"}
+                        style={{ padding: "6px 12px", background: "#fff", color: "#0891b2", border: "1px dashed #0891b2", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                        {busy === "cloning" ? "Cloning…" : "+ Clone variant"}
+                      </button>
+                    </WithTooltip>
+                  )}
+                  <WithTooltip text="Browse all existing editions">
+                    <button onClick={() => { setEditionsPanelOpen((o) => !o); loadRecentEditions(); }}
+                      style={{ padding: "8px 14px", background: editionsPanelOpen ? "#eef2ff" : "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      🗂 Editions{recentEditions.length ? ` (${recentEditions.length})` : ""}
+                    </button>
+                  </WithTooltip>
+                  */}
+                </>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              {edition && (
+                <>
+                  <button onClick={generate} disabled={busy === "generating"}
+                    style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {busy === "generating" ? "Generating…" : "Regenerate"}
+                  </button>
+                  <button onClick={renderEdition} disabled={busy === "rendering"}
+                    style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {busy === "rendering" ? "Rendering…" : "Render PDF"}
+                  </button>
+                  {edition.pdfUrl ? (
+                    <WithTooltip text="Open the most recently rendered PDF in a new tab">
+                      <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                        📄 Preview PDF ↗
+                      </a>
+                    </WithTooltip>
+                  ) : (
+                    <WithTooltip text="No PDF yet - click to render now">
+                      <button onClick={renderEdition} disabled={busy === "rendering"}
+                        style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                        📄 Preview PDF (renders now)
+                      </button>
+                    </WithTooltip>
+                  )}
+                  <WithTooltip text={edition.workflowNote ? `Last note: ${edition.workflowNote}` : null}>
+                    <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6, background: WORKFLOW_COLOR[edition.workflowState] + "22", color: WORKFLOW_COLOR[edition.workflowState] }}>
+                      {WORKFLOW_LABEL[edition.workflowState]}
+                    </span>
+                  </WithTooltip>
+                  {(NEXT_STATES[edition.workflowState] || []).map((opt) => (
+                    <button key={opt.to} onClick={() => transitionTo(opt.to, opt.label, !!opt.needNote)}
+                      style={{ padding: "6px 12px", background: opt.danger ? "#fee2e2" : "#ede9fe", color: opt.danger ? "#991b1b" : "#5b21b6", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      {opt.label}
+                    </button>
+                  ))}
+                  <span style={{ fontSize: 12, color: "#888" }}>Render: <b>{edition?.status || "-"}</b></span>
+                  <SaveBadge state={saveState} lastSavedAt={lastSavedAt} tick={saveTick} />
+                  {error && <span style={{ color: "#dc2626", fontSize: 12 }}>{error}</span>}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: Page Editor Tools & Diagnostics */}
+          {edition && (
+            <>
+              <div style={{ height: 1, background: "#e2e8f0", width: "100%" }} />
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  {activePage && (
+                    <div style={{ display: "inline-flex", border: "1px solid #d1d5db", borderRadius: 8, overflow: "hidden" }}>
+                      {(["edit", "split", "preview"] as const).map((m) => (
+                        <button key={m} onClick={() => setViewMode(m)}
+                          style={{ padding: "6px 12px", background: viewMode === m ? "#4f46e5" : "#fff", color: viewMode === m ? "#fff" : "#374151", border: "none", borderRight: m !== "preview" ? "1px solid #d1d5db" : "none", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "capitalize" }}>
+                          {m}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {activePage && (
+                    <>
+                      <WithTooltip text="Undo (Ctrl+Z)">
+                        <button onClick={undo} disabled={!undoStacks[activePage.id]?.length}
+                          style={{ padding: "8px 12px", background: undoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: undoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: undoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
+                          ↶ Undo {undoStacks[activePage.id]?.length ? `(${undoStacks[activePage.id].length})` : ""}
+                        </button>
+                      </WithTooltip>
+                      <WithTooltip text="Redo (Ctrl+Shift+Z)">
+                        <button onClick={redo} disabled={!redoStacks[activePage.id]?.length}
+                          style={{ padding: "8px 12px", background: redoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: redoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: redoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
+                          ↷ Redo {redoStacks[activePage.id]?.length ? `(${redoStacks[activePage.id].length})` : ""}
+                        </button>
+                      </WithTooltip>
+                      <div style={{ position: "relative" }}>
+                        <WithTooltip text="Add a new block to this page">
+                          <button onClick={() => setAddBlockOpen((o) => !o)}
+                            style={{ padding: "8px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                            + Add Block ▾
+                          </button>
+                        </WithTooltip>
+                        {addBlockOpen && (
+                          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, minWidth: 220, padding: 6 }}>
+                            {[
+                              { t: "lead", lbl: "Lead story", hint: "8×12 - big headline + image" },
+                              { t: "major", lbl: "Major", hint: "4×6 - secondary story" },
+                              { t: "secondary", lbl: "Secondary", hint: "3×5 - sidebar story" },
+                              { t: "brief", lbl: "Brief", hint: "6×2 - short item" },
+                              { t: "image", lbl: "Image only", hint: "4×4" },
+                              { t: "text", lbl: "Text only", hint: "6×2" },
+                              { t: "ad", lbl: "Ad slot", hint: "12×3 full-width" },
+                              { t: "section-band", lbl: "Section band", hint: "12×2 colored header" },
+                              { t: "story-jump", lbl: "Story jump", hint: "4×1 continuation pointer" },
+                              { t: "pull-quote", lbl: "Pull quote", hint: "6×3 emphasized excerpt" },
+                            ].map((it) => (
+                              <button key={it.t} onClick={() => addBlock(it.t)}
+                                style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "transparent", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                                <div style={{ fontWeight: 700, color: "#111" }}>{it.lbl}</div>
+                                <div style={{ fontSize: 11, color: "#6b7280" }}>{it.hint}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <button onClick={() => { setHistoryOpen(true); loadSnapshots(); }}
+                    style={{ padding: "8px 16px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    ↩ History
+                  </button>
+                  <PreflightChip editionId={edition.id} onClick={() => setPreflightOpen(true)} reloadKey={preflightReload} />
+                  <button onClick={() => setCommentsOpen(true)}
+                    style={{ padding: "8px 16px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    💬 Comments {comments.filter((c) => !c.resolved).length > 0 ? `(${comments.filter((c) => !c.resolved).length})` : ""}
+                  </button>
+                  {peers.length > 1 && (
+                    <WithTooltip text={peers.map((p) => `${p.userName}${p.pageId ? ` (page ${edition?.pages.find((x) => x.id === p.pageId)?.pageNumber ?? "?"})` : ""}`).join("\n")}>
+                      <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534" }}>
+                        👥 {peers.length} editors
+                      </span>
+                    </WithTooltip>
+                  )}
+                </div>
               </div>
             </>
           )}
-          {/* Spacer: pushes the status cluster (workflow / render / save) to the right edge. */}
-          <div style={{ marginLeft: "auto" }} />
-          {edition && (
-            <WithTooltip text={edition.workflowNote ? `Last note: ${edition.workflowNote}` : null}>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6, background: WORKFLOW_COLOR[edition.workflowState] + "22", color: WORKFLOW_COLOR[edition.workflowState] }}>
-                {WORKFLOW_LABEL[edition.workflowState]}
-              </span>
-            </WithTooltip>
-          )}
-          {peers.length > 1 && (
-            <WithTooltip text={peers.map((p) => `${p.userName}${p.pageId ? ` (page ${edition?.pages.find((x) => x.id === p.pageId)?.pageNumber ?? "?"})` : ""}`).join("\n")}>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534" }}>
-                👥 {peers.length} editors
-              </span>
-            </WithTooltip>
-          )}
-          {edition && (NEXT_STATES[edition.workflowState] || []).map((opt) => (
-            <button key={opt.to} onClick={() => transitionTo(opt.to, opt.label, !!opt.needNote)}
-              style={{ padding: "6px 12px", background: opt.danger ? "#fee2e2" : "#ede9fe", color: opt.danger ? "#991b1b" : "#5b21b6", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-              {opt.label}
-            </button>
-          ))}
-          <span style={{ fontSize: 12, color: "#888" }}>Render: <b>{edition?.status || "-"}</b></span>
-          <SaveBadge state={saveState} lastSavedAt={lastSavedAt} tick={saveTick} />
-          {error && <span style={{ color: "#dc2626", fontSize: 12 }}>{error}</span>}
         </div>
 
         {/* Recent editions panel (toggled from the toolbar) - works even while
@@ -2397,7 +2427,7 @@ function EpaperEditorPage() {
                     </div>
                   )}
                   {(viewMode === "split" || viewMode === "preview") && (
-                    <div style={{ flex: 1, minWidth: 0, border: "1px solid #e5e7eb", borderRadius: 6, background: "#FCFAF3", overflow: "hidden" }}>
+                    <div style={{ flex: 1, minWidth: 0, border: "1px solid #e5e7eb", borderRadius: 6, background: "#FFFFFF", overflow: "hidden" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderBottom: "1px solid #e5e7eb", fontSize: 11 }}>
                         <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "#6b7280", fontWeight: 700 }}>
                           <input type="checkbox" checked={showBaseline} onChange={(e) => setShowBaseline(e.target.checked)} />
@@ -2407,7 +2437,7 @@ function EpaperEditorPage() {
                       <iframe
                         title="Live preview"
                         src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${showBaseline ? "&grid=1" : ""}`}
-                        style={{ width: "100%", height: "calc(100% - 32px)", border: "none", background: "#FCFAF3" }}
+                        style={{ width: "100%", height: "calc(100% - 32px)", border: "none", background: "#FFFFFF" }}
                       />
                     </div>
                   )}
@@ -2688,6 +2718,9 @@ function DraggableBlockGrid({
    *  patches the matching block in the layout. */
   onInlineEdit?: (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => void;
 }) {
+  const [settingsBlockId, setSettingsBlockId] = useState<string | null>(null);
+  const activeSettingsBlock = layout.blocks.find(b => b.id === settingsBlockId);
+
   const COLS = 12;
   // Row height = 60px so 30 rows × 60 = 1800px tall canvas. Matches the
   // broadsheet aspect (1480×2760 scaled to 980 wide = 1827px tall) so the
@@ -2750,6 +2783,18 @@ function DraggableBlockGrid({
 
   return (
     <div>
+      <BlockSettingsDialog
+        open={!!settingsBlockId}
+        onOpenChange={(open) => !open && setSettingsBlockId(null)}
+        initialStyle={activeSettingsBlock?.style}
+        onSave={(style) => {
+          if (!settingsBlockId) return;
+          const next = layout.blocks.map(b => 
+            b.id === settingsBlockId ? { ...b, style: { ...(b.style || {}), ...style } } : b
+          );
+          onLayoutChange(next);
+        }}
+      />
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, fontSize: 11, fontWeight: 700 }}>
         <span style={{ color: isOverflow ? "#dc2626" : usedRows >= MAX_ROWS - 3 ? "#d97706" : "#16a34a" }}>
           Page fill: {usedRows} / {MAX_ROWS} rows{isOverflow ? " - OVERFLOW will be clipped on print!" : ""}
@@ -2767,7 +2812,7 @@ function DraggableBlockGrid({
         )}
         <span style={{ color: "#6b7280", fontWeight: 500 }}>Indian broadsheet 300×560mm</span>
       </div>
-      <div style={{ position: "relative", background: "#FCFAF3", borderRadius: 6, padding: 8 }}>
+      <div style={{ position: "relative", background: "#FFFFFF", borderRadius: 6, padding: 8 }}>
         {/* WYSIWYG underlay - the actual rendered HTML the PDF will produce.
             Scale = GRID_WIDTH / 1480 ≈ 0.662 so 1480×2760 page becomes
             980×1827 ≈ matches the grid's 30×60=1800 footprint. Tiles above
@@ -2779,7 +2824,7 @@ function DraggableBlockGrid({
             width: GRID_WIDTH,
             height: MAX_ROWS * ROW_H,
             overflow: "hidden",
-            background: "#FCFAF3",
+            background: "#FFFFFF",
             border: "1px solid #d8d0bd",
             zIndex: 0,
           }}>
@@ -2793,7 +2838,7 @@ function DraggableBlockGrid({
                 transform: `scale(${GRID_WIDTH / 1480})`,
                 transformOrigin: "0 0",
                 pointerEvents: "none",
-                background: "#FCFAF3",
+                background: "#FFFFFF",
               }}
             />
           </div>
@@ -2811,8 +2856,7 @@ function DraggableBlockGrid({
         rowHeight={ROW_H}
         width={GRID_WIDTH}
         margin={[6, 6]}
-        compactType={null}
-        preventCollision={false}
+        compactType="vertical"
         onDragStop={onChange}
         onResizeStop={onChange}
         draggableCancel=".lock-btn"
@@ -2828,7 +2872,7 @@ function DraggableBlockGrid({
             b.type === "masthead" || b.type === "section-band"
               ? "#A50D0D"
               : b.type === "ad"
-              ? "repeating-linear-gradient(45deg,#fafafa,#fafafa 6px,#e5e7eb 6px,#e5e7eb 12px)"
+              ? "transparent"
               : b.locked
               ? "#fef3c7"
               : b.articleId
@@ -2866,14 +2910,24 @@ function DraggableBlockGrid({
                 zIndex: isSelected ? 3 : 2,
               }}>
               {onRemoveBlock && b.type !== "masthead" && b.type !== "section-band" && (
-                <WithTooltip text={`Delete this ${b.type} block`}>
-                  <button
-                    className="lock-btn"
-                    onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: `Delete ${b.type} block?`, confirmText: "Delete", destructive: true })) onRemoveBlock(b.id); }}
-                    style={{ position: "absolute", bottom: 2, right: 2, background: "rgba(220,38,38,0.85)", color: "#fff", fontSize: 11, fontWeight: 800, width: 18, height: 18, border: "none", borderRadius: 3, cursor: "pointer", zIndex: 6, lineHeight: 1, padding: 0 }}>
-                    ×
-                  </button>
-                </WithTooltip>
+                <>
+                  <WithTooltip text={`Block Settings`}>
+                    <button
+                      className="lock-btn"
+                      onClick={(e) => { e.stopPropagation(); setSettingsBlockId(b.id); }}
+                      style={{ position: "absolute", bottom: 2, right: 22, background: "#4f46e5", color: "#fff", fontSize: 11, width: 18, height: 18, border: "none", borderRadius: 3, cursor: "pointer", zIndex: 6, lineHeight: 1, padding: 0 }}>
+                      ⚙️
+                    </button>
+                  </WithTooltip>
+                  <WithTooltip text={`Delete this ${b.type} block`}>
+                    <button
+                      className="lock-btn"
+                      onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: `Delete ${b.type} block?`, confirmText: "Delete", destructive: true })) onRemoveBlock(b.id); }}
+                      style={{ position: "absolute", bottom: 2, right: 2, background: "rgba(220,38,38,0.85)", color: "#fff", fontSize: 11, fontWeight: 800, width: 18, height: 18, border: "none", borderRadius: 3, cursor: "pointer", zIndex: 6, lineHeight: 1, padding: 0 }}>
+                      ×
+                    </button>
+                  </WithTooltip>
+                </>
               )}
               {blockWarnings.length > 0 && (
                 <WithTooltip text={blockWarnings.map((w) => w.detail).join("\n")}>
@@ -2894,6 +2948,12 @@ function DraggableBlockGrid({
               {!title && isStory && (
                 <div style={{ alignSelf: "center", marginTop: "auto", marginBottom: "auto", color: "#92400e", fontSize: 11, fontStyle: "italic", fontWeight: 700, padding: 4 }}>
                   empty - click to pick
+                </div>
+              )}
+              {/* Ad block placeholder */}
+              {b.type === "ad" && (
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "repeating-linear-gradient(45deg, #f8f9fa, #f8f9fa 12px, #f1f5f9 12px, #f1f5f9 24px)", border: "2px solid #e2e8f0", borderRadius: 8, zIndex: 1, pointerEvents: "none" }}>
+                  <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 18, letterSpacing: 4, fontFamily: "sans-serif", background: "#fff", padding: "2px 8px", borderRadius: 4 }}>ADVERTISEMENT</span>
                 </div>
               )}
               {/* Inline TipTap editor - appears when this story block is
