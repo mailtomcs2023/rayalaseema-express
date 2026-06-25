@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       );
     }
 
-    const layout = (page.layout as unknown as { coordSystem?: string; masterSlug?: string; blocks: Block[] }) ?? { blocks: [] };
+    const layout = (page.layout as unknown as { coordSystem?: string; masterSlug?: string; columns?: number; blocks: Block[] }) ?? { blocks: [] };
 
     // v2 editor sends coordSystem + (optionally) masterSlug so we tag the
     // layout JSON and the renderer takes the mm-v2 path on next read.
@@ -63,6 +63,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     if (typeof body?.masterSlug === "string" || body?.masterSlug === null) {
       layout.masterSlug = body.masterSlug ?? undefined;
+    }
+    // Newspaper column preset (2..6): persisted on the layout so the column
+    // guides + snapping survive a reload. Can be sent on its own.
+    const hasColumns = typeof body?.columns === "number";
+    if (hasColumns) {
+      layout.columns = Math.max(1, Math.min(6, Math.round(body.columns)));
     }
 
     if (Array.isArray(body?.blocks)) {
@@ -77,8 +83,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const b = layout.blocks.find((x) => x.id === blockId);
       if (!b) return NextResponse.json({ error: "Block not found" }, { status: 404 });
       b.locked = !!locked;
-    } else {
-      return NextResponse.json({ error: "Provide blocks | setArticle | setLocked" }, { status: 400 });
+    } else if (!hasColumns) {
+      return NextResponse.json({ error: "Provide blocks | setArticle | setLocked | columns" }, { status: 400 });
     }
 
     // Bump version atomically with the layout write. Using `increment` keeps it

@@ -11,6 +11,22 @@ export function SWRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
+
+    // In development the SW only serves stale cached pages and masks
+    // hot-reloaded edits (you change a component, reload, and still see the
+    // old build). Never register it in dev, and proactively unregister any SW
+    // + purge any caches left over from a prior prod build or session so
+    // localhost is always served fresh.
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker.getRegistrations()
+        .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+        .catch(() => {});
+      if ("caches" in window) {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+      }
+      return;
+    }
+
     // Defer registration until idle so it doesn't compete with first paint.
     const reg = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
     if ("requestIdleCallback" in window) {

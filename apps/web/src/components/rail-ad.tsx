@@ -24,21 +24,41 @@ interface RailAdData {
   bgColor?: string | null;
 }
 
+// Standard IAB size label shown under "ADVERTISEMENT" in the placeholder, per
+// slot position. Override with the `size` prop for a custom slot.
+const SLOT_SIZE: Record<string, string> = {
+  SIDEBAR_SQUARE: "300 × 250",
+  SIDEBAR_TALL: "300 × 250",
+  LEADERBOARD: "728 × 90",
+  HEADER_LEADERBOARD: "728 × 90",
+  BANNER_MID: "728 × 90",
+  IN_FEED: "300 × 250",
+  VERTICAL_STRIP: "160 × 600",
+  MOBILE_ANCHOR: "320 × 50",
+};
+
 export function RailAd({
   position = "SIDEBAR_SQUARE",
   tall = false,
+  size,
+  targetPath,
 }: {
   position?: string;
   tall?: boolean;
+  size?: string;
+  // Explicit targeting key. Defaults to the current page URL, but a section
+  // band can pass its category path (e.g. "/category/politics") so an admin can
+  // scope an ad to THAT section even on the shared home page. A page/section-
+  // specific ad wins over a global one for the slot.
+  targetPath?: string;
 }) {
   const [ad, setAd] = useState<RailAdData | null>(null);
-  // Page the ad renders on - lets an admin target an ad to one specific page
-  // (e.g. only /nandyal). A page-specific ad wins over a global one for the slot.
   const pathname = usePathname();
+  const path = targetPath || pathname;
 
   useEffect(() => {
     let alive = true;
-    const qs = pathname ? `?path=${encodeURIComponent(pathname)}` : "";
+    const qs = path ? `?path=${encodeURIComponent(path)}` : "";
     fetch(`/api/ads/${position}${qs}`)
       .then((r) => r.json())
       .then((d) => {
@@ -48,7 +68,7 @@ export function RailAd({
     return () => {
       alive = false;
     };
-  }, [position, pathname]);
+  }, [position, path]);
 
   const cls = `rail-ad${tall ? " rail-ad--tall" : ""}`;
 
@@ -80,10 +100,13 @@ export function RailAd({
     );
   }
 
-  // No ad configured (or still loading) → striped placeholder.
+  // No ad configured (or still loading) → striped placeholder. Show the slot
+  // size under the label so editors can see which creative dimensions fit.
+  const sizeLabel = size ?? SLOT_SIZE[position];
   return (
     <div className={cls} aria-hidden="true">
-      ADVERTISEMENT
+      <span className="rail-ad-label">ADVERTISEMENT</span>
+      {sizeLabel && <span className="rail-ad-size">{sizeLabel}</span>}
     </div>
   );
 }

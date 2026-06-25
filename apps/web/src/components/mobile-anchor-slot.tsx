@@ -18,6 +18,7 @@
 // Mounted in the root layout so it appears on every page automatically.
 
 import { getAdsByPosition } from "@/lib/db-queries";
+import { AdPlaceholder } from "@/components/ad-slots";
 
 export async function MobileAnchorSlot({
   config,
@@ -120,5 +121,12 @@ export async function MobileAnchorSlot({
     );
   }
 
-  return null;
+  // No ad + no AdSense → visible placeholder so the slot is still mapped.
+  return (
+    <div className="md:hidden" style={containerStyle}>
+      <div style={{ maxWidth: 320, margin: "0 auto" }}>
+        <AdPlaceholder size="Mobile Anchor · 320 × 100" minHeight={50} />
+      </div>
+    </div>
+  );
 }

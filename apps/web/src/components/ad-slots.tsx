@@ -64,6 +64,34 @@ function DbAdRenderer({ ad }: { ad?: DbAd | null }) {
   return null;
 }
 
+// Striped "Advertisement" placeholder shown when a slot has no admin ad - so
+// every ad location stays visible on the page (planning + clearly-reserved
+// space, no layout shift). Matches the rail-ad placeholder look.
+export function AdPlaceholder({ size, minHeight = 90 }: { size: string; minHeight?: number }) {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        width: "100%",
+        minHeight,
+        background: "repeating-linear-gradient(45deg, #ffffff 0, #ffffff 8px, #f4f5f7 8px, #f4f5f7 16px)",
+        border: "1px solid #e7e9ec",
+        borderRadius: 6,
+        fontFamily: "var(--font-telugu-body, system-ui), sans-serif",
+        color: "#b3b8c0",
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.22em", textTransform: "uppercase" }}>Advertisement</span>
+      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "#c4c9d1" }}>{size}</span>
+    </div>
+  );
+}
+
 // ========== GOOGLE ADSENSE ==========
 // Reads adsense ID from config. If not configured, shows DB ad or nothing.
 
@@ -127,16 +155,32 @@ function AdSenseUnit({ slot, format, style, responsive }: {
 }
 
 // ========== COMBINED AD COMPONENTS ==========
-// Each tries: DB ad first → AdSense fallback → nothing
+// Each tries: DB ad(s) first → placeholder
 
-export function AdBannerMid({ ads = [] }: { ads?: DbAd[] }) {
-  const dbAd = ads.find((a) => a.position === "BANNER_MID");
-  if (dbAd) return <DbAdRenderer ad={dbAd} />;
+// Render up to 4 ads as a responsive equal-width row: one ad fills the full
+// width (single banner); 2-4 tile side-by-side, each ~1/N of the row width,
+// wrapping on narrow viewports. Used by every full-width banner slot so an
+// editor can run a single banner OR a 2-4-up promo row just by creating that
+// many ads in the same slot. More than 4 are ignored (capped per row).
+function TiledAdRow({ ads, padding = "4px 0" }: { ads: DbAd[]; padding?: string }) {
+  const list = ads.slice(0, 4);
+  const multi = list.length > 1;
   return (
-    <div style={{ textAlign: "center", padding: "4px 0" }}>
-      <AdSenseUnit slot="banner_mid" format="horizontal" style={{ minHeight: 90 }} />
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", padding }}>
+      {list.map((ad) => (
+        <div key={ad.id} style={{ flex: multi ? "1 1 240px" : "1 1 100%", minWidth: 0, maxWidth: "100%" }}>
+          <DbAdRenderer ad={ad} />
+        </div>
+      ))}
     </div>
   );
+}
+
+export function AdBannerMid({ ads = [] }: { ads?: DbAd[] }) {
+  const dbAds = ads.filter((a) => a.position === "BANNER_MID");
+  // No placeholder for this slot - render nothing until an ad is created.
+  if (dbAds.length === 0) return null;
+  return <TiledAdRow ads={dbAds} />;
 }
 
 export function AdSidebarSquare({ ads = [] }: { ads?: DbAd[] }) {
@@ -153,20 +197,17 @@ export function AdLeaderboard({ ads = [] }: { ads?: DbAd[] }) {
   const dbAd = ads.find((a) => a.position === "LEADERBOARD");
   if (dbAd) return <DbAdRenderer ad={dbAd} />;
   return (
-    <div style={{ textAlign: "center", padding: "8px 0" }}>
-      <AdSenseUnit slot="leaderboard" format="horizontal" style={{ minHeight: 90 }} />
+    <div style={{ padding: "8px 0" }}>
+      <AdPlaceholder size="Leaderboard · 728 × 90" minHeight={90} />
     </div>
   );
 }
 
 export function AdInFeedBanner({ ads = [] }: { ads?: DbAd[] }) {
-  const dbAd = ads.find((a) => a.position === "IN_FEED");
-  if (dbAd) return <DbAdRenderer ad={dbAd} />;
-  return (
-    <div style={{ padding: "6px 0" }}>
-      <AdSenseUnit slot="in_feed" format="fluid" style={{ minHeight: 60 }} />
-    </div>
-  );
+  const dbAds = ads.filter((a) => a.position === "IN_FEED");
+  // No placeholder for this slot - render nothing until an ad is created.
+  if (dbAds.length === 0) return null;
+  return <TiledAdRow ads={dbAds} padding="6px 0" />;
 }
 
 // In-article ad (inside article body)
@@ -178,13 +219,14 @@ export function AdInArticle() {
   );
 }
 
-// Header leaderboard (728x90)
+// Header leaderboard (728x90) - supports a single banner or a 2-4-up row.
 export function AdHeaderLeaderboard({ ads = [] }: { ads?: DbAd[] }) {
-  const dbAd = ads.find((a) => a.position === "HEADER_LEADERBOARD");
-  if (dbAd) return <DbAdRenderer ad={dbAd} />;
+  const dbAds = ads.filter((a) => a.position === "HEADER_LEADERBOARD");
+  // No placeholder for this slot - render nothing until an ad is created.
+  if (dbAds.length === 0) return null;
   return (
-    <div className="hidden md:block" style={{ textAlign: "center", padding: "4px 0", background: "#f9fafb" }}>
-      <AdSenseUnit slot="header_leaderboard" format="horizontal" style={{ minHeight: 90, maxWidth: 728, margin: "0 auto" }} />
+    <div className="hidden md:block">
+      <TiledAdRow ads={dbAds} />
     </div>
   );
 }

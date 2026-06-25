@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Providers } from "./providers";
 import { auth } from "@/lib/auth";
 import { validateActiveSession } from "@/lib/session-guard";
+import { TELUGU_FONTS_HREF } from "@/lib/epaper/telugu-fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -61,6 +62,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        {/* Full Telugu family set so the e-paper block-settings font picker can
+            preview each option in its own typeface. See lib/epaper/telugu-fonts. */}
+        <link href={TELUGU_FONTS_HREF} rel="stylesheet" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <Providers session={session}>{children}</Providers>

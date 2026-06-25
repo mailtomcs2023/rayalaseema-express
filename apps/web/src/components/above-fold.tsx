@@ -55,11 +55,13 @@ export function AboveFold({
   districts,
   breaking,
   latest,
+  mostRead = [],
 }: {
   featured: AFArticle[];
   districts: AFDistrict[];
   breaking: AFBreaking[];
   latest: AFArticle[];
+  mostRead?: AFArticle[];
 }) {
   // LCP preload handled by next/image directly: featured-carousel's
   // slide 0 passes fetchPriority="high" + loading="eager" to <Image>,
@@ -145,20 +147,42 @@ export function AboveFold({
             </div>
           )}
 
-          <div className="af-rail-head">
-            తాజా వార్తలు <span aria-hidden="true">›</span>
+          {/* Latest-news card - boxed block matching the site's card chrome. */}
+          <div className="af-latest">
+            <div className="af-rail-head">
+              తాజా వార్తలు <span aria-hidden="true">›</span>
+            </div>
+            {latest.slice(0, 5).map((a) => (
+              <Link key={a.id} href={articleHref(a)} className="af-rail-item">
+                {/* Headline-only rail - category label intentionally omitted; the
+                    rail reads as a clean list of latest headlines. */}
+                <h4 className="af-rail-title">{a.title}</h4>
+              </Link>
+            ))}
           </div>
-          {latest.slice(0, 5).map((a) => (
-            <Link key={a.id} href={articleHref(a)} className="af-rail-item">
-              {/* Headline-only rail - category label intentionally omitted; the
-                  rail reads as a clean list of latest headlines. */}
-              <h4 className="af-rail-title">{a.title}</h4>
-            </Link>
-          ))}
 
-          {/* Ad slot below the latest-5 headlines - admin-configurable house
-              ad (Admin → Ads → Sidebar Square), striped placeholder until one is set. */}
-          <RailAd position="SIDEBAR_SQUARE" tall />
+          {/* Rail stack below the latest card: Ad → Most Read → Ad. Each ad is
+              an admin-configurable 300x250 house ad (Admin → Ads → Sidebar
+              Square / Sidebar Tall), striped placeholder until one is set. */}
+          <RailAd position="SIDEBAR_SQUARE" />
+
+          {/* Most-read card - boxed numbered list, same chrome as the latest
+              card. Ranked by viewCount (see fetchAboveFold). */}
+          {mostRead.length > 0 && (
+            <div className="af-mostread">
+              <div className="af-rail-head">
+                ట్రెండింగ్ <span aria-hidden="true">›</span>
+              </div>
+              {mostRead.map((a, i) => (
+                <Link key={a.id} href={articleHref(a)} className="af-mr-item">
+                  <span className="af-mr-num">{String(i + 1).padStart(2, "0")}</span>
+                  <h4 className="af-mr-title">{a.title}</h4>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <RailAd position="SIDEBAR_TALL" size="300 × 250" />
         </aside>
       </div>
 
@@ -285,6 +309,13 @@ export function AboveFold({
           border-bottom: 2px solid var(--n-900, #111827);
         }
         .af-carousel .af-lead { border-bottom: none; padding-bottom: 0; }
+        /* Clip a 1px hairline off the right edge of the slider viewport.
+           Swiper rounds each slide's width down on fractional container widths,
+           leaving a sub-pixel gap at the right where the NEXT slide's image
+           leaks through as a thin vertical line. roundLengths shrinks it but
+           can't fully remove it; clipping that hairline does (the active slide
+           only loses 1px of its empty right margin, which is invisible). */
+        .af-carousel .swiper { clip-path: inset(0 1px 0 0); }
 
         /* Custom lucide arrow buttons (SVG ships in SSR HTML - no flash). */
         .af-nav {
@@ -349,13 +380,15 @@ export function AboveFold({
         .af-dots {
           display: flex;
           justify-content: center;
-          gap: 7px;
+          gap: 0px;
           margin-top: 12px;
         }
         .af-dot {
-          /* 24x24 hit area for WCAG 2.5.8 / PSI tap-target check.
-             Visible dot is the inset ::after pseudo (8x8). */
-          width: 24px;
+          /* Fixed-width button so the dot row NEVER reflows when the active dot
+             changes - only the absolutely-positioned ::after pill animates, so
+             neighbouring dots stay put (no jerk on navigation). Height stays
+             24px for a usable tap area. */
+          width: 14px;
           height: 24px;
           padding: 0;
           border: none;
@@ -363,20 +396,27 @@ export function AboveFold({
           background: transparent;
           cursor: pointer;
           position: relative;
-          transition: transform 0.15s ease;
         }
         .af-dot::after {
           content: "";
           position: absolute;
-          inset: 8px;
+          /* Inactive: fixed 8x8 circle, centered. The active pill grows in width
+             only (overflowing the 14px button symmetrically), which is layout-
+             neutral, so the grow/shrink is smooth and doesn't shift siblings. */
+          top: 50%;
+          left: 50%;
+          width: 8px;
+          height: 8px;
+          transform: translate(-50%, -50%);
           border-radius: 999px;
           background: var(--n-300, #d1d5db);
-          transition: background 0.15s ease;
+          transition: background 0.15s ease, width 0.2s ease;
         }
         .af-dot:hover::after { background: var(--n-400, #9ca3af); }
+        /* Active: bar widens into an elongated brand-red pill (button unchanged). */
         .af-dot-active::after {
+          width: 18px;
           background: var(--brand, #E01B1B);
-          transform: scale(1.25);
         }
 
         /* DISTRICT GRID */
@@ -527,8 +567,19 @@ export function AboveFold({
         .af-breaking-item:first-of-type { border-top: none; }
         .af-breaking-item:hover { color: var(--brand-dark, #B91414); }
 
-        /* RAIL - latest */
+        /* RAIL - latest news card (boxed block, matches site card chrome) */
+        .af-latest {
+          background: #fff;
+          border: 1px solid var(--paper-edge, rgba(0,0,0,0.1));
+          border-radius: 8px;
+          padding: 4px 14px 8px;
+          box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));
+        }
         .af-rail-head { border-bottom: 2px solid var(--n-900, #111827); }
+        /* Inside the card the head's own top padding is the card's top breathing
+           room; trim the default rail spacing so it sits tight to the box edge. */
+        .af-latest .af-rail-head { padding-top: 10px; margin-bottom: 4px; }
+        .af-latest .af-rail-item:last-child { border-bottom: none; padding-bottom: 4px; }
         .af-rail-item {
           display: block;
           text-decoration: none;
@@ -546,6 +597,51 @@ export function AboveFold({
         }
         .af-rail-item:hover .af-rail-title,
         .af-rail-item:focus-visible .af-rail-title {
+          color: var(--brand-dark, #B91414);
+        }
+
+        /* RAIL - most-read card (boxed numbered list, matches the latest card).
+           Sits between the two 300x250 ad slots; each ad keeps its own 16px
+           top margin from globals.css so the stack spaces evenly. */
+        .af-mostread {
+          margin-top: 16px;
+          background: #fff;
+          border: 1px solid var(--paper-edge, rgba(0,0,0,0.1));
+          border-radius: 8px;
+          padding: 4px 14px 8px;
+          box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));
+        }
+        .af-mostread .af-rail-head { padding-top: 10px; margin-bottom: 4px; }
+        .af-mr-item {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          text-decoration: none;
+          padding: 9px 0;
+          border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+        }
+        .af-mr-item:last-child { border-bottom: none; padding-bottom: 4px; }
+        .af-mr-num {
+          font-family: var(--font-telugu-heading), sans-serif;
+          font-size: 20px;
+          font-weight: 800;
+          color: var(--brand, #E01B1B);
+          line-height: 1.1;
+          flex-shrink: 0;
+          min-width: 22px;
+          font-variant-numeric: tabular-nums;
+        }
+        .af-mr-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 1.35;
+          color: var(--n-900, #111827);
+          margin: 0;
+          transition: color var(--dur-fast, 0.15s) var(--ease, ease);
+        }
+        .af-mr-item:hover .af-mr-title,
+        .af-mr-item:focus-visible .af-mr-title {
           color: var(--brand-dark, #B91414);
         }
 

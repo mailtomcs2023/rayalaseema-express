@@ -12,6 +12,7 @@
 import { prisma } from "@rayalaseema/db";
 import { hyphenateTelugu } from "./telugu-hyphenation";
 import { migrateLegacyLayout, isLegacyLayout } from "./migrate-layout";
+import { TELUGU_FONTS_HREF } from "./telugu-fonts";
 
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
@@ -112,8 +113,9 @@ interface RenderInput {
   };
 }
 
-const FONTS_HREF =
-  "https://fonts.googleapis.com/css2?family=Ramabhadra&family=Noto+Serif+Telugu:wght@400;500;600;700;800;900&family=Noto+Sans+Telugu:wght@400;500;600;700;800;900&display=swap";
+// Loads every Telugu family offered in the block settings dialog, so any
+// chosen heading font actually renders. See ./telugu-fonts.
+const FONTS_HREF = TELUGU_FONTS_HREF;
 
 function esc(s: string | null | undefined): string {
   return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -159,6 +161,22 @@ function articleLink(a: ResolvedArticle, inner: string): string {
 // Module-scoped layout flag - set by renderLayoutToHtml before iterating
 // blocks. blockStyle reads it to pick grid-v1 vs mm-v2 positioning.
 let CURRENT_COORD_SYSTEM: "grid-v1" | "mm-v2" = "grid-v1";
+
+// CMYK colour-control bar markup (#70). A repeating run of CMYK patch clusters
+// interleaved with grey registration blocks, with a registration cross at each
+// end - the strip every major Telugu daily prints in the bottom trim margin.
+// Purely a press/QC aid: aria-hidden + pointer-events:none so it never affects
+// hotspot harvesting (render-v2) or screen readers.
+function cmykColorBar(): string {
+  const dots =
+    `<span class="grp"><i class="cb-c"></i><i class="cb-ct"></i><i class="cb-m"></i><i class="cb-mt"></i>` +
+    `<i class="cb-y"></i><i class="cb-yt"></i><i class="cb-k"></i><i class="cb-g"></i></span>`;
+  const reg = `<span class="reg"><i></i><i></i></span>`;
+  const cross = `<span class="x">+</span>`;
+  // dot cluster / reg block, alternating across the page width.
+  const mid = [dots, reg, dots, reg, dots, reg, dots].join("");
+  return `<div class="cmyk-bar" aria-hidden="true">${cross}${mid}${cross}</div>`;
+}
 
 function blockStyle(b: Block, extra = ""): string {
   // Merge user style overrides for the block's outer wrapper.
@@ -677,6 +695,7 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
     font-family:'Noto Serif Telugu',serif;
     background:#FFFFFF;color:#14110b;
     padding:0;
+    position:relative;
     /* Baseline grid: 6 mm (~23 px @ 125 dpi) - all body line-heights snap to
        a multiple of this so text aligns horizontally across columns. */
     --baseline: 23px;
@@ -689,6 +708,9 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
   /* Body-text classes snap to a 2× baseline (46 px ≈ 1.6 leading on 15 px
      body). Header classes use a 3× baseline so they still align. */
   .lead-dek, .maj-dek, .sec-hl, .cont-body, .brief-item { line-height: calc(var(--baseline) * 1); }
+  /* Flex children that should absorb leftover space and clip - min-height:0
+     lets them shrink below content size so overflow:hidden bites. */
+  .lead-dek, .maj-dek, .sec-dek, .cont-body, .briefs-cols { min-height: 0; }
   .lead-hl { line-height: calc(var(--baseline) * 2); }
   .maj-hl, .cont-hl { line-height: calc(var(--baseline) * 1.2); }
   /* Avoid orphan/widow breaks inside story bodies. */
@@ -758,12 +780,16 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
      (e.g. a full-resolution logo image) blew the row past its declared
      height. Force min-height: 0 so the row sticks to its grid track. */
   .block { overflow: hidden; min-height: 0; min-width: 0; max-height: 100%; max-width: 100%; }
-  /* Story content sizes to its own height and is clipped by the parent .block
-     (which has a definite grid-track height + overflow:hidden). Do NOT put
-     height:100% here: in the grid-v1 path a percentage-height chain on the
-     anchor + inner collapsed tall blocks (lead/major) to invisible content. */
-  .block .block-inner { width:100%; display:flex; flex-direction:column; overflow: hidden; }
-  .block a.story-link { color: inherit; text-decoration: none; display:block; overflow: hidden; }
+  /* Story blocks fill their (definite-height) block as a flex column so the
+     body dek - flex:1 + min-height:0 + overflow:hidden - clips cleanly INSIDE
+     the block's padding instead of bleeding flush past the bottom edge into
+     the next block. Uses flexbox (not height:100% percentages) on purpose:
+     the grid-v1 path collapses lead/major to invisible content when a
+     percentage-height chain hangs off the grid item, but a flex chain off the
+     same definite-height item fills + clips without that trap. */
+  .lead.block, .major.block, .secondary.block, .continuation.block { display: flex; flex-direction: column; }
+  .block a.story-link { color: inherit; text-decoration: none; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .block .block-inner { width:100%; display:flex; flex-direction:column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   /* Belt-and-braces: any image anywhere inside a block can't exceed the block. */
   .block img { max-width: 100%; max-height: 100%; object-fit: cover; }
 
@@ -886,11 +912,32 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
   .folio { display: flex; align-items: center; justify-content: center;
     font-family: 'Noto Sans Telugu', sans-serif; font-size: 10px; color: #6b6155;
     border-top: 1px solid #d8d0bd; padding: 4px 8px; letter-spacing: 0.5px; }
+
+  /* CMYK colour-control bar (#70): the press registration + ink-density strip
+     in the bottom trim margin, mirroring Eenadu / Sakshi / Andhra Jyothi.
+     Rendered identically in the editor preview, the published e-paper and the
+     print PDF (all three flow through renderLayoutToHtml). The colour patches
+     use process-primary RGB so the print pipeline's RGB->CMYK conversion maps
+     them to clean 100% C / M / Y / K separations. */
+  .cmyk-bar{ position:absolute; left:0; right:0; bottom:0; height:6mm;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 6mm; gap:3mm; background:#fff; z-index:50; pointer-events:none; }
+  .cmyk-bar .grp{ display:inline-flex; gap:1.4mm; align-items:center; }
+  .cmyk-bar .grp i{ width:3mm; height:3mm; border-radius:50%; display:inline-block; }
+  .cmyk-bar .reg{ display:inline-flex; gap:1.2mm; align-items:center; }
+  .cmyk-bar .reg i{ width:9mm; height:3mm; border-radius:0.6mm; display:inline-block; background:#c4c4c4; }
+  .cmyk-bar .x{ font:700 4mm/1 'Arial',sans-serif; color:#111; }
+  /* Process primaries + ~25% tints + registration grey. */
+  .cb-c{ background:#00AEEF } .cb-ct{ background:#B3E6F7 }
+  .cb-m{ background:#EC008C } .cb-mt{ background:#F7C5DD }
+  .cb-y{ background:#FFF200 } .cb-yt{ background:#FBF4B4 }
+  .cb-k{ background:#000000 } .cb-g{ background:#9B9B9B }
 </style></head>
 <body>
   <div class="${coordSystem === "mm-v2" ? "page-mm" : "page"}">
     ${blockHtml.join("\n    ")}
   </div>
+  ${cmykColorBar()}
 </body></html>`;
 }
 

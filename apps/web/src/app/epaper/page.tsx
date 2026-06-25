@@ -90,7 +90,7 @@ export default async function EpaperPage({
       </div>
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "0 12px 24px" }}>
-        {/* Date picker + district edition buttons — rendered ABOVE the viewer */}
+        {/* Date picker + district edition buttons - rendered ABOVE the viewer */}
         {selDate && districtEditions.length > 0 && (
           <div className="pt-4 pb-2">
             <EpaperDatePicker

@@ -323,7 +323,7 @@ export function EpaperViewer({
         .ev-nav { background: rgba(0,0,0,0.18); border-radius: 6px; padding: 2px 6px; }
         .ev-date { font-family: var(--font-telugu-heading), serif; font-size: 15px; font-weight: 800; }
         .ev-pageno { font-family: var(--font-telugu-body), sans-serif; font-size: 13px; font-weight: 700; min-width: 90px; text-align: center; }
-        /* toolbar buttons now use shadcn Button — no custom CSS needed */
+        /* toolbar buttons now use shadcn Button - no custom CSS needed */
         .ev-z { font-size: 12px; min-width: 42px; text-align: center; font-weight: 700; }
 
         .ev-hint {
@@ -391,7 +391,7 @@ export function EpaperViewer({
           background: rgba(255,212,0,0.18); pointer-events: none;
         }
 
-        /* SIDE NAV ARROWS — position/size only; visual style handled by shadcn Button */
+        /* SIDE NAV ARROWS - position/size only; visual style handled by shadcn Button */
         .ev-stage-arrow {
           position: absolute !important;
           top: 50% !important;
