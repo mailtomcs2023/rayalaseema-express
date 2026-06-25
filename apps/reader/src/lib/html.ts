@@ -30,7 +30,7 @@ const NAMED: Record<string, string> = {
   rdquo: "”",
   ldquo: "“",
   hellip: "…",
-  mdash: "—",
+  mdash: "-",
   ndash: "–",
 };
 

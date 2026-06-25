@@ -12,6 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -119,6 +120,60 @@ const DEFAULT_FILTERS: PickerFilters = {
 };
 
 const STORY_TYPES = new Set(["lead", "major", "secondary", "brief"]);
+
+// Editor grid geometry mirrors the PDF renderer's page (see render-layout.ts):
+// a 1480×2760 sheet = 12 cols × 30 rows, each row 92px tall, with 14px column
+// gaps and 12px row gaps and no outer padding. The editor draws its RGL drag
+// tiles over a scaled iframe of that exact page; using the SAME geometry (scaled
+// by GRID_WIDTH/1480, containerPadding 0) makes every tile land precisely on its
+// rendered content instead of drifting down and overlapping the row above.
+const EP_IFRAME_W = 1480;
+const EP_IFRAME_H = 2760;
+const EP_COLS = 12;
+const EP_ROWS = 30;
+const EP_ROW_PX = 92;
+const EP_COL_GAP = 14;
+const EP_ROW_GAP = 12;
+
+// Newspaper column presets. The page is a 6-column broadsheet; the editor grid
+// is 12 units, so 1 newspaper column = 2 units and a 1.5-col = 3 units. Each
+// preset lists the unit boundaries (always 0..12) a block edge may snap to, so
+// every layout still sums to the full 6-column width:
+//   6 cols → 2+2+2+2+2+2     5 cols → 2+2+2+3+3 (three 1-col + two 1.5-col)
+//   4 cols → 3+3+3+3 (1.5 each)   3 cols → 4+4+4 (2 each)   2 cols → 6+6
+const COLUMN_PRESETS = [2, 3, 4, 5, 6] as const;
+const COLUMN_BOUNDARIES: Record<number, number[]> = {
+  1: [0, 12],
+  2: [0, 6, 12],
+  3: [0, 4, 8, 12],
+  4: [0, 3, 6, 9, 12],
+  5: [0, 2, 4, 6, 9, 12],
+  6: [0, 2, 4, 6, 8, 10, 12],
+};
+const DEFAULT_COLUMNS = 6;
+
+// Column snapping is for NEWS content only. The masthead/header, section band,
+// footer and ad slots span freely (full-width banners etc.) and must not be
+// forced onto the news column grid.
+const COLUMN_EXEMPT_TYPES = new Set(["masthead", "section-band", "ad", "folio"]);
+
+function nearestBoundary(u: number, bounds: number[]): number {
+  return bounds.reduce((best, b) => (Math.abs(b - u) < Math.abs(best - u) ? b : best), bounds[0]);
+}
+
+// Snap a block's horizontal extent (x, w in 12-units) to the active column
+// preset so its left + right edges land on newspaper column boundaries. Keeps
+// the block at least one column wide.
+function snapToColumns(x: number, w: number, bounds: number[]): { x: number; w: number } {
+  let left = nearestBoundary(x, bounds);
+  let right = nearestBoundary(x + w, bounds);
+  if (right <= left) {
+    const after = bounds.find((b) => b > left);
+    right = after ?? 12;
+    if (right <= left) { left = bounds[bounds.length - 2] ?? 0; right = 12; }
+  }
+  return { x: left, w: right - left };
+}
 
 export default function EpaperEditorPageWrapper() {
   return <Suspense fallback={null}><EpaperEditorPage /></Suspense>;
@@ -255,20 +310,8 @@ function EpaperEditorPage() {
       });
     return (
       <div className="shadcn-scope">
-        {/* Bulk action bar - appears when rows are selected */}
-        {selected.length > 0 && (
-          <div className="mb-2 flex items-center gap-3 rounded-md border bg-muted/40 px-3 py-2">
-            <span className="text-sm font-medium">{selected.length} selected</span>
-            <Button
-              variant="outline" size="sm"
-              className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-              onClick={() => deleteEditions(selected)}
-            >
-              Delete {selected.length}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelEditions(new Set())}>Clear</Button>
-          </div>
-        )}
+        {/* Bulk actions (Delete N / Clear) live in the panel header next to
+            "Generate edition" - see the !edition list view above. */}
         <div className="overflow-x-auto rounded-md border bg-background">
           <Table>
             <TableHeader>
@@ -514,6 +557,36 @@ function EpaperEditorPage() {
   // The v2 (mm-canvas BETA) toggle was removed; the v2 code paths below remain
   // dead-but-harmless behind this constant.
   const editorVersion = "v1" as "v1" | "v2";
+
+  // ---- Responsive canvas sizing -------------------------------------------
+  // The grid was hard-pinned to 980px, so on any canvas pane narrower than that
+  // (most laptops, once the 240px page-list + 320px article-picker rails are
+  // subtracted) the whole board spilled out to the right. We measure the pane
+  // and scale the grid to fit: GRID_WIDTH shrinks to the available width (never
+  // past the 980 design cap), and ALL grid geometry derives from the renderer's
+  // page (EP_* constants) by the same scale - so every drag tile lands exactly
+  // on its rendered content in the iframe underlay (fixes tiles drifting /
+  // overlapping the row above). Single source of truth, no CSS transform.
+  const DESIGN_GRID_WIDTH = 980;
+  const [canvasW, setCanvasW] = useState(DESIGN_GRID_WIDTH);
+  const roRef = useRef<ResizeObserver | null>(null);
+  const canvasPaneRef = useCallback((node: HTMLDivElement | null) => {
+    roRef.current?.disconnect();
+    if (!node) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setCanvasW(w);
+    });
+    ro.observe(node);
+    roRef.current = ro;
+  }, []);
+  // 24px buffer = the canvas wrapper's 8px padding on each side + a little
+  // slack so a stray sub-pixel never re-triggers a horizontal scrollbar.
+  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, DESIGN_GRID_WIDTH));
+  const GRID_SCALE = GRID_WIDTH / EP_IFRAME_W;
+  const ROW_H = EP_ROW_PX * GRID_SCALE;
+  const GRID_MARGIN_X = EP_COL_GAP * GRID_SCALE;
+  const GRID_MARGIN_Y = EP_ROW_GAP * GRID_SCALE;
 
   // v2 reads blocks in mm-v2 shape - auto-migrate legacy grid-v1 layouts
   // on the fly so an operator can flip ?editor=v2 on any existing edition
@@ -825,19 +898,29 @@ function EpaperEditorPage() {
     if (!drawType || !drawRect || !activePage) {
       setDrawStart(null); setDrawRect(null); return;
     }
-    // Convert pixel coords → grid coords. ROW_H=60, GRID_WIDTH=980, 12 cols.
-    const ROW_H = 60; const GRID_WIDTH = 980; const COLS = 12;
-    const colPx = (GRID_WIDTH - 16) / COLS;
-    const gridX = Math.max(0, Math.round(drawRect.x / colPx));
-    const gridY = Math.max(0, Math.round(drawRect.y / ROW_H));
-    const gridW = Math.max(1, Math.round(drawRect.w / colPx));
-    const gridH = Math.max(1, Math.round(drawRect.h / ROW_H));
+    // Convert pixel coords → grid coords using the *current* responsive grid
+    // geometry. Pitch = cell + gap, matching how RGL (containerPadding 0) and
+    // the iframe both lay cells out, so a drawn block lands under the cursor at
+    // any canvas width.
+    const colWidth = (GRID_WIDTH - GRID_MARGIN_X * (EP_COLS - 1)) / EP_COLS;
+    const colPitch = colWidth + GRID_MARGIN_X;
+    const rowPitch = ROW_H + GRID_MARGIN_Y;
+    const gridX = Math.max(0, Math.round(drawRect.x / colPitch));
+    const gridY = Math.max(0, Math.round(drawRect.y / rowPitch));
+    const gridW = Math.max(1, Math.round((drawRect.w + GRID_MARGIN_X) / colPitch));
+    const gridH = Math.max(1, Math.round((drawRect.h + GRID_MARGIN_Y) / rowPitch));
+    // Snap the new block's horizontal extent to the active newspaper columns -
+    // but only for news blocks. Ads (and other exempt types) keep the free size
+    // they were drawn at so they can span the full width.
+    const snapped = COLUMN_EXEMPT_TYPES.has(drawType)
+      ? { x: Math.min(gridX, EP_COLS - gridW), w: Math.min(gridW, EP_COLS) }
+      : snapToColumns(gridX, gridW, COLUMN_BOUNDARIES[activeColumns] ?? COLUMN_BOUNDARIES[DEFAULT_COLUMNS]);
     const newBlock: Block = {
       id: `${drawType}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
       type: drawType,
-      x: Math.min(gridX, COLS - gridW),
+      x: snapped.x,
       y: gridY,
-      w: Math.min(gridW, COLS),
+      w: snapped.w,
       h: gridH,
     };
     const blocks = [...activePage.layout.blocks, newBlock];
@@ -892,8 +975,9 @@ function EpaperEditorPage() {
     await loadEdition(date);
   };
   // Drag-reorder state for pages aside: tracks which page is currently
-  // being dragged so other rows can show the drop indicator.
+  // being dragged + which row it is hovering over, so we can show a drop line.
   const [draggingPageId, setDraggingPageId] = useState<string | null>(null);
+  const [dragOverPageId, setDragOverPageId] = useState<string | null>(null);
 
   // Real-time presence: tracks other editors on this edition via SSE.
   interface Peer { userId: string; userName: string; pageId: string | null }
@@ -1087,6 +1171,32 @@ function EpaperEditorPage() {
       });
     }
     return updated;
+  };
+
+  // WYSIWYG underlay refresh, debounced. The underlay iframe reloads whenever
+  // its ?v= changes; bumping it on every drag/resize made the whole editor lag
+  // and flicker mid-edit. We refresh it ~600ms AFTER the last change (and
+  // immediately on page switch) so dragging blocks stays smooth and the preview
+  // catches up once you pause.
+  const [underlayVersion, setUnderlayVersion] = useState(0);
+  useEffect(() => {
+    if (!activePage) return;
+    const t = setTimeout(() => setUnderlayVersion(activePage.version), 600);
+    return () => clearTimeout(t);
+  }, [activePage?.version]);
+  useEffect(() => {
+    if (activePage) setUnderlayVersion(activePage.version);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePage?.id]);
+
+  // Active page's newspaper-column preset (persisted on the layout). Drives the
+  // column guides + edge snapping in the canvas.
+  const activeColumns = (((activePage?.layout as any)?.columns as number) || DEFAULT_COLUMNS);
+  const setColumns = async (n: number) => {
+    if (!activePage || n === activeColumns) return;
+    setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
+      p.id === activePage.id ? { ...p, layout: { ...(p.layout as any), columns: n } } : p) } : prev);
+    await patchPage({ columns: n });
   };
 
   const setBlockArticle = async (articleId: string | null, targetBlockId?: string) => {
@@ -1525,7 +1635,7 @@ function EpaperEditorPage() {
                 <div style={{ display: "flex", gap: 4 }}>
                   <input type="color" value={styleHlBgColor || "#ffffff"} onChange={(e) => setStyleHlBgColor(e.target.value)} style={{ flex: 1, height: 32, border: "1px solid #ddd", borderRadius: 4 }} />
                   <WithTooltip text="Clear">
-                    <button onClick={() => setStyleHlBgColor("")} style={{ padding: "0 8px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✕</button>
+                    <button onClick={() => setStyleHlBgColor("")} style={{ display: "inline-flex", alignItems: "center", padding: "0 8px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, cursor: "pointer" }} aria-label="Clear"><X size={12} /></button>
                   </WithTooltip>
                 </div>
               </div>
@@ -1538,7 +1648,7 @@ function EpaperEditorPage() {
                 <div style={{ display: "flex", gap: 4 }}>
                   <input type="color" value={styleBlockBgColor || "#ffffff"} onChange={(e) => setStyleBlockBgColor(e.target.value)} style={{ flex: 1, height: 32, border: "1px solid #ddd", borderRadius: 4 }} />
                   <WithTooltip text="Clear">
-                    <button onClick={() => setStyleBlockBgColor("")} style={{ padding: "0 8px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✕</button>
+                    <button onClick={() => setStyleBlockBgColor("")} style={{ display: "inline-flex", alignItems: "center", padding: "0 8px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, cursor: "pointer" }} aria-label="Clear"><X size={12} /></button>
                   </WithTooltip>
                 </div>
               </div>
@@ -1768,8 +1878,8 @@ function EpaperEditorPage() {
           <div onClick={(e) => e.stopPropagation()}
             style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 440, background: "#fff", padding: 20, overflowY: "auto", boxShadow: "-4px 0 24px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 800, color: "#111" }}>💬 Comments</h2>
-              <button onClick={() => setCommentsOpen(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6b7280" }}>✕</button>
+              <h2 style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 16, fontWeight: 800, color: "#111" }}><MessageSquare size={18} /> Comments</h2>
+              <button onClick={() => setCommentsOpen(false)} style={{ display: "inline-flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "#6b7280" }} aria-label="Close"><X size={20} /></button>
             </div>
             <div style={{ background: "#f9fafb", padding: 12, borderRadius: 8, marginBottom: 14 }}>
               <div style={{ display: "flex", gap: 6, marginBottom: 6, fontSize: 11 }}>
@@ -1829,7 +1939,7 @@ function EpaperEditorPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <h2 style={{ fontSize: 16, fontWeight: 800, color: "#111" }}>Snapshots / History</h2>
               <button onClick={() => setHistoryOpen(false)}
-                style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6b7280" }}>✕</button>
+                style={{ display: "inline-flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "#6b7280" }} aria-label="Close"><X size={20} /></button>
             </div>
             <div style={{ background: "#f9fafb", padding: 12, borderRadius: 8, marginBottom: 14 }}>
               <input value={snapshotNote} onChange={(e) => setSnapshotNote(e.target.value)}
@@ -1981,15 +2091,15 @@ function EpaperEditorPage() {
                   {edition.pdfUrl ? (
                     <WithTooltip text="Open the most recently rendered PDF in a new tab">
                       <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                        📄 Preview PDF ↗
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                        <FileText size={15} /> Preview PDF ↗
                       </a>
                     </WithTooltip>
                   ) : (
                     <WithTooltip text="No PDF yet - click to render now">
                       <button onClick={renderEdition} disabled={busy === "rendering"}
-                        style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                        📄 Preview PDF (renders now)
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                        <FileText size={15} /> Preview PDF (renders now)
                       </button>
                     </WithTooltip>
                   )}
@@ -2080,18 +2190,18 @@ function EpaperEditorPage() {
 
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   <button onClick={() => { setHistoryOpen(true); loadSnapshots(); }}
-                    style={{ padding: "8px 16px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    ↩ History
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    <History size={15} /> History
                   </button>
                   <PreflightChip editionId={edition.id} onClick={() => setPreflightOpen(true)} reloadKey={preflightReload} />
                   <button onClick={() => setCommentsOpen(true)}
-                    style={{ padding: "8px 16px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    💬 Comments {comments.filter((c) => !c.resolved).length > 0 ? `(${comments.filter((c) => !c.resolved).length})` : ""}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    <MessageSquare size={15} /> Comments {comments.filter((c) => !c.resolved).length > 0 ? `(${comments.filter((c) => !c.resolved).length})` : ""}
                   </button>
                   {peers.length > 1 && (
                     <WithTooltip text={peers.map((p) => `${p.userName}${p.pageId ? ` (page ${edition?.pages.find((x) => x.id === p.pageId)?.pageNumber ?? "?"})` : ""}`).join("\n")}>
-                      <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534" }}>
-                        👥 {peers.length} editors
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534" }}>
+                        <Users size={13} /> {peers.length} editors
                       </span>
                     </WithTooltip>
                   )}
@@ -2107,7 +2217,7 @@ function EpaperEditorPage() {
           <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <h3 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: 0 }}>Recent editions</h3>
-              <button onClick={() => setEditionsPanelOpen(false)} style={{ width: 26, height: 26, border: "none", background: "#f3f4f6", borderRadius: 6, cursor: "pointer", color: "#6b7280", fontSize: 15 }}>×</button>
+              <button onClick={() => setEditionsPanelOpen(false)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, border: "none", background: "#f3f4f6", borderRadius: 6, cursor: "pointer", color: "#6b7280" }} aria-label="Close"><X size={15} /></button>
             </div>
             {renderEditionsTable()}
           </div>
@@ -2123,25 +2233,27 @@ function EpaperEditorPage() {
                 <div>
                   <h3 style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: 0 }}>Recent editions</h3>
                   <p style={{ fontSize: 12.5, color: "#64748b", margin: "2px 0 0" }}>
-                    No edition for <b>{date}</b> yet - pick a date and click Generate, or open one below.
+                    No edition for <b>{date}</b> yet - click Generate to create it, or open one below.
                   </p>
                 </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <div className="shadcn-scope" style={{ minWidth: 170 }}>
-                    <DatePicker
-                      value={date}
-                      onChange={(v) => {
-                        setDate(v);
-                        setVariant("main");
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.set("date", v);
-                        params.set("variant", "main");
-                        router.push(`${pathname}?${params.toString()}`);
-                      }}
-                      placeholder="Pick edition date"
-                      max={today}
-                    />
-                  </div>
+                <div className="shadcn-scope" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  {(() => {
+                    const selectedEditionIds = recentEditions.filter((e) => selEditions.has(e.id)).map((e) => e.id);
+                    if (selectedEditionIds.length === 0) return null;
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{selectedEditionIds.length} selected</span>
+                        <Button
+                          variant="outline" size="sm"
+                          className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                          onClick={() => deleteEditions(selectedEditionIds)}
+                        >
+                          Delete {selectedEditionIds.length}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setSelEditions(new Set())}>Clear</Button>
+                      </div>
+                    );
+                  })()}
                   <button onClick={() => { setGenerateDate(date); setGenerateDialogOpen(true); }} disabled={busy === "generating"}
                     style={{ padding: "9px 18px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
                     Generate edition
@@ -2158,8 +2270,12 @@ function EpaperEditorPage() {
             {/* Page tabs - flex-shrink:0 so the picker on the right keeps its width;
                 overflowY:auto + minHeight:0 so this list scrolls independently
                 of the canvas (no full-page scroll bleed). */}
-            <aside style={{ width: 240, flexShrink: 0, background: "#fff", borderRadius: 8, padding: 12, overflowY: "auto", minHeight: 0 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 800, color: "#555", marginBottom: 8 }}>PAGES</h3>
+            <aside className="epp-aside" style={{ width: 248, flexShrink: 0, background: "#fff", borderRadius: 10, padding: 12, overflowY: "auto", minHeight: 0, border: "1px solid #eef0f3" }}>
+              <div className="epp-head">
+                <span className="epp-head-title">Pages</span>
+                <span className="epp-head-count">{edition.pages.length}</span>
+              </div>
+              <div className="epp-list">
               {edition.pages.map((p, i) => {
                 const isActive = i === activePageIdx;
                 // Compute per-page health: how many story slots empty vs filled,
@@ -2168,75 +2284,134 @@ function EpaperEditorPage() {
                 const storyBlocks = p.layout.blocks.filter((b) => STORY_TYPES.has(b.type));
                 const emptyCount = storyBlocks.filter((b) => !b.articleId).length;
                 const lockedCount = p.layout.blocks.filter((b) => b.locked).length;
+                const commentCount = commentsByPage[p.id] || 0;
+                const peerCount = peers.filter((peer) => peer.pageId === p.id && peer.userId !== "you").length;
+                const isDropTarget = !!draggingPageId && draggingPageId !== p.id && dragOverPageId === p.id;
+                const cls = [
+                  "epp-card",
+                  isActive && "epp-active",
+                  draggingPageId === p.id && "epp-dragging",
+                  isDropTarget && "epp-drop-before",
+                ].filter(Boolean).join(" ");
                 return (
                   <div key={p.id}
+                    className={cls}
                     draggable
+                    onClick={() => { setActivePageIdx(i); setSelectedBlockId(null); }}
                     onDragStart={(e) => { setDraggingPageId(p.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", p.id); }}
-                    onDragEnd={() => setDraggingPageId(null)}
-                    onDragOver={(e) => { if (draggingPageId && draggingPageId !== p.id) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } }}
+                    onDragEnd={() => { setDraggingPageId(null); setDragOverPageId(null); }}
+                    onDragOver={(e) => { if (draggingPageId && draggingPageId !== p.id) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverPageId(p.id); } }}
+                    onDragLeave={() => { if (dragOverPageId === p.id) setDragOverPageId(null); }}
                     onDrop={(e) => {
                       e.preventDefault();
                       const dragged = draggingPageId;
                       setDraggingPageId(null);
+                      setDragOverPageId(null);
                       if (!dragged || dragged === p.id) return;
                       movePage(dragged, p.pageNumber);
-                    }}
-                    style={{
-                      display: "flex", gap: 4, marginBottom: 4,
-                      opacity: draggingPageId === p.id ? 0.4 : 1,
-                      borderTop: draggingPageId && draggingPageId !== p.id ? "2px dashed transparent" : undefined,
                     }}>
-                    <button onClick={() => { setActivePageIdx(i); setSelectedBlockId(null); }}
-                      style={{
-                        flex: 1, textAlign: "left", padding: "8px 10px",
-                        border: "none", borderRadius: 6, cursor: "pointer",
-                        background: isActive ? "#4f46e5" : "transparent",
-                        color: isActive ? "#fff" : "#111",
-                        fontSize: 12, fontWeight: 600, minWidth: 0,
-                      }}>
-                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {p.pageNumber}. {p.label}
-                      </div>
-                      <div style={{ display: "flex", gap: 6, fontSize: 10, marginTop: 3, color: isActive ? "rgba(255,255,255,0.85)" : "#6b7280" }}>
+                    <GripVertical className="epp-grip" size={14} aria-hidden />
+                    <span className="epp-num">{p.pageNumber}</span>
+                    <div className="epp-main">
+                      <div className="epp-label">{p.label}</div>
+                      <div className="epp-meta">
                         {emptyCount > 0
-                          ? <WithTooltip text={`${emptyCount} empty story block${emptyCount > 1 ? "s" : ""}`}><span>⚠ {emptyCount}</span></WithTooltip>
-                          : <WithTooltip text="All story blocks filled"><span>✓</span></WithTooltip>}
-                        {lockedCount > 0 && <WithTooltip text={`${lockedCount} locked block${lockedCount > 1 ? "s" : ""}`}><span>🔒 {lockedCount}</span></WithTooltip>}
-                        {commentsByPage[p.id] > 0 && <WithTooltip text={`${commentsByPage[p.id]} open comments`}><span>💬 {commentsByPage[p.id]}</span></WithTooltip>}
-                        {peers.filter((peer) => peer.pageId === p.id && peer.userId !== "you").length > 0 && (
+                          ? <WithTooltip text={`${emptyCount} empty story block${emptyCount > 1 ? "s" : ""}`}><span className="epp-chip epp-warn"><AlertTriangle /> {emptyCount}</span></WithTooltip>
+                          : <WithTooltip text="All story blocks filled"><span className="epp-chip epp-ok"><Check /> ready</span></WithTooltip>}
+                        {lockedCount > 0 && <WithTooltip text={`${lockedCount} locked block${lockedCount > 1 ? "s" : ""}`}><span className="epp-chip"><Lock /> {lockedCount}</span></WithTooltip>}
+                        {commentCount > 0 && <WithTooltip text={`${commentCount} open comments`}><span className="epp-chip"><MessageSquare /> {commentCount}</span></WithTooltip>}
+                        {peerCount > 0 && (
                           <WithTooltip text={peers.filter((peer) => peer.pageId === p.id).map((peer) => peer.userName).join(", ")}>
-                            <span>
-                              👥 {peers.filter((peer) => peer.pageId === p.id).length}
-                            </span>
+                            <span className="epp-chip"><Users /> {peerCount}</span>
                           </WithTooltip>
                         )}
                       </div>
-                    </button>
-                    <WithTooltip text="Rename page">
-                      <button onClick={() => renamePage(p.id, p.label)}
-                        style={{ padding: "4px 6px", background: "transparent", border: "none", cursor: "pointer", color: isActive ? "#fff" : "#9ca3af", fontSize: 13 }}>✎</button>
-                    </WithTooltip>
-                    <WithTooltip text="Duplicate page">
-                      <button onClick={() => duplicatePage(p.id)}
-                        style={{ padding: "4px 6px", background: "transparent", border: "none", cursor: "pointer", color: isActive ? "#fff" : "#9ca3af", fontSize: 13 }}>⎘</button>
-                    </WithTooltip>
-                    <WithTooltip text="Delete page">
-                      <button onClick={() => deletePage(p.id, p.label)}
-                        style={{ padding: "4px 6px", background: "transparent", border: "none", cursor: "pointer", color: isActive ? "#fff" : "#9ca3af", fontSize: 13 }}>🗑</button>
-                    </WithTooltip>
+                    </div>
+                    <div className="epp-actions" draggable={false} onClick={(e) => e.stopPropagation()}>
+                      <WithTooltip text="Rename page">
+                        <button className="epp-act-btn" onClick={(e) => { e.stopPropagation(); renamePage(p.id, p.label); }} aria-label="Rename page"><Pencil /></button>
+                      </WithTooltip>
+                      <WithTooltip text="Duplicate page">
+                        <button className="epp-act-btn" onClick={(e) => { e.stopPropagation(); duplicatePage(p.id); }} aria-label="Duplicate page"><Copy /></button>
+                      </WithTooltip>
+                      <WithTooltip text="Delete page">
+                        <button className="epp-act-btn epp-danger" onClick={(e) => { e.stopPropagation(); deletePage(p.id, p.label); }} aria-label="Delete page"><Trash2 /></button>
+                      </WithTooltip>
+                    </div>
                   </div>
                 );
               })}
-              <button onClick={() => { setInsertOpen(true); loadTemplateOptions(); }}
-                style={{ width: "100%", marginTop: 8, padding: "8px 10px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                + New Page (from template)
-              </button>
-              <WithTooltip text="Word/InDesign-style: empty canvas. Draw blocks anywhere with the toolbar tool.">
-                <button onClick={insertBlankPage}
-                  style={{ width: "100%", marginTop: 6, padding: "8px 10px", background: "#fff", color: "#16a34a", border: "1px dashed #16a34a", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  + Blank page
+              </div>
+              <div className="epp-add">
+                <button className="epp-add-btn" onClick={() => { setInsertOpen(true); loadTemplateOptions(); }}>
+                  <FilePlus2 size={14} /> New page
                 </button>
-              </WithTooltip>
+                <WithTooltip text="Empty canvas - draw blocks anywhere with the toolbar tool.">
+                  <button className="epp-add-btn epp-add-btn--ghost" onClick={insertBlankPage}>
+                    <SquarePlus size={14} /> Blank
+                  </button>
+                </WithTooltip>
+              </div>
+              <style>{`
+                .epp-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+                .epp-head-title { font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#64748b; }
+                .epp-head-count { font-size:11px; font-weight:700; color:#64748b; background:#f1f5f9; border-radius:999px; padding:1px 8px; }
+                .epp-list { display:flex; flex-direction:column; gap:6px; }
+                .epp-card {
+                  position:relative; display:flex; align-items:center; gap:8px;
+                  padding:8px 9px; border:1px solid #eceef1; border-radius:9px;
+                  background:#fff; cursor:pointer; user-select:none;
+                  transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+                }
+                .epp-card:hover { background:#f8fafc; border-color:#e2e8f0; }
+                .epp-card.epp-active { background:#eef2ff; border-color:#c7d2fe; box-shadow: inset 0 0 0 1px #c7d2fe; }
+                .epp-card.epp-dragging { opacity:.45; }
+                .epp-card.epp-drop-before::before {
+                  content:""; position:absolute; left:6px; right:6px; top:-4px; height:2px;
+                  background:#4f46e5; border-radius:2px;
+                }
+                .epp-grip { flex:0 0 auto; color:#cbd5e1; cursor:grab; opacity:0; transition:opacity .12s ease; }
+                .epp-card:hover .epp-grip { opacity:1; }
+                .epp-num {
+                  flex:0 0 auto; width:24px; height:24px; border-radius:7px;
+                  display:inline-flex; align-items:center; justify-content:center;
+                  background:#f1f5f9; color:#475569; font-size:12px; font-weight:800;
+                }
+                .epp-card.epp-active .epp-num { background:#4f46e5; color:#fff; }
+                .epp-main { flex:1 1 auto; min-width:0; }
+                .epp-label { font-size:12.5px; font-weight:700; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                .epp-card.epp-active .epp-label { color:#3730a3; }
+                .epp-meta { display:flex; align-items:center; gap:8px; margin-top:3px; font-size:10px; color:#94a3b8; line-height:1; }
+                .epp-meta .epp-chip { display:inline-flex; align-items:center; gap:3px; }
+                .epp-meta .epp-chip svg { width:11px; height:11px; }
+                .epp-meta .epp-chip.epp-warn { color:#d97706; }
+                .epp-meta .epp-chip.epp-ok { color:#16a34a; }
+                .epp-actions {
+                  position:absolute; top:50%; right:6px; transform:translateY(-50%);
+                  display:flex; gap:1px; padding:2px; border-radius:8px;
+                  background:rgba(255,255,255,0.94); box-shadow:0 1px 5px rgba(15,23,42,.14);
+                  opacity:0; pointer-events:none; transition:opacity .12s ease;
+                }
+                .epp-card:hover .epp-actions { opacity:1; pointer-events:auto; }
+                .epp-act-btn {
+                  width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center;
+                  border:none; background:transparent; border-radius:6px; cursor:pointer; color:#64748b;
+                  transition: background .12s ease, color .12s ease;
+                }
+                .epp-act-btn:hover { background:#f1f5f9; color:#0f172a; }
+                .epp-act-btn.epp-danger:hover { background:#fee2e2; color:#dc2626; }
+                .epp-act-btn svg { width:14px; height:14px; }
+                .epp-add { display:flex; gap:6px; margin-top:12px; }
+                .epp-add-btn {
+                  flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px;
+                  padding:8px 6px; border:1px solid #e2e8f0; border-radius:8px; background:#fff;
+                  color:#4f46e5; font-size:12px; font-weight:700; cursor:pointer;
+                  transition: background .12s ease, border-color .12s ease;
+                }
+                .epp-add-btn:hover { background:#f5f3ff; border-color:#c7d2fe; }
+                .epp-add-btn--ghost { color:#475569; flex:0 0 auto; padding:8px 12px; }
+                .epp-add-btn--ghost:hover { background:#f8fafc; border-color:#cbd5e1; }
+              `}</style>
             </aside>
 
             {/* Page canvas + (optionally) live preview iframe */}
@@ -2247,7 +2422,7 @@ function EpaperEditorPage() {
               {activePage && (
                 <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
                   {(viewMode === "edit" || viewMode === "split") && (
-                    <div style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
+                    <div ref={canvasPaneRef} style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
                       {selectedBlockIds.size > 1 && (
                         <div style={{ background: "#eef2ff", padding: 8, borderRadius: 6, marginBottom: 8, display: "flex", gap: 6, alignItems: "center", fontSize: 12 }}>
                           <span style={{ fontWeight: 700, color: "#3730a3" }}>{selectedBlockIds.size} blocks selected</span>
@@ -2260,8 +2435,8 @@ function EpaperEditorPage() {
                               }
                               toast("success", `Locked ${ids.length} blocks`);
                             }}
-                            style={{ padding: "4px 10px", background: "#fbbf24", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                            🔒 Lock all
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#fbbf24", color: "#fff", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                            <Lock size={12} /> Lock all
                           </button>
                           <button onClick={async () => {
                               const ids = Array.from(selectedBlockIds);
@@ -2271,8 +2446,8 @@ function EpaperEditorPage() {
                               }
                               toast("success", `Unlocked ${ids.length} blocks`);
                             }}
-                            style={{ padding: "4px 10px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                            🔓 Unlock all
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                            <Unlock size={12} /> Unlock all
                           </button>
                           <button onClick={async () => {
                               const ids = Array.from(selectedBlockIds);
@@ -2284,8 +2459,8 @@ function EpaperEditorPage() {
                               toast("success", `Cleared ${ids.length} blocks`);
                               setSelectedBlockIds(new Set());
                             }}
-                            style={{ padding: "4px 10px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                            ✕ Clear articles
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                            <X size={12} /> Clear articles
                           </button>
                           <button onClick={() => setSelectedBlockIds(new Set())}
                             style={{ padding: "4px 10px", background: "transparent", color: "#3730a3", border: "1px solid #c7d2fe", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
@@ -2341,7 +2516,7 @@ function EpaperEditorPage() {
                           {/* Draw toolbar - Word/InDesign-style. Click a tool then
                               drag on the canvas to create a block at any size. */}
                           <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap", alignItems: "center", padding: "6px 8px", background: "#f9fafb", borderRadius: 6, border: "1px solid #e5e7eb" }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>✏ Draw tool:</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#374151" }}><Pencil size={12} /> Draw tool:</span>
                             {(["lead","major","secondary","brief","image","text","ad","pull-quote"] as const).map((t) => (
                               <button key={t} onClick={() => setDrawType(drawType === t ? null : t)}
                                 style={{ padding: "3px 8px", fontSize: 11, fontWeight: 700, borderRadius: 4,
@@ -2351,8 +2526,26 @@ function EpaperEditorPage() {
                                 {t}
                               </button>
                             ))}
+                            {/* Newspaper column preset for this page - draws guides
+                                + snaps block edges. 6-col broadsheet base. */}
+                            <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                              <WithTooltip text="Newspaper columns for this page. Block edges snap to these; widths always fill the 6-column page (e.g. 4 = four 1.5-col, 5 = three 1-col + two 1.5-col).">
+                                <span style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>Columns</span>
+                              </WithTooltip>
+                              <div style={{ display: "inline-flex", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden" }}>
+                                {COLUMN_PRESETS.map((n, idx) => (
+                                  <button key={n} onClick={() => setColumns(n)}
+                                    style={{ padding: "3px 9px", fontSize: 11, fontWeight: 700, lineHeight: 1.4,
+                                      border: "none", borderLeft: idx === 0 ? "none" : "1px solid #e5e7eb",
+                                      background: activeColumns === n ? "#4f46e5" : "#fff",
+                                      color: activeColumns === n ? "#fff" : "#374151", cursor: "pointer" }}>
+                                    {n}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                             {drawType && (
-                              <span style={{ marginLeft: "auto", fontSize: 11, color: "#16a34a", fontWeight: 700 }}>
+                              <span style={{ width: "100%", fontSize: 11, color: "#16a34a", fontWeight: 700 }}>
                                 Drag on canvas to draw a {drawType} block. Esc cancels.
                               </span>
                             )}
@@ -2370,6 +2563,8 @@ function EpaperEditorPage() {
                             </div>
                           )}
                         <DraggableBlockGrid
+                          gridWidth={GRID_WIDTH}
+                          columns={activeColumns}
                           layout={activePage.layout}
                           titles={titles}
                           warningsByBlock={Object.fromEntries(
@@ -2390,7 +2585,7 @@ function EpaperEditorPage() {
                           onRemoveBlock={removeBlock}
                           onClearOffPage={clearOffPageBlocks}
                           pageId={activePage.id}
-                          pageVersion={activePage.version}
+                          pageVersion={underlayVersion}
                           onInlineEdit={async (blockId, patch) => {
                             if (!activePage) return;
                             const blocks = activePage.layout.blocks.map((b) =>
@@ -2572,7 +2767,7 @@ function EpaperEditorPage() {
                   {pickerArticles.map((a) => {
                     const used = usedArticleIdsInEdition.has(a.id);
                     return (
-                    <WithTooltip key={a.id} text={used ? "⚠ Already placed on another page in this edition" : "Drag onto any block, or click to assign to selected block"}>
+                    <WithTooltip key={a.id} text={used ? "Already placed on another page in this edition" : "Drag onto any block, or click to assign to selected block"}>
                     <button onClick={async () => {
                       if (used && !(await confirm({
                         title: "Article already placed",
@@ -2592,8 +2787,8 @@ function EpaperEditorPage() {
                         fontSize: 12, display: "flex", gap: 8, position: "relative",
                       }}>
                       {used && (
-                        <span style={{ position: "absolute", top: 4, right: 4, background: "#f59e0b", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.3 }}>
-                          ⚠ ALREADY USED
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3, position: "absolute", top: 4, right: 4, background: "#f59e0b", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.3 }}>
+                          <AlertTriangle size={10} /> ALREADY USED
                         </span>
                       )}
                       {a.featuredImage ? (
@@ -2638,11 +2833,11 @@ function reasonLabel(r: string): string {
  *  "Saved Xs ago" timestamp stays fresh without a per-second timer. */
 function SaveBadge({ state, lastSavedAt, tick: _tick }: { state: "idle" | "saving" | "saved" | "failed"; lastSavedAt: number | null; tick: number }) {
   if (state === "idle" && !lastSavedAt) return null;
-  const base: React.CSSProperties = { fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6 };
-  if (state === "saving") return <span style={{ ...base, background: "#dbeafe", color: "#1e40af" }}>⚪ Saving…</span>;
-  if (state === "failed") return <span style={{ ...base, background: "#fee2e2", color: "#991b1b" }}>⚠ Save failed</span>;
+  const base: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6 };
+  if (state === "saving") return <span style={{ ...base, background: "#dbeafe", color: "#1e40af" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "#1e40af", opacity: 0.6 }} /> Saving…</span>;
+  if (state === "failed") return <span style={{ ...base, background: "#fee2e2", color: "#991b1b" }}><AlertTriangle size={13} /> Save failed</span>;
   // saved or idle-with-prior-save
-  return <span style={{ ...base, background: "#dcfce7", color: "#166534" }}>✓ Saved {lastSavedAt ? relTime(lastSavedAt) : ""}</span>;
+  return <span style={{ ...base, background: "#dcfce7", color: "#166534" }}><Check size={13} /> Saved {lastSavedAt ? relTime(lastSavedAt) : ""}</span>;
 }
 
 function relTime(t: number): string {
@@ -2697,7 +2892,14 @@ function DraggableBlockGrid({
   onSelect, onToggleLock, onLayoutChange, onRemoveBlock, onClearOffPage,
   pageId, pageVersion,
   onInlineEdit,
+  gridWidth,
+  columns,
 }: {
+  /** Responsive board width, measured from the canvas pane by the parent so
+   *  the grid fits without overflowing. Falls back to the 980px design width. */
+  gridWidth?: number;
+  /** Newspaper column preset (2..6). Draws column guides + snaps block edges. */
+  columns?: number;
   layout: { blocks: Block[] };
   titles: Record<string, { title: string; summary?: string | null; featuredImage?: string | null }>;
   warningsByBlock?: Record<string, Array<{ kind: string; detail: string }>>;
@@ -2720,21 +2922,37 @@ function DraggableBlockGrid({
 }) {
   const [settingsBlockId, setSettingsBlockId] = useState<string | null>(null);
   const activeSettingsBlock = layout.blocks.find(b => b.id === settingsBlockId);
+  // Which block's inline text editor is open. Opening is now explicit (double-
+  // click or the "Edit text" toolbar button) - it no longer pops up on every
+  // select/resize, which used to bury a shrunk block under a cramped panel.
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!editingTextId) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setEditingTextId(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editingTextId]);
 
-  const COLS = 12;
-  // Row height = 60px so 30 rows × 60 = 1800px tall canvas. Matches the
-  // broadsheet aspect (1480×2760 scaled to 980 wide = 1827px tall) so the
-  // WYSIWYG iframe underlay aligns 1:1 with the grid coordinates.
-  const ROW_H = 60;
-  const GRID_WIDTH = 980;
-  // Indian broadsheet PDF page is 300x560mm → 1480x2760 px. Render uses 92 px
-  // per row → 30 rows fills the printable area exactly. Any block placed past
-  // row 30 gets clipped on print. Cap the editor at 30 rows + overlay the
-  // overflow zone in red so editors stop adding "unlimited news".
-  const MAX_ROWS = 30;
+  const COLS = EP_COLS;
+  // Geometry is derived from the renderer's page (EP_* constants) scaled by
+  // GRID_WIDTH/1480 - same row height (92px), column gap (14px) and row gap
+  // (12px) the iframe uses - so every drag tile lands exactly on its rendered
+  // content. (Previously the editor used 60px rows + 6px margins, which drifted
+  // away from the iframe and made tiles overlap the row above.)
+  const GRID_WIDTH = gridWidth ?? 980;
+  const GRID_SCALE = GRID_WIDTH / EP_IFRAME_W;
+  const ROW_H = EP_ROW_PX * GRID_SCALE;
+  const GRID_MARGIN_X = EP_COL_GAP * GRID_SCALE;
+  const GRID_MARGIN_Y = EP_ROW_GAP * GRID_SCALE;
+  // Cap the editor at 30 rows (the printable area) + overlay the overflow zone
+  // in red so editors stop adding "unlimited news".
+  const MAX_ROWS = EP_ROWS;
   const usedRows = layout.blocks.reduce((m, b) => Math.max(m, b.y + b.h), 0);
   const isOverflow = usedRows > MAX_ROWS;
   const canvasHeight = Math.max(MAX_ROWS, usedRows) * ROW_H + 24;
+
+  // Active newspaper-column boundaries (in 12-unit space) for guides + snapping.
+  const colBounds = COLUMN_BOUNDARIES[columns ?? DEFAULT_COLUMNS] ?? COLUMN_BOUNDARIES[DEFAULT_COLUMNS];
 
   // RGL layout items, keyed by block id.
   const rglLayout: RGLLayout[] = layout.blocks.map((b) => ({
@@ -2744,26 +2962,52 @@ function DraggableBlockGrid({
     minW: 1, minH: 1,
   }));
 
-  const onChange = (newRGL: RGLLayout[]) => {
-    // Refuse RGL changes that would push any block past MAX_ROWS - print
-    // would clip it. Snap the offending block back to its prior position
-    // instead and alert the operator with a clear next-step (split to
-    // continuation on the next page).
-    const overflowing = newRGL.find((it) => it.y + it.h > MAX_ROWS);
-    if (overflowing) {
+  const onChange = (newRGL: RGLLayout[], _oldItem?: RGLLayout, movedItem?: RGLLayout, mode: "drag" | "resize" = "drag") => {
+    // Only refuse the change when the block the operator is *directly* moving or
+    // resizing would land past MAX_ROWS - snap that one back. We must NOT reject
+    // just because some OTHER block is already past row 30: an overfull page
+    // would then freeze every edit (you couldn't even drag the offending block
+    // back up). Pre-existing overflow stays visible via the red off-page zone,
+    // the page-fill bar and the preflight "Issues" list. The toast is deduped
+    // by id so repeated bumps replace rather than stack.
+    if (movedItem && movedItem.y + movedItem.h > MAX_ROWS) {
       toast.error(
-        `Block "${overflowing.i}" would land past row ${MAX_ROWS} (the print page boundary).`,
+        `That block would land past row ${MAX_ROWS} (the print page boundary).`,
         {
+          id: "epaper-row-overflow",
           description:
             "Page is full - make the block smaller, move another block off this page, or add a new page and split the story to a continuation block.",
-          duration: 8000,
+          duration: 5000,
         },
       );
       return;
     }
+    // Gentle column snapping so blocks align to the newspaper columns WITHOUT
+    // fighting the user:
+    //   • drag  → snap the left edge to a column line, keep the width (the block
+    //             just re-homes to a column; a 1.5-col block stays 1.5-col).
+    //   • resize→ snap the right edge to a column line, keep the left edge (so
+    //             the width locks to whole/half columns only when resizing).
+    // Snapping both edges on a drag was what made blocks jump + resize
+    // themselves on the 6-col preset.
+    const byId = new Map(newRGL.map((it) => [it.i, it]));
+    if (movedItem) {
+      const it = byId.get(movedItem.i);
+      const movedType = layout.blocks.find((b) => b.id === movedItem.i)?.type;
+      // News blocks snap to columns; masthead / section band / ad / footer stay
+      // free so they can span the full width.
+      if (it && movedType && !COLUMN_EXEMPT_TYPES.has(movedType)) {
+        if (mode === "resize") {
+          const right = nearestBoundary(it.x + it.w, colBounds);
+          it.w = Math.max(1, right - it.x);
+        } else {
+          const left = nearestBoundary(it.x, colBounds);
+          it.x = Math.min(Math.max(0, left), EP_COLS - it.w);
+        }
+      }
+    }
     // Merge RGL coords back into our block model. Skip purely visual updates
     // (RGL fires on every render of children) by comparing first.
-    const byId = new Map(newRGL.map((it) => [it.i, it]));
     let dirty = false;
     const next: Block[] = layout.blocks.map((b) => {
       const it = byId.get(b.id);
@@ -2774,12 +3018,10 @@ function DraggableBlockGrid({
     if (dirty) onLayoutChange(next);
   };
 
-  // Visual snap guides - vertical lines at each column boundary, horizontal
-  // lines at each row. Pure CSS background so it doesn't interact with RGL's
-  // own drag/resize.
-  const colPx = (GRID_WIDTH - 16) / COLS;
-  const guideBg = `repeating-linear-gradient(to right, rgba(79,70,229,0.08) 0, rgba(79,70,229,0.08) 1px, transparent 1px, transparent ${colPx}px),`
-                + ` repeating-linear-gradient(to bottom, rgba(79,70,229,0.06) 0, rgba(79,70,229,0.06) 1px, transparent 1px, transparent ${ROW_H}px)`;
+  // Column pitch in px for the snap guides. A block at unit u has its left edge
+  // at u*(colWidth+marginX); the gutter between columns is marginX wide.
+  const colWidth = (GRID_WIDTH - GRID_MARGIN_X * (COLS - 1)) / COLS;
+  const colPitch = colWidth + GRID_MARGIN_X;
 
   return (
     <div>
@@ -2805,8 +3047,8 @@ function DraggableBlockGrid({
         {isOverflow && onClearOffPage && (
           <WithTooltip text="Delete every block past row 30 in one click">
             <button onClick={onClearOffPage}
-              style={{ padding: "4px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-              🗑 Clear off-page
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              <Trash2 size={13} /> Clear off-page
             </button>
           </WithTooltip>
         )}
@@ -2814,10 +3056,10 @@ function DraggableBlockGrid({
       </div>
       <div style={{ position: "relative", background: "#FFFFFF", borderRadius: 6, padding: 8 }}>
         {/* WYSIWYG underlay - the actual rendered HTML the PDF will produce.
-            Scale = GRID_WIDTH / 1480 ≈ 0.662 so 1480×2760 page becomes
-            980×1827 ≈ matches the grid's 30×60=1800 footprint. Tiles above
-            stay transparent so the operator sees + edits the real Eenadu-
-            style output in one view. */}
+            The 1480×2760 page is scaled by GRID_SCALE (= GRID_WIDTH/1480) into
+            a GRID_WIDTH × (MAX_ROWS*ROW_H) box. Because the grid above uses the
+            SAME geometry (EP_* constants × GRID_SCALE, containerPadding 0), each
+            drag tile lands exactly on its rendered content - no drift. */}
         {pageId && (
           <div style={{
             position: "absolute", top: 8, left: 8,
@@ -2831,11 +3073,11 @@ function DraggableBlockGrid({
             <iframe
               title="WYSIWYG underlay"
               src={`/api/epaper/page/${pageId}/preview?v=${pageVersion ?? 0}`}
-              width={1480}
-              height={2760}
+              width={EP_IFRAME_W}
+              height={EP_IFRAME_H}
               style={{
                 border: "none",
-                transform: `scale(${GRID_WIDTH / 1480})`,
+                transform: `scale(${GRID_SCALE})`,
                 transformOrigin: "0 0",
                 pointerEvents: "none",
                 background: "#FFFFFF",
@@ -2843,10 +3085,33 @@ function DraggableBlockGrid({
             />
           </div>
         )}
+        {/* Newspaper column guides. Faint alternating column bands make the
+            chosen column structure obvious at a glance, and a dashed line down
+            each gutter marks where block edges snap. */}
+        {colBounds.slice(0, -1).map((u, i) => {
+          const next = colBounds[i + 1];
+          const left = 8 + colPitch * u;
+          const width = colPitch * (next - u) - GRID_MARGIN_X;
+          return (
+            <div key={`colband-${u}`} aria-hidden style={{
+              position: "absolute", top: 8, left, width, height: MAX_ROWS * ROW_H,
+              background: i % 2 === 0 ? "rgba(79,70,229,0.05)" : "transparent",
+              zIndex: 1, pointerEvents: "none",
+            }} />
+          );
+        })}
+        {colBounds.slice(1, -1).map((u) => (
+          <div key={`colguide-${u}`} aria-hidden style={{
+            position: "absolute", top: 8,
+            left: 8 + colPitch * u - GRID_MARGIN_X / 2,
+            width: 0, height: MAX_ROWS * ROW_H,
+            borderLeft: "1px dashed rgba(79,70,229,0.45)", zIndex: 1, pointerEvents: "none",
+          }} />
+        ))}
         {/* Red overflow zone - anything below row MAX_ROWS gets clipped on PDF render */}
         {isOverflow && (
           <div style={{ position: "absolute", left: 8, right: 8, top: 8 + MAX_ROWS * ROW_H, height: (usedRows - MAX_ROWS) * ROW_H, background: "repeating-linear-gradient(45deg, rgba(220,38,38,0.12), rgba(220,38,38,0.12) 8px, rgba(220,38,38,0.04) 8px, rgba(220,38,38,0.04) 16px)", borderTop: "2px dashed #dc2626", pointerEvents: "none", zIndex: 1 }}>
-            <div style={{ position: "sticky", top: 4, textAlign: "center", color: "#991b1b", fontWeight: 800, fontSize: 11, padding: 4 }}>⚠ OFF-PAGE - clipped on print</div>
+            <div style={{ position: "sticky", top: 4, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, color: "#991b1b", fontWeight: 800, fontSize: 11, padding: 4 }}><AlertTriangle size={13} /> OFF-PAGE - clipped on print</div>
           </div>
         )}
       <GridLayout
@@ -2855,10 +3120,11 @@ function DraggableBlockGrid({
         cols={COLS}
         rowHeight={ROW_H}
         width={GRID_WIDTH}
-        margin={[6, 6]}
+        margin={[GRID_MARGIN_X, GRID_MARGIN_Y]}
+        containerPadding={[0, 0]}
         compactType="vertical"
-        onDragStop={onChange}
-        onResizeStop={onChange}
+        onDragStop={(l, o, n) => onChange(l, o, n, "drag")}
+        onResizeStop={(l, o, n) => onChange(l, o, n, "resize")}
         draggableCancel=".lock-btn"
       >
         {layout.blocks.map((b) => {
@@ -2868,104 +3134,129 @@ function DraggableBlockGrid({
           const title = b.articleId ? titles[b.articleId] : null;
           const blockWarnings = warningsByBlock?.[b.id] || [];
           const hasOverflow = blockWarnings.some((w) => w.kind === "block-overflow");
-          const bg =
-            b.type === "masthead" || b.type === "section-band"
-              ? "#A50D0D"
-              : b.type === "ad"
-              ? "transparent"
-              : b.locked
-              ? "#fef3c7"
-              : b.articleId
-              ? "#dbeafe"
-              : "#fee2e2";
-          const color = b.type === "masthead" || b.type === "section-band" ? "#fff" : "#111";
+          const chromeColor = isMulti || isSelected ? "#4f46e5" : "#9ca3af";
+          // Exactly ONE border per tile, driven by state classes (see the
+          // <style> block): dashed light-grey by default → light-blue on hover,
+          // solid blue when selected, amber for empty/locked, red for overflow.
+          const tileCls = [
+            "epb-tile",
+            (isSelected || isMulti) && "epb-selected",
+            dragOverBlockId === b.id && "epb-dragover",
+            hasOverflow && "epb-overflow",
+            isStory && !b.articleId && "epb-empty",
+            b.locked && "epb-locked",
+          ].filter(Boolean).join(" ");
           return (
             <div key={b.id}
-              onClick={(e) => isStory && onSelect(b.id, e)}
+              className={tileCls}
+              onClick={(e) => { if (editingTextId && editingTextId !== b.id) setEditingTextId(null); if (isStory) onSelect(b.id, e); }}
+              onDoubleClick={(e) => { if (isStory && title && onInlineEdit) { e.stopPropagation(); onSelect(b.id); setEditingTextId(b.id); } }}
               onDragOver={(e) => isStory && onDragOverBlock?.(e, b.id)}
               onDragLeave={() => isStory && onDragLeaveBlock?.(b.id)}
               onDrop={(e) => isStory && onDropBlock?.(e, b.id)}
               style={{
-                // WYSIWYG: tile bg transparent so the rendered iframe behind
-                // shows through. Selection + warnings still visible as
-                // colored borders. Empty story slots get a faint amber hint
-                // so the operator can see what's unfilled.
-                background: dragOverBlockId === b.id
-                  ? "rgba(251,191,36,0.55)"
-                  : isStory && !b.articleId
-                  ? "rgba(254,243,199,0.55)"
-                  : "transparent",
+                // tile bg transparent so the rendered iframe behind shows
+                // through; border + state colours live in CSS so :hover works.
                 color: "#111",
-                border: dragOverBlockId === b.id
-                  ? "3px dashed #d97706"
-                  : hasOverflow ? "3px solid #dc2626"
-                  : isMulti ? "3px solid #4f46e5"
-                  : isSelected ? "3px solid #4f46e5"
-                  : isStory && !b.articleId ? "2px dashed #f59e0b"
-                  : "1px dashed rgba(0,0,0,0.15)",
-                borderRadius: 4, padding: 0, fontSize: 12, overflow: "hidden", position: "relative",
+                padding: 0, fontSize: 12, overflow: "hidden", position: "relative",
                 cursor: isStory ? "grab" : "move",
-                display: "flex", flexDirection: "column", justifyContent: "space-between",
+                display: "flex", flexDirection: "column",
                 minHeight: 0, height: "100%",
                 zIndex: isSelected ? 3 : 2,
               }}>
+              {/* Block-type badge (top-left): always visible. Shows a lock glyph
+                  when the block is locked so its state reads at a glance. */}
+              <span className="epb-type" style={{ background: isSelected ? "#4f46e5" : "rgba(17,24,39,0.62)" }}>
+                {b.locked && <Lock />}
+                {b.type}
+              </span>
+
+              {/* Hover/selected control toolbar (top-right). Replaces the old
+                  tiny corner buttons; reveals on hover or selection. */}
               {onRemoveBlock && b.type !== "masthead" && b.type !== "section-band" && (
-                <>
-                  <WithTooltip text={`Block Settings`}>
+                <div className="epb-toolbar lock-btn">
+                  {isStory && title && onInlineEdit && (
+                    <WithTooltip text="Edit headline / body text">
+                      <button
+                        className="epb-btn"
+                        onClick={(e) => { e.stopPropagation(); onSelect(b.id); setEditingTextId(b.id); }}
+                        aria-label="Edit text">
+                        <Type />
+                      </button>
+                    </WithTooltip>
+                  )}
+                  {isStory && (
+                    <WithTooltip text={b.locked ? "Unlock block" : "Lock block"}>
+                      <button
+                        className={`epb-btn${b.locked ? " epb-lock-on" : ""}`}
+                        onClick={(e) => { e.stopPropagation(); onToggleLock(b.id); }}
+                        aria-label={b.locked ? "Unlock block" : "Lock block"}>
+                        {b.locked ? <Lock /> : <Unlock />}
+                      </button>
+                    </WithTooltip>
+                  )}
+                  <WithTooltip text="Block settings">
                     <button
-                      className="lock-btn"
+                      className="epb-btn"
                       onClick={(e) => { e.stopPropagation(); setSettingsBlockId(b.id); }}
-                      style={{ position: "absolute", bottom: 2, right: 22, background: "#4f46e5", color: "#fff", fontSize: 11, width: 18, height: 18, border: "none", borderRadius: 3, cursor: "pointer", zIndex: 6, lineHeight: 1, padding: 0 }}>
-                      ⚙️
+                      aria-label="Block settings">
+                      <Settings />
                     </button>
                   </WithTooltip>
                   <WithTooltip text={`Delete this ${b.type} block`}>
                     <button
-                      className="lock-btn"
+                      className="epb-btn epb-btn-danger"
                       onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: `Delete ${b.type} block?`, confirmText: "Delete", destructive: true })) onRemoveBlock(b.id); }}
-                      style={{ position: "absolute", bottom: 2, right: 2, background: "rgba(220,38,38,0.85)", color: "#fff", fontSize: 11, fontWeight: 800, width: 18, height: 18, border: "none", borderRadius: 3, cursor: "pointer", zIndex: 6, lineHeight: 1, padding: 0 }}>
-                      ×
+                      aria-label={`Delete ${b.type} block`}>
+                      <Trash2 />
                     </button>
                   </WithTooltip>
-                </>
+                </div>
               )}
+
+              {/* Warning indicator (bottom-left): always visible so quality
+                  issues aren't hidden behind the hover toolbar. */}
               {blockWarnings.length > 0 && (
                 <WithTooltip text={blockWarnings.map((w) => w.detail).join("\n")}>
-                  <div style={{ position: "absolute", top: 2, right: 2, background: hasOverflow ? "#dc2626" : "#f59e0b", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 5px", borderRadius: 3, zIndex: 4, lineHeight: 1 }}>
-                    {hasOverflow ? "⚠ OVERFLOW" : `⚠ ${blockWarnings.length}`}
+                  <div className="epb-warn" style={{ background: hasOverflow ? "#dc2626" : "#f59e0b" }}>
+                    <AlertTriangle />
+                    {hasOverflow ? "OVERFLOW" : blockWarnings.length}
                   </div>
                 </WithTooltip>
               )}
-              {/* Block-type pill (top-left): small label so operator sees
-                  what kind of block this is. iframe behind shows real
-                  rendered content; tile only shows minimal chrome. */}
-              <div style={{ position: "absolute", top: 2, left: 2, fontSize: 9, padding: "1px 6px",
-                background: isSelected ? "#4f46e5" : "rgba(0,0,0,0.55)", color: "#fff",
-                borderRadius: 3, fontWeight: 700, letterSpacing: 0.3, zIndex: 4, lineHeight: 1.3 }}>
-                {b.type}
-              </div>
+
               {/* Empty-state CTA only when no article and the block is a story */}
               {!title && isStory && (
-                <div style={{ alignSelf: "center", marginTop: "auto", marginBottom: "auto", color: "#92400e", fontSize: 11, fontStyle: "italic", fontWeight: 700, padding: 4 }}>
-                  empty - click to pick
+                <div className="epb-empty-cta">
+                  <span style={{ borderColor: chromeColor }} className="epb-empty-plus">+</span>
+                  click to pick a story
                 </div>
               )}
-              {/* Ad block placeholder */}
+              {/* Ad block placeholder - no border of its own; the single tile
+                  border is the only frame so the ad slot reads as one box. */}
               {b.type === "ad" && (
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "repeating-linear-gradient(45deg, #f8f9fa, #f8f9fa 12px, #f1f5f9 12px, #f1f5f9 24px)", border: "2px solid #e2e8f0", borderRadius: 8, zIndex: 1, pointerEvents: "none" }}>
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "repeating-linear-gradient(45deg, #f8f9fa, #f8f9fa 12px, #f1f5f9 12px, #f1f5f9 24px)", zIndex: 1, pointerEvents: "none" }}>
                   <span style={{ color: "#94a3b8", fontWeight: 800, fontSize: 18, letterSpacing: 4, fontFamily: "sans-serif", background: "#fff", padding: "2px 8px", borderRadius: 4 }}>ADVERTISEMENT</span>
                 </div>
               )}
-              {/* Inline TipTap editor - appears when this story block is
-                  selected. Operator types headline + body directly into
-                  the canvas; save persists to overrideTitle / overrideDek.
-                  Render path already prefers overrides over the linked
-                  Article so "what you type = what you print". */}
-              {isSelected && isStory && title && onInlineEdit && (
+              {/* Inline TipTap editor - opens ONLY on double-click or the "Edit
+                  text" toolbar button (not on every select), so resizing a block
+                  no longer buries it under this panel. Operator types headline +
+                  body directly; save persists to overrideTitle / overrideDek.
+                  Render path prefers overrides over the linked Article so
+                  "what you type = what you print". Esc or Done closes it. */}
+              {editingTextId === b.id && isStory && title && onInlineEdit && (
                 <div onClick={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
                   className="lock-btn"
-                  style={{ position: "absolute", inset: "20px 4px 24px 4px", background: "rgba(255,255,255,0.92)", border: "1px solid #4f46e5", borderRadius: 4, padding: 6, fontSize: 11, overflow: "auto", zIndex: 7, display: "flex", flexDirection: "column", gap: 6, fontFamily: "'Noto Serif Telugu', serif" }}>
-                  <div style={{ fontSize: 9, color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>Headline (Telugu)</div>
+                  style={{ position: "absolute", inset: "30px 4px 6px 4px", minHeight: 120, background: "rgba(255,255,255,0.98)", border: "1px solid #4f46e5", borderRadius: 6, padding: 8, fontSize: 11, overflow: "auto", zIndex: 7, display: "flex", flexDirection: "column", gap: 6, fontFamily: "'Noto Serif Telugu', serif", boxShadow: "0 6px 20px rgba(15,23,42,0.18)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 9, color: "#6b7280", fontWeight: 700, textTransform: "uppercase" }}>Headline (Telugu)</span>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingTextId(null); }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 3, border: "none", background: "#4f46e5", color: "#fff", borderRadius: 5, fontSize: 10, fontWeight: 700, padding: "2px 7px", cursor: "pointer" }}>
+                      <Check size={11} /> Done
+                    </button>
+                  </div>
                   <div style={{ fontWeight: 800, fontSize: b.type === "lead" ? 16 : 13, lineHeight: 1.2, color: "#111" }}>
                     <InlineTextEditor
                       value={b.overrideTitle?.trim() || title.title}
@@ -2985,26 +3276,81 @@ function DraggableBlockGrid({
                   </div>
                 </div>
               )}
-              {isStory && (
-                <button
-                  className="lock-btn"
-                  onClick={(e) => { e.stopPropagation(); onToggleLock(b.id); }}
-                  style={{
-                    alignSelf: "flex-start", marginTop: 4, fontSize: 10, padding: "2px 6px",
-                    border: "none", borderRadius: 3, cursor: "pointer",
-                    background: b.locked ? "#fbbf24" : "rgba(0,0,0,0.08)",
-                    color: b.locked ? "#fff" : "#555", fontWeight: 700,
-                  }}>
-                  {b.locked ? "🔒 LOCKED" : "🔓 free"}
-                </button>
-              )}
             </div>
           );
         })}
       </GridLayout>
       <style>{`
-        .re-epaper-grid .react-grid-item.react-grid-placeholder { background: #4f46e5; opacity: 0.18; border-radius: 4px; }
-        .re-epaper-grid .react-resizable-handle { z-index: 5; }
+        .re-epaper-grid .react-grid-item.react-grid-placeholder { background: #4f46e5; opacity: 0.18; border-radius: 6px; }
+        /* Make the resize handle a clearly grabbable corner instead of the
+           library's faint default - it was a big part of "clunky resize". */
+        .re-epaper-grid .react-resizable-handle { z-index: 9; opacity: 0; transition: opacity .12s ease; }
+        .re-epaper-grid .react-grid-item:hover .react-resizable-handle,
+        .re-epaper-grid .react-grid-item.epb-selected .react-resizable-handle,
+        .re-epaper-grid .react-grid-item:has(.epb-selected) .react-resizable-handle { opacity: 1; }
+        .re-epaper-grid .react-resizable-handle::after {
+          width: 9px; height: 9px; right: 4px; bottom: 4px;
+          border-right: 2px solid #4f46e5; border-bottom: 2px solid #4f46e5;
+        }
+        /* One border per tile. Default = dashed light grey; hover = light blue.
+           State classes (selected / empty / locked / overflow / dragover) win
+           via higher specificity, so a tile never shows more than one frame. */
+        .epb-tile {
+          border: 1px dashed #d1d5db; border-radius: 6px; background: transparent;
+          transition: border-color .12s ease, background-color .12s ease;
+        }
+        .epb-tile:not(.epb-selected):not(.epb-overflow):not(.epb-dragover):hover { border-color: #60a5fa; }
+        .epb-tile.epb-locked { border-color: #f59e0b; }
+        .epb-tile.epb-empty { border-color: #f59e0b; background: rgba(254,243,199,0.40); }
+        .epb-tile.epb-overflow { border: 1.5px solid #dc2626; }
+        .epb-tile.epb-dragover { border: 1.5px dashed #2563eb; background: rgba(37,99,235,0.10); }
+        .epb-tile.epb-selected { border: 1.5px solid #3b82f6; }
+        /* Block-type badge */
+        .epb-type {
+          position: absolute; top: 4px; left: 4px; z-index: 5;
+          display: inline-flex; align-items: center; gap: 3px;
+          font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+          padding: 2px 6px; border-radius: 5px; color: #fff; line-height: 1.3;
+          pointer-events: none; font-family: system-ui, sans-serif;
+        }
+        .epb-type svg { width: 10px; height: 10px; }
+        /* Hover/selected control toolbar */
+        .epb-toolbar {
+          position: absolute; top: 4px; right: 4px; z-index: 8;
+          display: flex; gap: 2px; padding: 3px;
+          background: rgba(17,24,39,0.82); border-radius: 7px;
+          opacity: 0; transform: translateY(-2px);
+          transition: opacity .12s ease, transform .12s ease;
+        }
+        .epb-tile:hover .epb-toolbar, .epb-tile.epb-selected .epb-toolbar { opacity: 1; transform: none; }
+        .epb-btn {
+          width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+          border: none; border-radius: 5px; cursor: pointer; color: #e5e7eb; background: transparent; padding: 0;
+          transition: background .12s ease, color .12s ease;
+        }
+        .epb-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+        .epb-btn.epb-lock-on { color: #fbbf24; }
+        .epb-btn.epb-btn-danger:hover { background: #dc2626; color: #fff; }
+        .epb-btn svg { width: 15px; height: 15px; }
+        /* Warning chip (always visible, bottom-left) */
+        .epb-warn {
+          position: absolute; bottom: 4px; left: 4px; z-index: 5;
+          display: inline-flex; align-items: center; gap: 3px;
+          color: #fff; font-size: 9px; font-weight: 800; line-height: 1;
+          padding: 3px 6px; border-radius: 5px; font-family: system-ui, sans-serif;
+        }
+        .epb-warn svg { width: 11px; height: 11px; }
+        /* Empty story-slot CTA */
+        .epb-empty-cta {
+          margin: auto; display: flex; flex-direction: column; align-items: center; gap: 6px;
+          color: #92400e; font-size: 11px; font-weight: 700; font-style: italic;
+          padding: 6px; text-align: center; pointer-events: none;
+        }
+        .epb-empty-plus {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 26px; height: 26px; border-radius: 50%; border: 2px solid currentColor;
+          font-size: 18px; font-style: normal; line-height: 1; opacity: .7;
+        }
       `}</style>
       </div>
     </div>

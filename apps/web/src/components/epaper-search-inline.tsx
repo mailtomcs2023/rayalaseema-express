@@ -71,7 +71,7 @@ export function EpaperSearchInline() {
         }}
         className="flex items-center gap-2 w-full"
       >
-        {/* Plain shadcn Input — no InputGroup, eliminates the has-[...]:ring-3 focus jump */}
+        {/* Plain shadcn Input - no InputGroup, eliminates the has-[...]:ring-3 focus jump */}
         <div className="relative flex-1">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 size-4 pointer-events-none"

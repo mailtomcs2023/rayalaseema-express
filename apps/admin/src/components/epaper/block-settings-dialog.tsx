@@ -5,14 +5,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TELUGU_FONTS } from "@/lib/epaper/telugu-fonts";
 
+// Sentinel for the "Default" choice - shadcn SelectItem cannot use an empty
+// string value, so we map it to "" on change.
+const DEFAULT_FONT = "__default__";
+
+// Public contract: what onSave emits. padding/margin are always coerced to a
+// number in handleSave, so the block layout stays numeric (matches Block.style).
 export interface BlockStyleSettings {
   hlFontFamily?: string;
   hlColor?: string;
   hlBgColor?: string;
   blockBgColor?: string;
-  padding?: number | string;
-  margin?: number | string;
+  padding?: number;
+  margin?: number;
 }
 
 interface BlockSettingsDialogProps {
@@ -23,7 +31,9 @@ interface BlockSettingsDialogProps {
 }
 
 export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }: BlockSettingsDialogProps) {
-  const [settings, setSettings] = useState<BlockStyleSettings>({});
+  // Draft state holds raw input values (padding/margin arrive as strings from
+  // the number inputs); handleSave coerces them to the numeric public contract.
+  const [settings, setSettings] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (open) {
@@ -66,17 +76,22 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
             <Label htmlFor="hlFontFamily" className="text-right">
               Heading Font
             </Label>
-            <select
-              id="hlFontFamily"
-              className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={settings.hlFontFamily || ""}
-              onChange={(e) => handleChange("hlFontFamily", e.target.value)}
+            <Select
+              value={settings.hlFontFamily || DEFAULT_FONT}
+              onValueChange={(v) => handleChange("hlFontFamily", v === DEFAULT_FONT ? "" : v)}
             >
-              <option value="">Default</option>
-              <option value="'Ramabhadra', serif">Ramabhadra</option>
-              <option value="'Noto Serif Telugu', serif">Noto Serif Telugu</option>
-              <option value="'Noto Sans Telugu', sans-serif">Noto Sans Telugu</option>
-            </select>
+              <SelectTrigger id="hlFontFamily" className="col-span-3">
+                <SelectValue placeholder="Default" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value={DEFAULT_FONT}>Default</SelectItem>
+                {TELUGU_FONTS.map((font) => (
+                  <SelectItem key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                    {font.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
