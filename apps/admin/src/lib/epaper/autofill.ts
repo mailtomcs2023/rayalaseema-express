@@ -37,6 +37,14 @@ export interface AutofillInput {
   templateRules?: Record<string, unknown>;
   // Articles already used by other pages of the same edition (avoid duplicates).
   excludeArticleIds?: Set<string>;
+  // Date-anchored content window. When set, the candidate pool is restricted to
+  // articles published within [since, until) instead of the rolling "last 7
+  // days from now". This makes a date's edition contain only that date's news.
+  window?: { since: Date; until: Date };
+  // Reference instant for freshness/popularity scoring (defaults to now). For a
+  // date-anchored edition this is the window end, so "freshness" is relative to
+  // the edition's own day, not the real-world clock when you click Generate.
+  referenceTime?: number;
 }
 
 // Front-page slots get a heavy bonus on the top breaking+featured story so the
@@ -74,11 +82,14 @@ interface ScoredArticle {
  * actually consumes. Cached in-memory per request via the closure (one
  * compute per autofill run).
  */
-async function categoryHeatMap(): Promise<Record<string, number>> {
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+async function categoryHeatMap(referenceTime = Date.now()): Promise<Record<string, number>> {
+  // 7-day view-share ending at the reference time (the edition's day for a
+  // date-anchored run), so the heatmap reflects reader behaviour up to then.
+  const until = new Date(referenceTime);
+  const since = new Date(referenceTime - 7 * 24 * 60 * 60 * 1000);
   // Spec #1 #133: articles live on the unified Content table where type='ARTICLE'.
   const rows = await prisma.content.findMany({
-    where: { type: "ARTICLE", status: "PUBLISHED", publishedAt: { gte: since } },
+    where: { type: "ARTICLE", status: "PUBLISHED", publishedAt: { gte: since, lt: until } },
     select: { viewCount: true, category: { select: { slug: true } } },
   });
   const sumBySlug: Record<string, number> = {};
@@ -99,14 +110,16 @@ async function categoryHeatMap(): Promise<Record<string, number>> {
 }
 
 async function loadCandidatePool(input: AutofillInput): Promise<ScoredArticle[]> {
-  // PUBLISHED articles from the last 7 days. Earlier the window was 24h but
-  // editorial-light days (no fresh publishes overnight) left every block
-  // empty; 7 days gives the engine real ammunition. The scoring function
-  // still rewards freshness so today's articles win when they exist.
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  // Date-anchored window when provided (a specific edition date) - the pool is
+  // restricted to articles PUBLISHED within [since, until). Without a window it
+  // falls back to the rolling "last 7 days from now" behaviour.
+  const publishedAt: { gte: Date; lt?: Date } = {
+    gte: input.window?.since ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  };
+  if (input.window?.until) publishedAt.lt = input.window.until;
   const where: Record<string, unknown> = {
     status: "PUBLISHED",
-    publishedAt: { gte: since },
+    publishedAt,
   };
   // Honor template-level rules where possible at the DB level for perf.
   if (input.templateRules?.categorySlug) {
@@ -162,7 +175,7 @@ async function loadCandidatePool(input: AutofillInput): Promise<ScoredArticle[]>
  * adds up to +15 to popular categories so the auto-fill steers toward what
  * readers actually consume.
  */
-function scoreFit(slot: BlockSlot, a: ScoredArticle, heat?: Record<string, number>, templateSlug?: string, relaxCategory = false): number {
+function scoreFit(slot: BlockSlot, a: ScoredArticle, heat?: Record<string, number>, templateSlug?: string, relaxCategory = false, referenceTime = Date.now()): number {
   const f = slot.slotFilter || {};
 
   // Hard disqualifiers. `relaxCategory` (fallback fill) ignores the category/
@@ -205,7 +218,7 @@ function scoreFit(slot: BlockSlot, a: ScoredArticle, heat?: Record<string, numbe
   // Universal soft factors
   s += Math.min(a.viewCount / 100, 10);    // popularity nudge, cap at +10
   if (a.publishedAt) {
-    const hoursOld = (Date.now() - a.publishedAt.getTime()) / 3600_000;
+    const hoursOld = (referenceTime - a.publishedAt.getTime()) / 3600_000;
     s += Math.max(0, 10 - hoursOld);       // freshness bonus, decays over 10h
   }
   // Reader-pull heatmap nudge: 7-day view-share for this article's category.
@@ -239,7 +252,8 @@ export interface AutofillResult {
  *  - Other block types pass through unchanged.
  */
 export async function autofillTemplate(input: AutofillInput): Promise<AutofillResult> {
-  const [pool, heat] = await Promise.all([loadCandidatePool(input), categoryHeatMap()]);
+  const refTime = input.referenceTime ?? Date.now();
+  const [pool, heat] = await Promise.all([loadCandidatePool(input), categoryHeatMap(refTime)]);
   const used = new Set<string>(input.excludeArticleIds || []);
   // Preserve any already-locked assignments
   for (const b of input.templateLayout.blocks) {
@@ -259,7 +273,7 @@ export async function autofillTemplate(input: AutofillInput): Promise<AutofillRe
     let bestScore = -1;
     for (const a of pool) {
       if (used.has(a.id)) continue;
-      const score = scoreFit(slot, a, heat, input.templateSlug);
+      const score = scoreFit(slot, a, heat, input.templateSlug, false, refTime);
       if (score > bestScore) {
         bestScore = score;
         bestArticle = a;

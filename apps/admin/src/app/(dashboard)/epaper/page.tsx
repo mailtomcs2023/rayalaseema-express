@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -28,6 +28,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useKycGate } from "@/components/kyc-gated-link";
@@ -337,7 +338,14 @@ function EpaperEditorPage() {
                       <Checkbox aria-label="Select edition" checked={selEditions.has(e.id)} onCheckedChange={() => toggleOne(e.id)} />
                     </TableCell>
                     <TableCell className="font-semibold">
-                      {e.date}
+                      <Button
+                        variant="link"
+                        onClick={() => openEdition(e)}
+                        className="h-auto p-0 font-semibold text-indigo-600 hover:text-indigo-800"
+                        title="Open edition"
+                      >
+                        {e.date}
+                      </Button>
                       {e.date === today && <Badge variant="outline" className="ml-2 border-indigo-200 bg-indigo-50 text-[10px] text-indigo-700">Today</Badge>}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{e.edition === "main" ? "Main" : `📰 ${e.edition}`}</TableCell>
@@ -349,13 +357,49 @@ function EpaperEditorPage() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{e.status || "-"}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {e.pdfUrl && (
-                          <a href={e.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-indigo-600 hover:underline">PDF ↗</a>
-                        )}
-                        <Button size="sm" className="h-7" onClick={() => openEdition(e)}>Open</Button>
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => deleteEditions([e.id])}>Delete</Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Edition actions">
+                            <MoreVertical className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem onClick={() => openEdition(e)}>
+                            <FolderOpen className="mr-2 size-4" /> Open
+                          </DropdownMenuItem>
+                          {e.pdfUrl && (
+                            <DropdownMenuItem onClick={() => window.open(e.pdfUrl as string, "_blank", "noopener,noreferrer")}>
+                              <FileText className="mr-2 size-4" /> View PDF
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => renderEditionById(e.id)} disabled={busy === "rendering"}>
+                            <RefreshCw className="mr-2 size-4" /> Generate PDF
+                          </DropdownMenuItem>
+
+                          {(NEXT_STATES[e.workflowState] || []).length > 0 && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Workflow
+                              </DropdownMenuLabel>
+                              {(NEXT_STATES[e.workflowState] || []).map((opt) => (
+                                <DropdownMenuItem
+                                  key={opt.to}
+                                  onClick={() => transitionEditionById(e.id, opt.to, opt.label, !!opt.needNote)}
+                                  className={opt.danger ? "text-red-600 focus:text-red-700" : undefined}
+                                >
+                                  {opt.label}
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          )}
+
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => deleteEditions([e.id])} className="text-red-600 focus:text-red-700">
+                            <Trash2 className="mr-2 size-4" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
@@ -724,6 +768,37 @@ function EpaperEditorPage() {
     });
     if (!r.ok) { const d = await r.json().catch(() => ({})); setError(d.error || "Transition failed"); return; }
     await loadEdition(date);
+  };
+
+  // List-view (act-by-id) variants so the Recent editions row menu can run
+  // actions on any edition without opening it first.
+  const renderEditionById = async (id: string) => {
+    setBusy("rendering");
+    try {
+      const r = await fetch("/api/epaper/render-v2", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ editionId: id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Render failed");
+      toast("success", `PDF rendered${d.pageCount ? ` - ${d.pageCount} pages` : ""}`);
+      if (d.pdfUrl) window.open(d.pdfUrl, "_blank", "noopener,noreferrer");
+      await loadRecentEditions();
+    } catch (e: any) { toast("error", e.message || "Render failed"); }
+    finally { setBusy(null); }
+  };
+  const transitionEditionById = async (id: string, to: string, label: string, needNote: boolean) => {
+    const note = needNote
+      ? await prompt({ title: label, description: "Reason note (required)", required: true, multiline: true, confirmText: "Submit" })
+      : null;
+    if (needNote && !note) return;
+    const r = await fetch(`/api/epaper/edition/${id}/transition`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, note }),
+    });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast("error", d.error || "Transition failed"); return; }
+    toast("success", label);
+    await loadRecentEditions();
   };
 
   // Delete a single block from the active page.
@@ -2285,7 +2360,6 @@ function EpaperEditorPage() {
                 const emptyCount = storyBlocks.filter((b) => !b.articleId).length;
                 const lockedCount = p.layout.blocks.filter((b) => b.locked).length;
                 const commentCount = commentsByPage[p.id] || 0;
-                const peerCount = peers.filter((peer) => peer.pageId === p.id && peer.userId !== "you").length;
                 const isDropTarget = !!draggingPageId && draggingPageId !== p.id && dragOverPageId === p.id;
                 const cls = [
                   "epp-card",
@@ -2310,21 +2384,20 @@ function EpaperEditorPage() {
                       if (!dragged || dragged === p.id) return;
                       movePage(dragged, p.pageNumber);
                     }}>
-                    <GripVertical className="epp-grip" size={14} aria-hidden />
-                    <span className="epp-num">{p.pageNumber}</span>
+                    <span className="epp-num" title="Drag to reorder">
+                      <span className="epp-num-text">{p.pageNumber}</span>
+                      <GripVertical className="epp-num-grip" size={14} aria-hidden />
+                    </span>
                     <div className="epp-main">
-                      <div className="epp-label">{p.label}</div>
-                      <div className="epp-meta">
+                      <div className="epp-label-row">
+                        <span className="epp-label">{p.label}</span>
+                      </div>
+                      <div className="epp-status-row">
                         {emptyCount > 0
-                          ? <WithTooltip text={`${emptyCount} empty story block${emptyCount > 1 ? "s" : ""}`}><span className="epp-chip epp-warn"><AlertTriangle /> {emptyCount}</span></WithTooltip>
-                          : <WithTooltip text="All story blocks filled"><span className="epp-chip epp-ok"><Check /> ready</span></WithTooltip>}
-                        {lockedCount > 0 && <WithTooltip text={`${lockedCount} locked block${lockedCount > 1 ? "s" : ""}`}><span className="epp-chip"><Lock /> {lockedCount}</span></WithTooltip>}
-                        {commentCount > 0 && <WithTooltip text={`${commentCount} open comments`}><span className="epp-chip"><MessageSquare /> {commentCount}</span></WithTooltip>}
-                        {peerCount > 0 && (
-                          <WithTooltip text={peers.filter((peer) => peer.pageId === p.id).map((peer) => peer.userName).join(", ")}>
-                            <span className="epp-chip"><Users /> {peerCount}</span>
-                          </WithTooltip>
-                        )}
+                          ? <WithTooltip text={`${emptyCount} of ${storyBlocks.length} story block${storyBlocks.length > 1 ? "s" : ""} still empty`}><span className="epp-stat epp-warn"><AlertTriangle /> {emptyCount} to fill</span></WithTooltip>
+                          : <WithTooltip text="All story blocks filled"><span className="epp-stat epp-ok"><Check /> Ready</span></WithTooltip>}
+                        {lockedCount > 0 && <WithTooltip text={`${lockedCount} locked block${lockedCount > 1 ? "s" : ""}`}><span className="epp-stat epp-muted"><Lock /> {lockedCount}</span></WithTooltip>}
+                        {commentCount > 0 && <WithTooltip text={`${commentCount} open comments`}><span className="epp-stat epp-muted"><MessageSquare /> {commentCount}</span></WithTooltip>}
                       </div>
                     </div>
                     <div className="epp-actions" draggable={false} onClick={(e) => e.stopPropagation()}>
@@ -2358,8 +2431,8 @@ function EpaperEditorPage() {
                 .epp-head-count { font-size:11px; font-weight:700; color:#64748b; background:#f1f5f9; border-radius:999px; padding:1px 8px; }
                 .epp-list { display:flex; flex-direction:column; gap:6px; }
                 .epp-card {
-                  position:relative; display:flex; align-items:center; gap:8px;
-                  padding:8px 9px; border:1px solid #eceef1; border-radius:9px;
+                  position:relative; display:flex; align-items:flex-start; gap:8px;
+                  padding:9px 10px; border:1px solid #eceef1; border-radius:10px;
                   background:#fff; cursor:pointer; user-select:none;
                   transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
                 }
@@ -2370,32 +2443,33 @@ function EpaperEditorPage() {
                   content:""; position:absolute; left:6px; right:6px; top:-4px; height:2px;
                   background:#4f46e5; border-radius:2px;
                 }
-                .epp-grip { flex:0 0 auto; color:#cbd5e1; cursor:grab; opacity:0; transition:opacity .12s ease; }
-                .epp-card:hover .epp-grip { opacity:1; }
                 .epp-num {
-                  flex:0 0 auto; width:24px; height:24px; border-radius:7px;
+                  position:relative; flex:0 0 auto; width:24px; height:24px; border-radius:7px;
                   display:inline-flex; align-items:center; justify-content:center;
-                  background:#f1f5f9; color:#475569; font-size:12px; font-weight:800;
+                  background:#f1f5f9; color:#475569; font-size:12px; font-weight:800; cursor:grab;
                 }
+                .epp-num:active { cursor:grabbing; }
                 .epp-card.epp-active .epp-num { background:#4f46e5; color:#fff; }
+                .epp-num-text { transition:opacity .12s ease; }
+                .epp-num-grip { position:absolute; inset:0; margin:auto; opacity:0; transition:opacity .12s ease; }
+                .epp-card:hover .epp-num-text { opacity:0; }
+                .epp-card:hover .epp-num-grip { opacity:1; }
                 .epp-main { flex:1 1 auto; min-width:0; }
-                .epp-label { font-size:12.5px; font-weight:700; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                .epp-label-row { display:flex; align-items:center; gap:6px; min-width:0; }
+                .epp-label { flex:1 1 auto; font-size:12.5px; font-weight:700; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
                 .epp-card.epp-active .epp-label { color:#3730a3; }
-                .epp-meta { display:flex; align-items:center; gap:8px; margin-top:3px; font-size:10px; color:#94a3b8; line-height:1; }
-                .epp-meta .epp-chip { display:inline-flex; align-items:center; gap:3px; }
-                .epp-meta .epp-chip svg { width:11px; height:11px; }
-                .epp-meta .epp-chip.epp-warn { color:#d97706; }
-                .epp-meta .epp-chip.epp-ok { color:#16a34a; }
+                .epp-status-row { display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-top:5px; line-height:1; }
+                .epp-stat { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:600; line-height:1; white-space:nowrap; }
+                .epp-stat svg { width:11px; height:11px; }
+                .epp-stat.epp-ok { color:#16a34a; }
+                .epp-stat.epp-warn { color:#d97706; }
+                .epp-stat.epp-muted { color:#94a3b8; }
                 .epp-actions {
-                  position:absolute; top:50%; right:6px; transform:translateY(-50%);
-                  display:flex; gap:1px; padding:2px; border-radius:8px;
-                  background:rgba(255,255,255,0.94); box-shadow:0 1px 5px rgba(15,23,42,.14);
-                  opacity:0; pointer-events:none; transition:opacity .12s ease;
+                  flex:0 0 auto; align-self:center; display:flex; gap:1px;
                 }
-                .epp-card:hover .epp-actions { opacity:1; pointer-events:auto; }
                 .epp-act-btn {
-                  width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center;
-                  border:none; background:transparent; border-radius:6px; cursor:pointer; color:#64748b;
+                  width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center;
+                  border:none; background:transparent; border-radius:6px; cursor:pointer; color:#94a3b8;
                   transition: background .12s ease, color .12s ease;
                 }
                 .epp-act-btn:hover { background:#f1f5f9; color:#0f172a; }
@@ -3031,7 +3105,7 @@ function DraggableBlockGrid({
         initialStyle={activeSettingsBlock?.style}
         onSave={(style) => {
           if (!settingsBlockId) return;
-          const next = layout.blocks.map(b => 
+          const next = layout.blocks.map(b =>
             b.id === settingsBlockId ? { ...b, style: { ...(b.style || {}), ...style } } : b
           );
           onLayoutChange(next);

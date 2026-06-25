@@ -48,6 +48,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Cannot create a future-dated edition. Pick today or an earlier date." }, { status: 400 });
     }
 
+    // Content window for this edition: the cover date's calendar day in IST
+    // (UTC+5:30). The e-paper dated D contains only news PUBLISHED during that
+    // IST day, [D 00:00 IST, D+1 00:00 IST). The "+05:30" makes JS resolve the
+    // string to the right UTC instant. referenceTime = window end so freshness
+    // scoring is relative to the edition's own day, not the real-world clock.
+    // To switch to the print-paper model (D carries the previous day's news),
+    // subtract one day from both bounds.
+    const winSince = new Date(`${dateStr}T00:00:00.000+05:30`);
+    const winUntil = new Date(winSince.getTime() + 24 * 60 * 60 * 1000);
+    const contentWindow = { since: winSince, until: winUntil };
+    const referenceTime = winUntil.getTime();
+
     const templates = await prisma.epaperTemplate.findMany({
       where: { active: true },
       orderBy: { sortOrder: "asc" },
@@ -99,6 +111,8 @@ export async function POST(req: NextRequest) {
         templateLayout: layout,
         templateRules: (t.fillRules as Record<string, unknown> | null) ?? undefined,
         excludeArticleIds: usedArticles,
+        window: contentWindow,
+        referenceTime,
       });
 
       // Skip near-empty pages (keep the front no matter what). Articles that
