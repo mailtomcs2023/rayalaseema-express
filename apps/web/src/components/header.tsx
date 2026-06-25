@@ -253,15 +253,14 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           badge and the ticker line up perfectly with no extra padding gap
           above or below the bar. Text bumped to 14px to match the taller
           row - 13px looked stranded in a 40px container. */}
-      <div style={{ background: "#000", overflow: "hidden", whiteSpace: "nowrap" as const, height: 40 }}>
+      <div style={{ background: "var(--brand-soft)", overflow: "hidden", whiteSpace: "nowrap" as const, height: 40, borderBottom: "1px solid #f3d0d0" }}>
         <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
-          <span style={{ background: "var(--color-brand)", color: "#fff", padding: "0 16px", height: "100%", fontSize: 14, fontWeight: 900, lineHeight: 1, flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <span className="animate-pulse" style={{ width: 7, height: 7, borderRadius: "50%", background: "#fff", display: "inline-block" }} aria-hidden="true" />
-            BREAKING
+          <span className="font-telugu" style={{ background: "var(--color-brand)", color: "#fff", padding: "0 16px", height: "100%", fontSize: 15, fontWeight: 900, lineHeight: 1, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", minWidth: 96, textAlign: "center", whiteSpace: "nowrap" }}>
+            బ్రేకింగ్ న్యూస్
           </span>
           <div style={{ overflow: "hidden", flex: 1, height: "100%", display: "flex", alignItems: "center" }}>
             <div
-              className="animate-marquee"
+              className="animate-marquee font-telugu"
               style={{
                 display: "inline-block",
                 whiteSpace: "nowrap" as const,
@@ -271,10 +270,10 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
             >
               {breakingNews.map((item, i) => (
                 <span key={item.id || i}>
-                  <a href="#" style={{ color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1, textDecoration: "none", marginLeft: 24, marginRight: 24 }}>
+                  {i > 0 && <span style={{ color: "var(--color-brand)", margin: "0 14px", fontSize: 11 }} aria-hidden="true">●</span>}
+                  <a href="#" style={{ color: "#111", fontSize: 15, fontWeight: 700, lineHeight: 1, textDecoration: "none" }}>
                     {item.text}
                   </a>
-                  {i < breakingNews.length - 1 && <span style={{ color: "var(--color-brand)" }}>●</span>}
                 </span>
               ))}
             </div>
@@ -285,9 +284,9 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
             style={{ padding: "6px 10px", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}
           >
             {tickerPaused ? (
-              <svg width="14" height="14" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg width="14" height="14" fill="#444" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             ) : (
-              <svg width="14" height="14" fill="#fff" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+              <svg width="14" height="14" fill="#444" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
             )}
           </button>
           <button
@@ -295,7 +294,7 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
             aria-label="Toggle search"
             style={{ padding: "6px 12px", background: "none", border: "none", cursor: "pointer", flexShrink: 0 }}
           >
-            <svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24">
+            <svg width="16" height="16" fill="none" stroke="#444" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </button>
