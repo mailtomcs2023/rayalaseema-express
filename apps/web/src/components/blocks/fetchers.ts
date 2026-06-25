@@ -144,6 +144,7 @@ export async function fetchAboveFold(
       featuredImage: true,
       publishedAt: true,
       featured: true,
+      viewCount: true,
       category: { select: { name: true, slug: true, color: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
@@ -163,6 +164,14 @@ export async function fetchAboveFold(
   const latest = filtered
     .filter((c) => !featuredIds.has(c.id))
     .slice(0, config.latestCount)
+    .map(toAFArticle);
+
+  // Most-read: highest-viewed stories within the recent pool (trending now,
+  // not all-time evergreen). Distinct ordering from `latest` (views vs
+  // recency); rendered in the rail between the two ad slots.
+  const mostRead = [...filtered]
+    .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
+    .slice(0, 5)
     .map(toAFArticle);
 
   const districts = await prisma.district.findMany({
@@ -223,6 +232,7 @@ export async function fetchAboveFold(
       .sort((a, b) => b.articles.length - a.articles.length),
     breaking: breakingRows.map((b) => ({ id: b.id, text: b.title })),
     latest,
+    mostRead,
   };
 }
 

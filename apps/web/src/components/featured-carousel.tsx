@@ -119,6 +119,10 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
         loop={true}
         slidesPerView={1}
         spaceBetween={0}
+        // Round slide widths to whole pixels. Without this, a fractional
+        // container width makes each slide ~1px too narrow, so the next slide
+        // peeks through as a thin vertical sliver on the right edge.
+        roundLengths={true}
         // autoHeight removed: Swiper reads getBoundingClientRect on
         // every slide for it, which PSI attributed to the home page's
         // 37ms forced reflow. Slides already share a stable layout

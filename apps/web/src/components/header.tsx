@@ -377,7 +377,10 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           <div className="hidden md:flex flex-1 items-center justify-center min-w-0">
             {mastheadAdSlot ?? (
               <div className="masthead-ad-slot">
-                <span className="masthead-ad-placeholder">Advertisement</span>
+                <span className="masthead-ad-placeholder">
+                  Advertisement
+                  <span className="masthead-ad-placeholder-size">728 × 90</span>
+                </span>
               </div>
             )}
           </div>
@@ -391,7 +394,7 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
                 <span className="masthead-tile-label">Latest</span>
               </Link>
               <Link href="/breaking-news" className="masthead-tile masthead-tile-breaking" aria-label="Breaking news">
-                <svg className="size-5" fill="none" stroke="var(--brand, #E01B1B)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg>
+                <svg className="size-5" fill="none" stroke="var(--brand, #E01B1B)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
                 <span className="masthead-tile-label">Breaking</span>
               </Link>
             </div>
@@ -644,11 +647,29 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           width: 100%;
           max-width: 728px;
           min-height: 90px;
+          /* Lock the slot to the 90px leaderboard height so an off-ratio
+             creative (e.g. a 728x120 hiring banner pasted as htmlContent,
+             which has no inline height cap) can't stretch the masthead and
+             "sag" below the logo line. */
+          max-height: 90px;
+        }
+        /* Scale ANY ad payload - <img>, pasted HTML banner, or AdSense <ins> -
+           down to the slot height, preserving aspect ratio (no squash). */
+        .masthead-ad-slot img,
+        .masthead-ad-slot ins {
+          /* !important so an inline height on admin-pasted ad markup (which we
+             don't control) can't defeat the cap. */
+          max-height: 90px !important;
+          width: auto !important;
+          max-width: 100%;
+          object-fit: contain;
         }
         .masthead-ad-placeholder {
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 3px;
           width: 100%;
           max-width: 728px;
           height: 90px;
@@ -662,6 +683,13 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           border-radius: 4px;
           text-transform: uppercase;
         }
+        .masthead-ad-placeholder-size {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          color: #c4c9d1;
+          text-transform: none;
+        }
 
         /* === Masthead right quick-tiles (Latest / Breaking / E-PAPER) === */
         .masthead-tile {
@@ -670,7 +698,10 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           align-items: center;
           justify-content: center;
           gap: 2px;
-          min-width: 58px;
+          /* Equal width for the top-row tiles (Latest + Breaking), sized just to
+             the longer label so neither tile is inflated. Height stays natural
+             (both have the same icon + 1-line label). E-PAPER overrides to 100%. */
+          width: 74px;
           padding: 4px 10px;
           background: #fff;
           border: 1px solid #e5e7eb;
@@ -700,6 +731,7 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           gap: 6px;
           padding: 6px 14px;
           width: 100%;
+          height: auto;
           background: var(--brand, #E01B1B);
           color: #fff;
           border-color: var(--brand-dark, #B91414);

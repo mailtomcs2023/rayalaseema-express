@@ -162,8 +162,9 @@ export function CinemaBand({
             </Link>
           ))}
 
-          {/* Ad slot below the movie reviews - admin-configurable house ad */}
-          <RailAd position="SIDEBAR_SQUARE" tall />
+          {/* Ad slot below the movie reviews. Tagged with the cinema path so an
+              ad can target this band specifically (Target page = "/cinema"). */}
+          <RailAd position="SIDEBAR_SQUARE" tall targetPath="/cinema" />
         </aside>
       </div>
 

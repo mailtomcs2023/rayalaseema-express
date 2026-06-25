@@ -65,6 +65,8 @@ export const REGISTRY: Record<Exclude<BuiltinBlockType, "Columns" | "Loop">, Reg
   AdHeaderLeaderboard: {
     component: AdHeaderLeaderboard as AnyComponent,
     fetcher: (config) => F.fetchAdHeaderLeaderboard(config as never) as never,
+    // No placeholder: suppress the whole block when no ad is configured.
+    hideWhenEmpty: (data) => !data || ((data as { ads?: unknown[] }).ads?.length ?? 0) === 0,
   },
   AboveFold: {
     component: AboveFold as AnyComponent,
@@ -73,6 +75,8 @@ export const REGISTRY: Record<Exclude<BuiltinBlockType, "Columns" | "Loop">, Reg
   AdBannerMid: {
     component: AdBannerMid as AnyComponent,
     fetcher: (config) => F.fetchAdBannerMid(config as never) as never,
+    // No placeholder: suppress the whole block when no ad is configured.
+    hideWhenEmpty: (data) => !data || ((data as { ads?: unknown[] }).ads?.length ?? 0) === 0,
   },
   SectionBand: {
     component: SectionBand as AnyComponent,
@@ -119,6 +123,8 @@ export const REGISTRY: Record<Exclude<BuiltinBlockType, "Columns" | "Loop">, Reg
   AdInFeedBanner: {
     component: AdInFeedBanner as AnyComponent,
     fetcher: (config) => F.fetchAdInFeedBanner(config as never) as never,
+    // No placeholder: suppress the whole block when no ad is configured.
+    hideWhenEmpty: (data) => !data || ((data as { ads?: unknown[] }).ads?.length ?? 0) === 0,
   },
 };
 

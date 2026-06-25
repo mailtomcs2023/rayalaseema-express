@@ -1,6 +1,7 @@
 "use client";
 
 import { articleHref } from "@/lib/article-href";
+import { normalizeCategoryHref } from "@/lib/category-href";
 import { SectionHeading, sectionIcon } from "@/components/section-heading";
 import Link from "next/link";
 import { useState } from "react";
@@ -202,7 +203,12 @@ export function SectionBand({
           ))}
 
           {/* AD - admin-configurable house ad under the trending list */}
-          <RailAd position="SIDEBAR_SQUARE" tall />
+          {/* Tag the rail with this section's canonical (bare-slug) path so an
+              admin can scope a Sidebar Square ad to THIS band (Target page =
+              e.g. "/politics") even on the shared home page. brandHref persists
+              the legacy "/category/<slug>" form, so normalize it to "/<slug>"
+              to match the live URL. */}
+          <RailAd position="SIDEBAR_SQUARE" tall targetPath={normalizeCategoryHref(brandHref)} />
 
           {/* CARTOON (politics) */}
           {cartoon && (

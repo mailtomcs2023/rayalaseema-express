@@ -115,7 +115,10 @@ export async function MastheadAdSlot({
 
   return (
     <div className="masthead-ad-slot">
-      <span className="masthead-ad-placeholder">Advertisement</span>
+      <span className="masthead-ad-placeholder">
+        Advertisement
+        <span className="masthead-ad-placeholder-size">728 × 90</span>
+      </span>
     </div>
   );
 }
