@@ -22,6 +22,7 @@ export const TELUGU_FONTS: TeluguFont[] = [
   { label: "Noto Serif Telugu",     value: "'Noto Serif Telugu', serif",     google: "Noto+Serif+Telugu:wght@400;500;600;700;800;900" },
   { label: "Noto Sans Telugu",      value: "'Noto Sans Telugu', sans-serif", google: "Noto+Sans+Telugu:wght@400;500;600;700;800;900" },
   { label: "Anek Telugu",           value: "'Anek Telugu', sans-serif",      google: "Anek+Telugu:wght@400;500;600;700;800" },
+  { label: "Baloo Tammudu 2",       value: "'Baloo Tammudu 2', cursive",     google: "Baloo+Tammudu+2:wght@400;500;600;700;800" },
   { label: "Chathura",              value: "'Chathura', sans-serif",         google: "Chathura:wght@400;700;800" },
   { label: "Dhurjati",              value: "'Dhurjati', serif",              google: "Dhurjati" },
   { label: "Gidugu",                value: "'Gidugu', sans-serif",           google: "Gidugu" },

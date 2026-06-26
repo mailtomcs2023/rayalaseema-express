@@ -260,20 +260,26 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
           </span>
           <div style={{ overflow: "hidden", flex: 1, height: "100%", display: "flex", alignItems: "center" }}>
             <div
-              className="animate-marquee font-telugu"
+              className="breaking-marquee font-telugu"
               style={{
-                display: "inline-block",
-                whiteSpace: "nowrap" as const,
                 animationDuration: `${(config.ticker_speed || 30)}s`,
                 animationPlayState: tickerPaused ? "paused" : "running",
               }}
             >
-              {breakingNews.map((item, i) => (
-                <span key={item.id || i}>
-                  {i > 0 && <span style={{ color: "var(--color-brand)", margin: "0 14px", fontSize: 11 }} aria-hidden="true">●</span>}
-                  <a href="#" style={{ color: "#111", fontSize: 15, fontWeight: 700, lineHeight: 1, textDecoration: "none" }}>
-                    {item.text}
-                  </a>
+              {/* Two identical copies so the -50% loop is seamless. The second
+                  copy is aria-hidden so screen readers announce each headline once. */}
+              {[0, 1].map((copy) => (
+                <span key={copy} aria-hidden={copy === 1} style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
+                  {breakingNews.map((item, i) => (
+                    <span key={item.id || i} style={{ display: "inline-flex", alignItems: "center" }}>
+                      {i > 0 && <span style={{ color: "var(--color-brand)", margin: "0 14px", fontSize: 11 }} aria-hidden="true">●</span>}
+                      <a href="#" style={{ color: "#111", fontSize: 15, fontWeight: 700, lineHeight: 1, textDecoration: "none" }}>
+                        {item.text}
+                      </a>
+                    </span>
+                  ))}
+                  {/* trailing separator so the join between copies stays even */}
+                  <span style={{ color: "var(--color-brand)", margin: "0 14px", fontSize: 11 }} aria-hidden="true">●</span>
                 </span>
               ))}
             </div>
