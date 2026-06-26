@@ -50,7 +50,9 @@ export default async function EpaperPage({
 
   const dates = [...new Set(editions.map((e) => e.date.toISOString().slice(0, 10)))];
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  const selDate = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : todayStr;
+  // Default to the MOST RECENT published edition, not "today" - today's edition
+  // is often not rendered yet, which would leave the reader on an empty date.
+  const selDate = (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) ? date : (dates[0] ?? todayStr);
 
   const selected = selDate
     ? await prisma.epaperEdition.findFirst({
@@ -73,25 +75,32 @@ export default async function EpaperPage({
         .filter((ek) => ek !== "main")
     : [];
 
+  const hasViewer = !!(selected && selected.pages.length > 0);
+
   return (
     <div className="min-h-screen" style={{ background: "#fff" }}>
       <SiteHeader config={config} breakingNews={[]} />
 
-      {/* ── Brand bar ── */}
-      <div style={{ background: "var(--brand)", position: "relative", zIndex: 40 }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "12px" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-            <span style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 26, lineHeight: 1, fontWeight: 800, color: "#fff" }}>
-              ఈ-పేపర్
-            </span>
-            <EpaperSearchInline />
+      {/* ── Brand bar ── only when the viewer is NOT shown. When an edition is
+          open, the title + search live inside the viewer toolbar (one bar). */}
+      {!hasViewer && (
+        <div style={{ background: "var(--brand)", position: "relative", zIndex: 40 }}>
+          <div style={{ maxWidth: 1280, margin: "0 auto", padding: "12px" }}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+              <span style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 26, lineHeight: 1, fontWeight: 800, color: "#fff" }}>
+                ఈ-పేపర్
+              </span>
+              <EpaperSearchInline />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "0 12px 24px" }}>
-        {/* Date picker + district edition buttons - rendered ABOVE the viewer */}
-        {selDate && districtEditions.length > 0 && (
+      <main style={{ maxWidth: 1280, margin: "0 auto", padding: hasViewer ? "16px 12px 24px" : "0 12px 24px" }}>
+        {/* Date picker + district edition buttons - rendered ABOVE the viewer.
+            Also shown in the empty state so readers can always browse to an
+            available edition instead of hitting a dead end. */}
+        {selDate && dates.length > 0 && (districtEditions.length > 0 || !(selected && selected.pages.length > 0)) && (
           <div className="pt-4 pb-2">
             <EpaperDatePicker
               availableDates={dates}
@@ -115,6 +124,8 @@ export default async function EpaperPage({
             pdfUrl={selected.pdfUrl}
             editionId={selected.id}
             dateLabel={editionKey !== "main" ? (EDITION_NAMES[editionKey] || editionKey) : ""}
+            titleSlot={<span>ఈ-పేపర్</span>}
+            searchSlot={<EpaperSearchInline />}
             dateSlot={
               selDate ? (
                 <EpaperDatePicker

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@rayalaseema/db";
 import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
-import { renderEpaperPageById } from "@/lib/epaper/render-layout";
+import { renderEpaperPageById, epaperSheet } from "@/lib/epaper/render-layout";
 import { createSnapshot } from "@/lib/epaper/snapshots";
 import { findDuplicateArticles } from "@/lib/epaper/continuity";
 import { findQualityWarnings } from "@/lib/epaper/quality";
@@ -127,22 +127,23 @@ async function renderEditionAttempt(
         // Use the same render path as the preview iframe so the rendered PDF
         // matches what the editor shows. renderEpaperPageById loads the
         // legacy + v2 ad assets + masthead bibliographic info from DB.
-        const html = await renderEpaperPageById(ep.id);
+        // Published render adds the newspaper page margin (frame) around the
+        // live grid; the sheet helper grows the viewport + PDF size to match.
+        const html = await renderEpaperPageById(ep.id, { withMargin: true });
         const coordSystem: "grid-v1" | "mm-v2" =
           (ep.layout as any)?.coordSystem === "mm-v2" ? "mm-v2" : "grid-v1";
-        // v2 (mm-v2): real Indian broadsheet trim 381×578mm at ~125 dpi → 1875×2843 px.
-        // v1 (grid-v1): legacy 300×560mm → 1480×2760 px (kept for back-compat).
-        const viewport = coordSystem === "mm-v2"
-          ? { width: 1875, height: 2843 }
-          : { width: 1480, height: 2760 };
-        const pdfDims = coordSystem === "mm-v2"
-          ? { width: "381mm", height: "578mm" }
-          : { width: "300mm", height: "560mm" };
+        const sheet = epaperSheet(coordSystem, true);
+        const viewport = sheet.viewport;
+        const pdfDims = sheet.pdf;
 
         // viewport + pdfDims chosen above based on coordSystem (mm-v2 uses
         // the Eenadu trim 381×578mm; grid-v1 keeps the legacy size for
         // bit-identical re-renders of the published archive).
-        const page = await browser.newPage({ viewport });
+        // deviceScaleFactor:2 captures the page SCREENSHOT at 2x pixel density
+        // (e.g. 1480px → 2960px) so the reader stays sharp when zoomed in.
+        // The viewport CSS size (and thus hotspot coords) is unchanged, and the
+        // vector page.pdf() output is unaffected by this.
+        const page = await browser.newPage({ viewport, deviceScaleFactor: 2 });
         // NOTE: do NOT use waitUntil:"networkidle" here - the Google Fonts CDN
         // (<link> in the rendered HTML) can keep a connection alive and stall
         // networkidle for the full navigation timeout, hanging the whole render.
@@ -223,7 +224,9 @@ async function renderEditionAttempt(
         // are fractional coords, so the image format/resolution doesn't matter.
         const pngBytes = await page.screenshot({ type: "png", fullPage: false });
         await page.close();
-        const webpBytes = await sharp(pngBytes).webp({ quality: 86 }).toBuffer();
+        // q90 keeps Telugu glyph edges crisp when the reader zooms in (the 2x
+        // capture above is what mainly preserves clarity).
+        const webpBytes = await sharp(pngBytes).webp({ quality: 90 }).toBuffer();
 
         // Upload per-page PDF + WebP artifacts.
         const pageUrl = await uploadBuffer(Buffer.from(pdfBytes), "pdf", "application/pdf");

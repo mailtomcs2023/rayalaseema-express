@@ -7,7 +7,36 @@ import {
   ChevronLeft, ChevronRight,
   ZoomIn, ZoomOut,
   Scissors, FileDown,
+  Mail, Copy, Download, X,
 } from "lucide-react";
+
+// Resize-handle positions for the clip selection box.
+type Handle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+const HANDLES: Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+
+// One article can be laid out across several blocks (image + headline + body),
+// each of which renders its own story-link → its own hotspot. Merge all
+// hotspots that point to the SAME article into a single bounding region so
+// hovering/tapping covers the whole article at once, not its pieces.
+function mergeHotspots(spots: Hotspot[]): Hotspot[] {
+  const groups = new Map<string, Hotspot[]>();
+  for (const h of spots) {
+    const key = (h.href || h.slug || "").trim();
+    if (!key) { groups.set(`__solo-${groups.size}`, [h]); continue; }
+    const arr = groups.get(key);
+    if (arr) arr.push(h); else groups.set(key, [h]);
+  }
+  const out: Hotspot[] = [];
+  for (const group of groups.values()) {
+    if (group.length === 1) { out.push(group[0]); continue; }
+    const minX = Math.min(...group.map((g) => g.x));
+    const minY = Math.min(...group.map((g) => g.y));
+    const maxX = Math.max(...group.map((g) => g.x + g.w));
+    const maxY = Math.max(...group.map((g) => g.y + g.h));
+    out.push({ ...group[0], x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+  }
+  return out;
+}
 
 interface Hotspot { slug: string; href?: string; x: number; y: number; w: number; h: number; }
 interface EpaperPage {
@@ -27,7 +56,7 @@ interface EpaperPage {
  *  - Drag-to-clip + share modal preserved from v1
  */
 export function EpaperViewer({
-  pages, pdfUrl, dateLabel, editionId, dateSlot,
+  pages, pdfUrl, dateLabel, editionId, dateSlot, titleSlot, searchSlot,
 }: {
   pages: EpaperPage[];
   pdfUrl: string | null;
@@ -35,6 +64,11 @@ export function EpaperViewer({
   editionId?: string;     // when present, viewer pings /api/epaper/track on every page view
   /** Optional ReactNode to render instead of the plain dateLabel span (e.g. an interactive date picker) */
   dateSlot?: React.ReactNode;
+  /** Brand title (ఈ-పేపర్) shown at the far left of the toolbar so the header
+   *  and the tools share one bar instead of stacking. */
+  titleSlot?: React.ReactNode;
+  /** Search box shown at the far right of the toolbar. */
+  searchSlot?: React.ReactNode;
 }) {
   const [idx, setIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -45,6 +79,10 @@ export function EpaperViewer({
   const imgRef = useRef<HTMLImageElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
+  // Active resize gesture on the clip box: which handle + the box/mouse at grab.
+  const resizeRef = useRef<{ handle: Handle; start: { x: number; y: number; w: number; h: number }; mx: number; my: number } | null>(null);
+  // Active move gesture: drag inside the box to reposition the whole selection.
+  const moveRef = useRef<{ start: { x: number; y: number; w: number; h: number }; mx: number; my: number } | null>(null);
   const pinch = useRef<{ startDist: number; startZoom: number } | null>(null);
   const zoomRef = useRef(zoom);
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
@@ -105,9 +143,37 @@ export function EpaperViewer({
     setClipUrl(null);
   };
   const onMove = (e: React.MouseEvent) => {
-    if (!clipMode || !dragStart.current) return;
     const r = imgRect(); if (!r) return;
     const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    // Moving the whole box (drag from inside the selection).
+    if (moveRef.current) {
+      const { start, mx, my } = moveRef.current;
+      const dx = cx - mx, dy = cy - my;
+      const maxX = Math.max(0, (imgRef.current?.clientWidth ?? start.x + start.w) - start.w);
+      const maxY = Math.max(0, (imgRef.current?.clientHeight ?? start.y + start.h) - start.h);
+      setSel({
+        x: Math.max(0, Math.min(start.x + dx, maxX)),
+        y: Math.max(0, Math.min(start.y + dy, maxY)),
+        w: start.w, h: start.h,
+      });
+      return;
+    }
+    // Resizing an existing box via a handle.
+    if (resizeRef.current) {
+      const { handle, start, mx, my } = resizeRef.current;
+      const dx = cx - mx, dy = cy - my;
+      let { x, y, w, h } = start;
+      if (handle.includes("w")) { x = start.x + dx; w = start.w - dx; }
+      if (handle.includes("e")) { w = start.w + dx; }
+      if (handle.includes("n")) { y = start.y + dy; h = start.h - dy; }
+      if (handle.includes("s")) { h = start.h + dy; }
+      if (w < 0) { x += w; w = -w; }
+      if (h < 0) { y += h; h = -h; }
+      setSel({ x, y, w, h });
+      return;
+    }
+    // Drawing a new box.
+    if (!clipMode || !dragStart.current) return;
     setSel({
       x: Math.min(dragStart.current.x, cx),
       y: Math.min(dragStart.current.y, cy),
@@ -116,10 +182,37 @@ export function EpaperViewer({
     });
   };
   const onUp = async () => {
+    if (moveRef.current) {
+      moveRef.current = null;
+      if (sel && sel.w >= 20 && sel.h >= 20) await doClip(sel);
+      return;
+    }
+    if (resizeRef.current) {
+      resizeRef.current = null;
+      if (sel && sel.w >= 20 && sel.h >= 20) await doClip(sel);
+      return;
+    }
     if (!clipMode || !dragStart.current) return;
     dragStart.current = null;
     if (!sel || sel.w < 20 || sel.h < 20) { setSel(null); return; }
     await doClip(sel);
+  };
+  // Grab a resize handle - the box's left/right/top/bottom follow the cursor.
+  const onHandleDown = (e: React.MouseEvent, handle: Handle) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!sel) return;
+    const r = imgRect(); if (!r) return;
+    resizeRef.current = { handle, start: { ...sel }, mx: e.clientX - r.left, my: e.clientY - r.top };
+    setClipUrl(null); // old clip is stale until the resize settles
+  };
+  // Press inside the box (not on a handle) - drag to move the whole selection.
+  const onSelDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!sel) return;
+    const r = imgRect(); if (!r) return;
+    moveRef.current = { start: { ...sel }, mx: e.clientX - r.left, my: e.clientY - r.top };
+    setClipUrl(null);
   };
 
   const doClip = async (s: { x: number; y: number; w: number; h: number }) => {
@@ -151,14 +244,24 @@ export function EpaperViewer({
     }
   };
 
-  const shareWA = clipUrl
-    ? `https://wa.me/?text=${encodeURIComponent("రాయలసీమ న్యూస్ ఈ-పేపర్: " + clipUrl)}`
-    : "#";
+  // Share targets for the finished clip (all need the uploaded public URL).
+  const clipText = "రాయలసీమ న్యూస్ ఈ-పేపర్";
+  const shareLinks = clipUrl
+    ? {
+        wa: `https://wa.me/?text=${encodeURIComponent(clipText + " " + clipUrl)}`,
+        fb: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(clipUrl)}`,
+        x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(clipText)}&url=${encodeURIComponent(clipUrl)}`,
+        mail: `mailto:?subject=${encodeURIComponent(clipText)}&body=${encodeURIComponent(clipUrl)}`,
+      }
+    : null;
 
   return (
     <div className="ev">
-      {/* TOP TOOLBAR */}
+      {/* TOP TOOLBAR - title + date + page nav + zoom/tools + search, one bar. */}
       <div className="ev-bar">
+        {/* Brand title (far left) */}
+        {titleSlot && <div className="ev-grp ev-title">{titleSlot}</div>}
+
         {/* Date / edition label */}
         <div className="ev-grp">
           {dateSlot ?? <span className="ev-date">{dateLabel}</span>}
@@ -201,7 +304,23 @@ export function EpaperViewer({
             variant={clipMode ? "default" : "secondary"}
             size="sm"
             className={clipMode ? "bg-yellow-400 text-red-800 hover:bg-yellow-300 font-bold" : "font-bold"}
-            onClick={() => { setClipMode(!clipMode); setSel(null); setClipUrl(null); }}
+            onClick={() => {
+              if (clipMode) { setClipMode(false); setSel(null); setClipUrl(null); return; }
+              // Entering clip mode: drop a default centered selection box right
+              // away (with the share toolbar) - the reader just moves/resizes it.
+              setClipMode(true);
+              setClipUrl(null);
+              const el = imgRef.current;
+              if (el && el.clientWidth) {
+                const w = Math.round(el.clientWidth * 0.5);
+                const h = Math.round(el.clientHeight * 0.22);
+                const s = { x: Math.round((el.clientWidth - w) / 2), y: Math.round((el.clientHeight - h) / 2), w, h };
+                setSel(s);
+                doClip(s);
+              } else {
+                setSel(null);
+              }
+            }}
           >
             <Scissors className="size-4" />
             క్లిప్
@@ -216,11 +335,10 @@ export function EpaperViewer({
             </Button>
           )}
         </div>
-      </div>
 
-      {clipMode && (
-        <div className="ev-hint">వార్తపై మౌస్‌తో గీసి ఎంచుకోండి - ఆ భాగం షేర్ చేయడానికి సిద్ధం</div>
-      )}
+        {/* Search (far right) */}
+        {searchSlot && <div className="ev-grp ev-search">{searchSlot}</div>}
+      </div>
 
       {/* HORIZONTAL THUMBNAIL STRIP - Eenadu-style, with page number + label */}
       <div className="ev-thumbs-h">
@@ -246,7 +364,7 @@ export function EpaperViewer({
         <div className="ev-stage" ref={stageRef}>
           <div
             className="ev-pagewrap"
-            style={{ width: `${zoom * 100}%`, cursor: clipMode ? "crosshair" : "default" }}
+            style={{ width: `min(${zoom * 100}%, ${zoom * 1000}px)`, cursor: clipMode ? "crosshair" : "default" }}
             onMouseDown={onDown}
             onMouseMove={onMove}
             onMouseUp={onUp}
@@ -254,7 +372,7 @@ export function EpaperViewer({
             <img ref={imgRef} className="ev-page" src={cur.imageUrl || undefined} alt={`${cur.label} - page ${cur.pageNumber}`} draggable={false} />
 
             {!clipMode &&
-              cur.hotspots.map((h, i) => (
+              mergeHotspots(cur.hotspots).map((h, i) => (
                 <a key={i} className="ev-hotspot" href={h.href || articleHref(h)}
                   onClick={() => {
                     if (editionId) {
@@ -270,9 +388,58 @@ export function EpaperViewer({
                   title="పూర్తి వార్త చదవండి" />
               ))}
 
-            {clipMode && sel && (
-              <div className="ev-sel" style={{ left: sel.x, top: sel.y, width: sel.w, height: sel.h }} />
-            )}
+            {clipMode && sel && (() => {
+              // Keep the toolbar on-screen: anchor to the box's right edge, but
+              // flip to the LEFT when the box is near the right edge, and clamp
+              // vertically so it never sits past the page.
+              const imgW = imgRef.current?.clientWidth ?? 1e9;
+              const imgH = imgRef.current?.clientHeight ?? 1e9;
+              const TB_W = 46, TB_H = 272;
+              const flipLeft = sel.x + sel.w + TB_W + 8 > imgW;
+              const tbLeft = flipLeft ? Math.max(2, sel.x - TB_W - 2) : sel.x + sel.w + 6;
+              const tbTop = Math.max(2, Math.min(sel.y, imgH - TB_H));
+              return (
+              <>
+                {/* Resizable + movable selection box. Drag inside to move; drag
+                    a handle to resize. */}
+                <div className="ev-sel" style={{ left: sel.x, top: sel.y, width: sel.w, height: sel.h }} onMouseDown={onSelDown}>
+                  {sel.w > 24 && sel.h > 24 && HANDLES.map((hd) => (
+                    <span key={hd} className={`ev-handle ev-h-${hd}`} onMouseDown={(e) => onHandleDown(e, hd)} />
+                  ))}
+                </div>
+
+                {/* Floating share toolbar - stays in view (flips left near edge) */}
+                <div
+                  className="ev-cliptools"
+                  style={{ left: tbLeft, top: tbTop }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <a className={`ev-ct ev-ct-wa${shareLinks ? "" : " is-disabled"}`} href={shareLinks?.wa} target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp">
+                    <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 .4A15.6 15.6 0 0 0 2.6 24L0 32l8.2-2.5A15.6 15.6 0 1 0 16 .4Zm0 28.4a12.9 12.9 0 0 1-6.6-1.8l-.5-.3-4.9 1.5 1.6-4.8-.3-.5A12.9 12.9 0 1 1 16 28.8Zm7.4-9.7c-.4-.2-2.4-1.2-2.7-1.3s-.6-.2-.9.2-1 1.3-1.3 1.5-.5.3-.9.1c-2.4-1.2-4-2.2-5.6-5-.4-.7.4-.6 1.1-2.1.1-.3 0-.5-.1-.7s-.9-2.1-1.2-2.9-.6-.7-.9-.7h-.7c-.3 0-.7.1-1.1.5s-1.4 1.4-1.4 3.4 1.5 4 1.7 4.3 2.9 4.5 7.1 6.3a23 23 0 0 0 2.3.9c1 .3 1.9.3 2.6.2.8-.1 2.4-1 2.7-1.9.3-.9.3-1.7.2-1.9s-.4-.2-.8-.4Z"/></svg>
+                  </a>
+                  <a className={`ev-ct ev-ct-fb${shareLinks ? "" : " is-disabled"}`} href={shareLinks?.fb} target="_blank" rel="noopener" title="Facebook" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07c0 6 4.39 10.97 10.13 11.85v-8.38H7.08v-3.47h3.05V9.41c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95h-1.51c-1.49 0-1.96.93-1.96 1.87v2.25h3.33l-.53 3.47h-2.8V24C19.61 23.04 24 18.07 24 12.07Z"/></svg>
+                  </a>
+                  <a className={`ev-ct ev-ct-x${shareLinks ? "" : " is-disabled"}`} href={shareLinks?.x} target="_blank" rel="noopener" title="X" aria-label="X">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                  <a className={`ev-ct ev-ct-mail${shareLinks ? "" : " is-disabled"}`} href={shareLinks?.mail} title="Email" aria-label="Email">
+                    <Mail />
+                  </a>
+                  <button className={`ev-ct ev-ct-copy${clipUrl ? "" : " is-disabled"}`} onClick={() => clipUrl && navigator.clipboard.writeText(clipUrl)} title="లింక్ కాపీ" aria-label="Copy link">
+                    <Copy />
+                  </button>
+                  <a className={`ev-ct ev-ct-dl${clipUrl ? "" : " is-disabled"}`} href={clipUrl || undefined} download="clip.png" title="డౌన్‌లోడ్" aria-label="Download">
+                    <Download />
+                  </a>
+                  <button className="ev-ct ev-ct-close" onClick={() => { setSel(null); setClipUrl(null); }} title="మూసివేయి" aria-label="Close">
+                    <X />
+                  </button>
+                  {clipBusy && <span className="ev-ct-spin" aria-label="తయారవుతోంది" />}
+                </div>
+              </>
+              );
+            })()}
           </div>
         </div>
 
@@ -284,26 +451,6 @@ export function EpaperViewer({
           <ChevronRight className="size-6" />
         </Button>
       </div>
-
-      {(clipBusy || clipUrl) && (
-        <div className="ev-modal" onClick={() => { if (!clipBusy) { setClipUrl(null); setSel(null); } }}>
-          <div className="ev-modal-card" onClick={(e) => e.stopPropagation()}>
-            {clipBusy && <div className="ev-modal-busy">క్లిప్ తయారవుతోంది…</div>}
-            {clipUrl && (
-              <>
-                <div className="ev-modal-title">మీ క్లిప్ సిద్ధం</div>
-                <img src={clipUrl} alt="clip" className="ev-clip-prev" />
-                <div className="ev-clip-actions">
-                  <a href={shareWA} target="_blank" rel="noopener" className="ev-wa">WhatsApp షేర్</a>
-                  <button onClick={() => { navigator.clipboard.writeText(clipUrl); }} className="ev-copy">లింక్ కాపీ</button>
-                  <a href={clipUrl} download="clip.png" className="ev-copy">డౌన్‌లోడ్</a>
-                  <button onClick={() => { setClipUrl(null); setSel(null); }} className="ev-close">మూసివేయి</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       <style>{`
         .ev { background: #f4f4f5; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
@@ -321,15 +468,12 @@ export function EpaperViewer({
         }
         .ev-grp { display: flex; align-items: center; gap: 8px; }
         .ev-nav { background: rgba(0,0,0,0.18); border-radius: 6px; padding: 2px 6px; }
+        .ev-title { font-family: var(--font-telugu-heading), serif; font-size: 22px; font-weight: 800; color: #fff; padding-right: 4px; }
+        .ev-search { flex: 0 1 auto; margin-left: auto; min-width: 0; }
         .ev-date { font-family: var(--font-telugu-heading), serif; font-size: 15px; font-weight: 800; }
         .ev-pageno { font-family: var(--font-telugu-body), sans-serif; font-size: 13px; font-weight: 700; min-width: 90px; text-align: center; }
         /* toolbar buttons now use shadcn Button - no custom CSS needed */
         .ev-z { font-size: 12px; min-width: 42px; text-align: center; font-weight: 700; }
-
-        .ev-hint {
-          background: #FFD400; color: #15110c; font-family: var(--font-telugu-body), sans-serif;
-          font-size: 13px; font-weight: 700; padding: 7px 14px; text-align: center;
-        }
 
         /* HORIZONTAL THUMBNAIL STRIP */
         .ev-thumbs-h {
@@ -367,12 +511,17 @@ export function EpaperViewer({
         .ev-stage-wrap { position: relative; }
         .ev-stage {
           background: #2a2a2a; padding: 28px 12px; overflow: auto;
-          display: flex; justify-content: center; align-items: flex-start;
+          display: flex; align-items: flex-start;
           max-height: 78vh;
           /* Allow native one-finger pan/scroll; two-finger pinch is handled in JS. */
           touch-action: pan-x pan-y;
         }
-        .ev-pagewrap { position: relative; user-select: none; max-width: 1000px; }
+        /* Base page caps at 1000px at 100% zoom; the inline width = min(zoom*100%,
+           zoom*1000px) scales that cap with zoom so the page actually grows.
+           flex-shrink:0 stops the flex container from shrinking the zoomed page
+           back to fit (that was why zoom did nothing); margin:auto centers it
+           when it fits and lets it scroll from the left when it overflows. */
+        .ev-pagewrap { position: relative; user-select: none; flex: 0 0 auto; margin: 0 auto; }
         .ev-page { width: 100%; height: auto; display: block; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #FFFFFF; }
         .ev-hotspot {
           position: absolute; display: block;
@@ -386,10 +535,52 @@ export function EpaperViewer({
         @media (hover: none) {
           .ev-hotspot { background: rgba(0,120,255,0.05); outline: 1px solid rgba(0,120,255,0.18); }
         }
+        /* CLIP SELECTION BOX + resize handles */
         .ev-sel {
-          position: absolute; border: 2px dashed #FFD400;
-          background: rgba(255,212,0,0.18); pointer-events: none;
+          position: absolute; z-index: 6; cursor: move;
+          border: 2px solid #FFD400; background: rgba(255,212,0,0.12);
+          box-shadow: 0 0 0 9999px rgba(0,0,0,0.32);
         }
+        .ev-handle {
+          position: absolute; width: 12px; height: 12px; background: #fff;
+          border: 2px solid #B91414; border-radius: 2px; z-index: 7;
+        }
+        .ev-h-nw { left: -7px; top: -7px; cursor: nwse-resize; }
+        .ev-h-n  { left: 50%; top: -7px; transform: translateX(-50%); cursor: ns-resize; }
+        .ev-h-ne { right: -7px; top: -7px; cursor: nesw-resize; }
+        .ev-h-e  { right: -7px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+        .ev-h-se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+        .ev-h-s  { left: 50%; bottom: -7px; transform: translateX(-50%); cursor: ns-resize; }
+        .ev-h-sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+        .ev-h-w  { left: -7px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+
+        /* Floating share toolbar (ABN-style), anchored to the box's right edge */
+        .ev-cliptools {
+          position: absolute; z-index: 8;
+          display: flex; flex-direction: column; gap: 3px;
+          background: rgba(255,255,255,0.96); padding: 4px; border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+        }
+        .ev-ct {
+          width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+          border: none; border-radius: 6px; color: #fff; cursor: pointer; text-decoration: none;
+          transition: filter .12s ease, transform .12s ease;
+        }
+        .ev-ct:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .ev-ct svg { width: 17px; height: 17px; }
+        .ev-ct.is-disabled { opacity: .4; pointer-events: none; }
+        .ev-ct-wa { background: #25D366; }
+        .ev-ct-fb { background: #1877F2; }
+        .ev-ct-x  { background: #111; }
+        .ev-ct-mail { background: #EA4335; }
+        .ev-ct-copy { background: #6b7280; }
+        .ev-ct-dl { background: #0EA5E9; }
+        .ev-ct-close { background: #B91414; }
+        .ev-ct-spin {
+          width: 18px; height: 18px; margin: 8px auto 4px; border-radius: 50%;
+          border: 2px solid #d1d5db; border-top-color: #B91414; animation: ev-spin .7s linear infinite;
+        }
+        @keyframes ev-spin { to { transform: rotate(360deg); } }
 
         /* SIDE NAV ARROWS - position/size only; visual style handled by shadcn Button */
         .ev-stage-arrow {
@@ -402,26 +593,6 @@ export function EpaperViewer({
         .ev-stage-arrow:hover:not(:disabled) { transform: translateY(-50%) scale(1.08) !important; }
         .ev-stage-arrow.left { left: 16px; }
         .ev-stage-arrow.right { right: 16px; }
-
-        /* MODAL */
-        .ev-modal {
-          position: fixed; inset: 0; z-index: 9999;
-          background: rgba(0,0,0,0.78);
-          display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .ev-modal-card {
-          background: #fff; border-radius: 10px; padding: 22px;
-          max-width: 560px; width: 100%; text-align: center;
-          max-height: 90vh; overflow: auto;
-        }
-        .ev-modal-busy { font-family: var(--font-telugu-body), sans-serif; font-size: 15px; color: #374151; padding: 30px; }
-        .ev-modal-title { font-family: var(--font-telugu-heading), serif; font-size: 18px; font-weight: 800; color: #15110b; margin-bottom: 14px; }
-        .ev-clip-prev { max-width: 100%; max-height: 50vh; border: 2px solid #d1d5db; border-radius: 4px; display: block; margin: 0 auto 16px; }
-        .ev-clip-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .ev-wa, .ev-copy, .ev-close { font-family: var(--font-telugu-body), sans-serif; font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; border: none; }
-        .ev-wa { background: #25D366; color: #fff; }
-        .ev-copy { background: #374151; color: #fff; }
-        .ev-close { background: #e5e7eb; color: #374151; }
 
         @media (max-width: 768px) {
           .ev-thumb { flex: 0 0 64px; }

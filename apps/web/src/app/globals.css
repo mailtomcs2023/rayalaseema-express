@@ -738,6 +738,33 @@
   cursor: pointer;
 }
 
+/* Breaking-news ticker - seamless loop. The track holds two identical copies
+   of the headlines; translating by exactly -50% lands copy #2 where copy #1
+   started, so there is no gap and no off-screen wait. Starts flush at the
+   left edge (translateX(0)) instead of crawling in from the right. */
+@keyframes breaking-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.breaking-marquee {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  will-change: transform;
+  animation: breaking-marquee 60s linear infinite;
+}
+
+.breaking-marquee:hover {
+  animation-play-state: paused;
+  cursor: pointer;
+}
+
 
 /* Missing image placeholder - branded SVG-like gradient */
 .img-placeholder {
@@ -1161,7 +1188,8 @@ button:not([data-slot]):focus-visible {
   }
 
   /* Slow crawl instead of full freeze so reduced-motion users still see breaking news */
-  .animate-marquee {
+  .animate-marquee,
+  .breaking-marquee {
     animation-duration: 240s !important;
     animation-iteration-count: infinite !important;
   }
@@ -1614,4 +1642,14 @@ a[href="/cartoons"] {
 /* Fix border-color bleed from universal selector on shadcn buttons */
 [data-slot="button"]:not([data-variant="outline"]) {
   border-color: transparent !important;
+}
+
+/* Every enabled button shows the pointer cursor (Tailwind v4 / shadcn no
+   longer set this by default). Disabled buttons keep the not-allowed cursor. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
 }

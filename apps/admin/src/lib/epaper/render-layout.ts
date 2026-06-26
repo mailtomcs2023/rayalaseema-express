@@ -453,7 +453,11 @@ function briefBlock(b: Block, articles: ResolvedArticle[]): string {
   </div>`;
 }
 
-function imageBlock(b: Block, imageAssetUrlsById?: Record<string, { imageUrl: string; caption?: string | null }>): string {
+function imageBlock(
+  b: Block,
+  imageAssetUrlsById?: Record<string, { imageUrl: string; caption?: string | null }>,
+  linkArticle?: ResolvedArticle,
+): string {
   // Prefer a resolved library asset (b.adAssetId reused for image-library
   // references for now to avoid a schema migration on layout JSON), then
   // fall back to b.content as a raw URL.
@@ -463,11 +467,39 @@ function imageBlock(b: Block, imageAssetUrlsById?: Record<string, { imageUrl: st
   const fromLib = b.adAssetId ? imageAssetUrlsById?.[b.adAssetId] : undefined;
   const url = fromLib?.imageUrl ?? b.content;
   const caption = fromLib?.caption;
-  return `<div class="block image" style="${blockStyle(b)}">
-    ${imageOrFallback(url, "free-img", b.imageCrop)}
-    ${caption ? `<div class="image-caption">${esc(caption)}</div>` : ""}
-  </div>`;
+  const inner = `${imageOrFallback(url, "free-img", b.imageCrop)}
+    ${caption ? `<div class="image-caption">${esc(caption)}</div>` : ""}`;
+  // A standalone photo that sits against a story is part of that story - wrap it
+  // in the article link so it becomes a clickable hotspot (and the viewer merges
+  // it into the article's region). Without this the photo isn't tappable.
+  const body = linkArticle ? articleLink(linkArticle, inner) : inner;
+  return `<div class="block image" style="${blockStyle(b)}">${body}</div>`;
 }
+
+// Associate standalone image blocks with the story they belong to by layout
+// adjacency: the photo shares columns with a story block and sits directly
+// above/below it. Returns blockId → articleId so imageBlock can link the photo.
+function mapImagesToStories(blocks: Block[], articles: Map<string, ResolvedArticle>): Map<string, string> {
+  const out = new Map<string, string>();
+  const stories = blocks.filter((s) => s.articleId && articles.has(s.articleId) && STORY_BLOCK_TYPES.has(s.type));
+  for (const img of blocks) {
+    if (img.type !== "image") continue;
+    let best: { id: string; overlap: number } | null = null;
+    for (const s of stories) {
+      const overlap = Math.max(0, Math.min(img.x + img.w, s.x + s.w) - Math.max(img.x, s.x));
+      if (overlap <= 0) continue;
+      // Directly above or below (touching within 1 grid unit of tolerance).
+      const adjacent =
+        Math.abs(img.y - (s.y + s.h)) <= 1 || Math.abs(s.y - (img.y + img.h)) <= 1;
+      if (!adjacent) continue;
+      if (!best || overlap > best.overlap) best = { id: s.articleId!, overlap };
+    }
+    if (best) out.set(img.id, best.id);
+  }
+  return out;
+}
+
+const STORY_BLOCK_TYPES = new Set(["lead", "major", "secondary"]);
 
 function adBlock(b: Block, ads: RenderInput["ads"]): string {
   // Two paths:
@@ -584,7 +616,32 @@ async function resolveArticles(blocks: Block[]): Promise<Map<string, ResolvedArt
  * Returns full <!DOCTYPE html>… string. Caller is responsible for invoking
  * Playwright and writing the resulting PDF buffer.
  */
-export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
+// Sheet dimensions for a page. The GRID live area is fixed (1480×2760 px for
+// grid-v1, 330×520mm for mm-v2); `withMargin` grows the SHEET around it by a
+// uniform white frame (newspaper-style margin) without touching the grid - so
+// the editor (which previews the marginless live area) needs no changes.
+// Single source of truth for render-layout's CSS AND render-v2's viewport/pdf.
+export function epaperSheet(coordSystem: "grid-v1" | "mm-v2", withMargin: boolean) {
+  if (coordSystem === "mm-v2") {
+    const m = withMargin ? 6 : 0; // mm
+    const w = 330 + 2 * m, h = 520 + 2 * m;
+    return {
+      pageSize: `${w}mm ${h}mm`, cssWidth: `${w}mm`, cssHeight: `${h}mm`, padding: `${m}mm`,
+      viewport: { width: Math.round((1875 * w) / 330), height: Math.round((2843 * h) / 520) },
+      pdf: { width: `${w}mm`, height: `${h}mm` },
+    };
+  }
+  const m = withMargin ? 30 : 0; // px (grid live area is 1480×2760)
+  const w = 1480 + 2 * m, h = 2760 + 2 * m;
+  const wMm = Math.round((300 * w) / 1480), hMm = Math.round((560 * h) / 2760);
+  return {
+    pageSize: `${wMm}mm ${hMm}mm`, cssWidth: `${w}px`, cssHeight: `${h}px`, padding: `${m}px`,
+    viewport: { width: w, height: h },
+    pdf: { width: `${wMm}mm`, height: `${hMm}mm` },
+  };
+}
+
+export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin?: boolean }): Promise<string> {
   // Detect coord system from the layout JSON. Legacy layouts (no field) use
   // the original CSS-Grid renderer; mm-v2 layouts use absolute mm coords.
   // The blockStyle() helper reads CURRENT_COORD_SYSTEM to emit correct
@@ -592,6 +649,7 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
   const coordSystem: "grid-v1" | "mm-v2" =
     (input.layout as any)?.coordSystem === "mm-v2" ? "mm-v2" : "grid-v1";
   CURRENT_COORD_SYSTEM = coordSystem;
+  const sheet = epaperSheet(coordSystem, opts?.withMargin ?? false);
 
   const articles = await resolveArticles(input.layout.blocks);
 
@@ -609,6 +667,9 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
     });
     imageAssetsById = Object.fromEntries(rows.map((r) => [r.id, { imageUrl: r.imageUrl, caption: r.caption }]));
   }
+
+  // Link standalone photos to the adjacent story so they become hotspots too.
+  const imageStoryMap = mapImagesToStories(input.layout.blocks, articles);
 
   // Group consecutive brief blocks that share a region - each `brief` block
   // gets its OWN articleId assignment from autofill, but visually we want
@@ -653,9 +714,12 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
           blockHtml.push(`<div class="briefs block empty" style="${blockStyle(b)}"></div>`);
         }
         break;
-      case "image":
-        blockHtml.push(imageBlock(b, imageAssetsById));
+      case "image": {
+        const linkedId = imageStoryMap.get(b.id);
+        const linkArticle = linkedId ? articles.get(linkedId) : undefined;
+        blockHtml.push(imageBlock(b, imageAssetsById, linkArticle));
         break;
+      }
       case "ad":
         blockHtml.push(adBlock(b, input.ads));
         break;
@@ -689,12 +753,14 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
      Playwright honors it. Eliminates the ~80px body-padding overflow that
      caused every edition page to slice into 2 PDF pages (68 instead of
      34). One sheet per edition page, every time. */
-  @page { size: ${coordSystem === "mm-v2" ? "330mm 520mm" : "300mm 560mm"}; margin: 0; }
-  html,body{width:${coordSystem === "mm-v2" ? "330mm" : "1480px"};height:${coordSystem === "mm-v2" ? "520mm" : "2760px"};overflow:hidden}
+  @page { size: ${sheet.pageSize}; margin: 0; }
+  html,body{width:${sheet.cssWidth};height:${sheet.cssHeight};overflow:hidden}
   body{
     font-family:'Noto Serif Telugu',serif;
     background:#FFFFFF;color:#14110b;
-    padding:0;
+    /* Uniform white page margin (newspaper frame). The grid (.page/.page-mm)
+       keeps its fixed live-area size and is centred inside this padding. */
+    padding:${sheet.padding};
     position:relative;
     /* Baseline grid: 6 mm (~23 px @ 125 dpi) - all body line-heights snap to
        a multiple of this so text aligns horizontally across columns. */
@@ -941,8 +1007,10 @@ export async function renderLayoutToHtml(input: RenderInput): Promise<string> {
 </body></html>`;
 }
 
-/** Convenience: load an EpaperPage by id and render its HTML. */
-export async function renderEpaperPageById(pageId: string): Promise<string> {
+/** Convenience: load an EpaperPage by id and render its HTML. `withMargin` adds
+ *  the newspaper page frame - on for the final published render, off for the
+ *  editor preview so the editor grid stays aligned. */
+export async function renderEpaperPageById(pageId: string, opts?: { withMargin?: boolean }): Promise<string> {
   const page = await prisma.epaperPage.findUnique({
     where: { id: pageId },
     include: { edition: true },
@@ -1112,5 +1180,5 @@ export async function renderEpaperPageById(pageId: string): Promise<string> {
       sideAdLeft: mastheadLeft,
       sideAdRight: mastheadRight,
     },
-  });
+  }, { withMargin: opts?.withMargin });
 }
