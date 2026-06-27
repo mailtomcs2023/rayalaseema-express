@@ -1,665 +1,662 @@
-/* Anu / Telugu @font-face declarations - auto-generated for all 110 .ttf files.
-   font-family = the file basename. src paths are relative to this CSS file.
-   To use in the web app, serve these .ttf alongside this CSS (e.g. a public/ dir)
-   or adjust the url() paths to your asset location. */
+/* Anu / Telugu @font-face - served from /anu-fonts/. font-family = file basename. */
 
 @font-face {
   font-family: 'Aaradhana';
-  src: url('./Aaradhana.ttf') format('truetype');
+  src: url('/anu-fonts/Aaradhana.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Abhilasha';
-  src: url('./Abhilasha.ttf') format('truetype');
+  src: url('/anu-fonts/Abhilasha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ajantha';
-  src: url('./Ajantha.ttf') format('truetype');
+  src: url('/anu-fonts/Ajantha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Akshara';
-  src: url('./Akshara.ttf') format('truetype');
+  src: url('/anu-fonts/Akshara.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Amrutha';
-  src: url('./Amrutha.ttf') format('truetype');
+  src: url('/anu-fonts/Amrutha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-Bold';
-  src: url('./Anek-Telugu-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-ExtraBold';
-  src: url('./Anek-Telugu-ExtraBold.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-ExtraBold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-ExtraLight';
-  src: url('./Anek-Telugu-ExtraLight.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-ExtraLight.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-Light';
-  src: url('./Anek-Telugu-Light.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-Light.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-Medium';
-  src: url('./Anek-Telugu-Medium.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-Medium.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-Regular';
-  src: url('./Anek-Telugu-Regular.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-Regular.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-SemiBold';
-  src: url('./Anek-Telugu-SemiBold.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-SemiBold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anek-Telugu-Thin';
-  src: url('./Anek-Telugu-Thin.ttf') format('truetype');
+  src: url('/anu-fonts/Anek-Telugu-Thin.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anjali';
-  src: url('./Anjali.ttf') format('truetype');
+  src: url('/anu-fonts/Anjali.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anu-Subhalekha-Two';
-  src: url('./Anu-Subhalekha-Two.ttf') format('truetype');
+  src: url('/anu-fonts/Anu-Subhalekha-Two.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anupama-Bold';
-  src: url('./Anupama-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Anupama-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anupama-Ext-Bold';
-  src: url('./Anupama-Ext-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Anupama-Ext-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anupama-Medium';
-  src: url('./Anupama-Medium.ttf') format('truetype');
+  src: url('/anu-fonts/Anupama-Medium.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anupama-Thin';
-  src: url('./Anupama-Thin.ttf') format('truetype');
+  src: url('/anu-fonts/Anupama-Thin.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anusha';
-  src: url('./Anusha.ttf') format('truetype');
+  src: url('/anu-fonts/Anusha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Anuso';
-  src: url('./Anuso.ttf') format('truetype');
+  src: url('/anu-fonts/Anuso.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Apoorva';
-  src: url('./Apoorva.ttf') format('truetype');
+  src: url('/anu-fonts/Apoorva.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ashwini';
-  src: url('./Ashwini.ttf') format('truetype');
+  src: url('/anu-fonts/Ashwini.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Avanthi';
-  src: url('./Avanthi.ttf') format('truetype');
+  src: url('/anu-fonts/Avanthi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Bapu-Bold';
-  src: url('./Bapu-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Bapu-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Bapu-Brush';
-  src: url('./Bapu-Brush.ttf') format('truetype');
+  src: url('/anu-fonts/Bapu-Brush.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Bapu-Script';
-  src: url('./Bapu-Script.ttf') format('truetype');
+  src: url('/anu-fonts/Bapu-Script.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Bharghava';
-  src: url('./Bharghava.ttf') format('truetype');
+  src: url('/anu-fonts/Bharghava.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Bhavya';
-  src: url('./Bhavya.ttf') format('truetype');
+  src: url('/anu-fonts/Bhavya.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Brahma-Script';
-  src: url('./Brahma-Script.ttf') format('truetype');
+  src: url('/anu-fonts/Brahma-Script.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Brahma';
-  src: url('./Brahma.ttf') format('truetype');
+  src: url('/anu-fonts/Brahma.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Chandra-Script';
-  src: url('./Chandra-Script.ttf') format('truetype');
+  src: url('/anu-fonts/Chandra-Script.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Charitha';
-  src: url('./Charitha.ttf') format('truetype');
+  src: url('/anu-fonts/Charitha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Deepika';
-  src: url('./Deepika.ttf') format('truetype');
+  src: url('/anu-fonts/Deepika.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dharani';
-  src: url('./Dharani.ttf') format('truetype');
+  src: url('/anu-fonts/Dharani.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Eight';
-  src: url('./Dingbits-Eight.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Eight.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Eleven';
-  src: url('./Dingbits-Eleven.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Eleven.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Five';
-  src: url('./Dingbits-Five.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Five.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Four';
-  src: url('./Dingbits-Four.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Four.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Nine';
-  src: url('./Dingbits-Nine.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Nine.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-One';
-  src: url('./Dingbits-One.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-One.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Seven';
-  src: url('./Dingbits-Seven.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Seven.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Six';
-  src: url('./Dingbits-Six.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Six.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Ten';
-  src: url('./Dingbits-Ten.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Ten.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Thirteen';
-  src: url('./Dingbits-Thirteen.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Thirteen.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Three';
-  src: url('./Dingbits-Three.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Three.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Twelve';
-  src: url('./Dingbits-Twelve.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Twelve.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Dingbits-Two';
-  src: url('./Dingbits-Two.ttf') format('truetype');
+  src: url('/anu-fonts/Dingbits-Two.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Geetha';
-  src: url('./Geetha.ttf') format('truetype');
+  src: url('/anu-fonts/Geetha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Gowthami-Black';
-  src: url('./Gowthami-Black.ttf') format('truetype');
+  src: url('/anu-fonts/Gowthami-Black.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Gowthami-Bold';
-  src: url('./Gowthami-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Gowthami-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Gowthami-Ext-Bold';
-  src: url('./Gowthami-Ext-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Gowthami-Ext-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Gowthami-Medium';
-  src: url('./Gowthami-Medium.ttf') format('truetype');
+  src: url('/anu-fonts/Gowthami-Medium.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Gowthami-Narrow';
-  src: url('./Gowthami-Narrow.ttf') format('truetype');
+  src: url('/anu-fonts/Gowthami-Narrow.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Gowthami-Thin';
-  src: url('./Gowthami-Thin.ttf') format('truetype');
+  src: url('/anu-fonts/Gowthami-Thin.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Harsha';
-  src: url('./Harsha.ttf') format('truetype');
+  src: url('/anu-fonts/Harsha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Hiranya';
-  src: url('./Hiranya.ttf') format('truetype');
+  src: url('/anu-fonts/Hiranya.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Jyothi';
-  src: url('./Jyothi.ttf') format('truetype');
+  src: url('/anu-fonts/Jyothi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Kalaanjali';
-  src: url('./Kalaanjali.ttf') format('truetype');
+  src: url('/anu-fonts/Kalaanjali.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Keerthi-Font';
-  src: url('./Keerthi-Font.ttf') format('truetype');
+  src: url('/anu-fonts/Keerthi-Font.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Kranthi';
-  src: url('./Kranthi.ttf') format('truetype');
+  src: url('/anu-fonts/Kranthi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Kusuma';
-  src: url('./Kusuma.ttf') format('truetype');
+  src: url('/anu-fonts/Kusuma.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Maanasa';
-  src: url('./Maanasa.ttf') format('truetype');
+  src: url('/anu-fonts/Maanasa.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Madhubala';
-  src: url('./Madhubala.ttf') format('truetype');
+  src: url('/anu-fonts/Madhubala.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Meena-Script';
-  src: url('./Meena-Script.ttf') format('truetype');
+  src: url('/anu-fonts/Meena-Script.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Mohini';
-  src: url('./Mohini.ttf') format('truetype');
+  src: url('/anu-fonts/Mohini.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Natyamayuri';
-  src: url('./Natyamayuri.ttf') format('truetype');
+  src: url('/anu-fonts/Natyamayuri.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Neelima';
-  src: url('./Neelima.ttf') format('truetype');
+  src: url('/anu-fonts/Neelima.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Padmini';
-  src: url('./Padmini.ttf') format('truetype');
+  src: url('/anu-fonts/Padmini.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pallavi-Bold';
-  src: url('./Pallavi-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Pallavi-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pallavi-Medium';
-  src: url('./Pallavi-Medium.ttf') format('truetype');
+  src: url('/anu-fonts/Pallavi-Medium.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pallavi-Thin';
-  src: url('./Pallavi-Thin.ttf') format('truetype');
+  src: url('/anu-fonts/Pallavi-Thin.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Prabhava';
-  src: url('./Prabhava.ttf') format('truetype');
+  src: url('/anu-fonts/Prabhava.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pragathi-Italic';
-  src: url('./Pragathi-Italic.ttf') format('truetype');
+  src: url('/anu-fonts/Pragathi-Italic.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pragathi-Narrow';
-  src: url('./Pragathi-Narrow.ttf') format('truetype');
+  src: url('/anu-fonts/Pragathi-Narrow.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pragathi-Special';
-  src: url('./Pragathi-Special.ttf') format('truetype');
+  src: url('/anu-fonts/Pragathi-Special.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pragathi';
-  src: url('./Pragathi.ttf') format('truetype');
+  src: url('/anu-fonts/Pragathi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Praveena';
-  src: url('./Praveena.ttf') format('truetype');
+  src: url('/anu-fonts/Praveena.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Preethi';
-  src: url('./Preethi.ttf') format('truetype');
+  src: url('/anu-fonts/Preethi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Pridhvi';
-  src: url('./Pridhvi.ttf') format('truetype');
+  src: url('/anu-fonts/Pridhvi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Priyaanka-Bold';
-  src: url('./Priyaanka-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Priyaanka-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Priyaanka';
-  src: url('./Priyaanka.ttf') format('truetype');
+  src: url('/anu-fonts/Priyaanka.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Rachana-Bold';
-  src: url('./Rachana-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Rachana-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Rachana';
-  src: url('./Rachana.ttf') format('truetype');
+  src: url('/anu-fonts/Rachana.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ramana-Brush';
-  src: url('./Ramana-Brush.ttf') format('truetype');
+  src: url('/anu-fonts/Ramana-Brush.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ramana-Script-Med';
-  src: url('./Ramana-Script-Med.ttf') format('truetype');
+  src: url('/anu-fonts/Ramana-Script-Med.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ramana-Script';
-  src: url('./Ramana-Script.ttf') format('truetype');
+  src: url('/anu-fonts/Ramana-Script.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Ravali';
-  src: url('./Ravali.ttf') format('truetype');
+  src: url('/anu-fonts/Ravali.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Reshma';
-  src: url('./Reshma.ttf') format('truetype');
+  src: url('/anu-fonts/Reshma.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Rohini';
-  src: url('./Rohini.ttf') format('truetype');
+  src: url('/anu-fonts/Rohini.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Saagari';
-  src: url('./Saagari.ttf') format('truetype');
+  src: url('/anu-fonts/Saagari.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Sanghavi';
-  src: url('./Sanghavi.ttf') format('truetype');
+  src: url('/anu-fonts/Sanghavi.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Sowmya';
-  src: url('./Sowmya.ttf') format('truetype');
+  src: url('/anu-fonts/Sowmya.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Sravya';
-  src: url('./Sravya.ttf') format('truetype');
+  src: url('/anu-fonts/Sravya.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Srujana';
-  src: url('./Srujana.ttf') format('truetype');
+  src: url('/anu-fonts/Srujana.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Subhadra';
-  src: url('./Subhadra.ttf') format('truetype');
+  src: url('/anu-fonts/Subhadra.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Suchithra';
-  src: url('./Suchithra.ttf') format('truetype');
+  src: url('/anu-fonts/Suchithra.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Sujatha';
-  src: url('./Sujatha.ttf') format('truetype');
+  src: url('/anu-fonts/Sujatha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Suneetha';
-  src: url('./Suneetha.ttf') format('truetype');
+  src: url('/anu-fonts/Suneetha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Supriya';
-  src: url('./Supriya.ttf') format('truetype');
+  src: url('/anu-fonts/Supriya.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Tejafont';
-  src: url('./Tejafont.ttf') format('truetype');
+  src: url('/anu-fonts/Tejafont.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Telun-Bold';
-  src: url('./Telun-Bold.ttf') format('truetype');
+  src: url('/anu-fonts/Telun-Bold.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Telun-Thin';
-  src: url('./Telun-Thin.ttf') format('truetype');
+  src: url('/anu-fonts/Telun-Thin.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Thripura';
-  src: url('./Thripura.ttf') format('truetype');
+  src: url('/anu-fonts/Thripura.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Udayam';
-  src: url('./Udayam.ttf') format('truetype');
+  src: url('/anu-fonts/Udayam.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Vaibhav';
-  src: url('./Vaibhav.ttf') format('truetype');
+  src: url('/anu-fonts/Vaibhav.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Vasantha';
-  src: url('./Vasantha.ttf') format('truetype');
+  src: url('/anu-fonts/Vasantha.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Vasundhara';
-  src: url('./Vasundhara.ttf') format('truetype');
+  src: url('/anu-fonts/Vasundhara.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Veenaa';
-  src: url('./Veenaa.ttf') format('truetype');
+  src: url('/anu-fonts/Veenaa.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'Vikaas';
-  src: url('./Vikaas.ttf') format('truetype');
+  src: url('/anu-fonts/Vikaas.ttf') format('truetype');
   font-display: swap;
 }
 
