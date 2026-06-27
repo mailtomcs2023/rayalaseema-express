@@ -56,7 +56,7 @@ const extensions: Record<number, string> = {
 	3124: "", // క్
 	3125: String.fromCharCode(0xC7), // క్వ
 	3126: String.fromCharCode(0xF4), // క్శ
-	3127: String.fromCharCode(0xFC), // క్ష ////////////////////////////
+	3127: String.fromCharCode(0x8C), // క్ష (ష-ottu; kolichala uses 0x8C, 0xFC rendered wrong) ////////////////////////////
 	3128: String.fromCharCode(0xE0), // క్స
 	3129: String.fromCharCode(0xBD), // క్హ
 }
@@ -606,7 +606,10 @@ const consonants: Record<number, { base: string; symbols: Record<number, string>
 			3148: String.fromCharCode(0x56) + String.fromCharCode(0x9F) + String.fromCharCode(0xB2) + String.fromCharCode(0x85), // హౌ
 			3149: String.fromCharCode(0x56) + String.fromCharCode(0x74) + String.fromCharCode(0xB2) // హ్	
 		}
-	}
+	},
+	3097: { base: String.fromCharCode(0x76), symbols: { 3149: String.fromCharCode(0x76) + String.fromCharCode(0x74) } }, // ఙ nga
+	3102: { base: String.fromCharCode(0x78), symbols: { 3149: String.fromCharCode(0x78) + String.fromCharCode(0x74) } }, // ఞ nya
+	3121: { base: String.fromCharCode(0x69), symbols: { 3149: String.fromCharCode(0x69) + String.fromCharCode(0x74) } }, // ఱ rra
 }
 
 // Conjuncts that Anu draws as a single precomposed glyph; building them from
@@ -625,6 +628,7 @@ export function unicodeToAnu(input: string): string {
 	out = ""
 
 	for (i = 0; i < uniText.length; i++) {
+		if (uniText.charCodeAt(i) === 0x200C || uniText.charCodeAt(i) === 0x200D) continue // strip ZWNJ/ZWJ (zero-width joiners render as garbage)
 		if (uniText.charCodeAt(i) < 3073 || uniText.charCodeAt(i) > 3183) {
 			out += String.fromCharCode(uniText.charCodeAt(i))
 			continue
@@ -665,8 +669,25 @@ export function unicodeToAnu(input: string): string {
 				let extensionNumber = uniText.charCodeAt(i + 2)
 				/////////////////////////////////
 				if (uniText.charCodeAt(i + 3) === 3149 && uniText.charCodeAt(i + 4) === 3120) { // stacked conjunct + rakaar: C1్C2్ర (e.g. ష్ట్ర in రాష్ట్రం) -> prepend ra-vottu
-					totalLetter = extensions[3120] + consonants[x].base + extensions[extensionNumber]
-					i = i + 4
+					var mat3 = uniText.charCodeAt(i + 5)
+						if (mat3 >= 3134 && mat3 <= 3148 && mat3 !== 3149) { // matra follows the rakaar cluster (e.g. స్త్రా)
+							totalLetter = extensions[3120] + (consonants[x].symbols[mat3] || consonants[x].base) + extensions[extensionNumber]
+							i = i + 5
+						} else {
+							totalLetter = extensions[3120] + consonants[x].base + extensions[extensionNumber]
+							i = i + 4
+						}
+				} else if (uniText.charCodeAt(i + 3) === 3149) {
+					var c3b = uniText.charCodeAt(i + 4)
+					var mat4 = uniText.charCodeAt(i + 5)
+					var hasMat = (mat4 >= 3134 && mat4 <= 3148 && mat4 !== 3149)
+					var cForm = hasMat ? (consonants[x].symbols[mat4] || consonants[x].base) : consonants[x].base
+					if (extensionNumber === 3120) {
+						totalLetter = extensions[3120] + cForm + (extensions[c3b] || "")
+					} else {
+						totalLetter = cForm + extensions[extensionNumber] + (extensions[c3b] || "")
+					}
+					i = hasMat ? i + 5 : i + 4
 				} else if (!!uniText.charCodeAt(i + 3) && uniText.charCodeAt(i + 3) >= 3134 && uniText.charCodeAt(i + 1) <= 3150) { // check if the next char is a symbol
 					for (y = 3134; y <= 3150; y++) {
 						if (uniText.charCodeAt(i + 3) === y){
@@ -677,6 +698,7 @@ export function unicodeToAnu(input: string): string {
 								//i += 4
 							}
 							i = i + 3
+							break // i advanced; without break a later char re-matches a higher y and corrupts the cluster
 						}
 					}
 				} else if ( !uniText.charCodeAt(i + 2) || uniText.charCodeAt(i + 2) < 3093 || uniText.charCodeAt(i + 2) > 3129 ) {
