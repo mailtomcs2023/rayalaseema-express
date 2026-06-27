@@ -3,6 +3,7 @@ import { prisma } from "@rayalaseema/db";
 import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
 import { renderEpaperPageById, epaperSheet } from "@/lib/epaper/render-layout";
 import { createSnapshot } from "@/lib/epaper/snapshots";
+import { toPressPdf } from "@/lib/epaper/print-ready";
 import { findDuplicateArticles } from "@/lib/epaper/continuity";
 import { findQualityWarnings } from "@/lib/epaper/quality";
 import { uploadBuffer } from "@/lib/blob";
@@ -248,7 +249,12 @@ async function renderEditionAttempt(
     rewriteInternalLinks(masterPdf);
 
     const finalBytes = await masterPdf.save();
-    const finalUrl = await uploadBuffer(Buffer.from(finalBytes), "pdf", "application/pdf");
+    // Press-ready: convert RGB -> CMYK (PDF/X-1a if an ICC profile is configured).
+    // Fallback-safe: if Ghostscript isn't installed or conversion fails, the
+    // original RGB PDF is used so the render still succeeds.
+    const press = toPressPdf(Buffer.from(finalBytes));
+    console.log(`[render-v2] press-pdf: ${press.mode} - ${press.note}`);
+    const finalUrl = await uploadBuffer(press.buffer, "pdf", "application/pdf");
 
     await prisma.epaperEdition.update({
       where: { id: edition.id },

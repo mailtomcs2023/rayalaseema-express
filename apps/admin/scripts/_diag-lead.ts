@@ -6,7 +6,7 @@ async function main() {
   const p = await prisma.epaperPage.findFirst({ where: { templateSlug: "front" }, orderBy: { createdAt: "desc" }, select: { id: true } });
   const html = await renderEpaperPageById(p!.id);
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1480, height: 2760 } });
+  const page = await browser.newPage({ viewport: { width: 1782, height: 2760 } });
   await page.setContent(html, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => Array.from(document.images).every((i) => i.complete), { timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(700);

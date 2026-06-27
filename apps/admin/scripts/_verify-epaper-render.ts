@@ -75,7 +75,7 @@ async function main() {
   }
   log(`html ready: ${html.length} bytes`);
 
-  const viewport = coordSystem === "mm-v2" ? { width: 1875, height: 2843 } : { width: 1480, height: 2760 };
+  const viewport = coordSystem === "mm-v2" ? { width: 1875, height: 2843 } : { width: 1782, height: 2760 };
   log("launching chromium…");
   const browser = await chromium.launch();
   log("chromium launched");

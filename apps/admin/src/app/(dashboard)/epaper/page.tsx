@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, ChevronsUp } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -123,12 +123,13 @@ const DEFAULT_FILTERS: PickerFilters = {
 const STORY_TYPES = new Set(["lead", "major", "secondary", "brief"]);
 
 // Editor grid geometry mirrors the PDF renderer's page (see render-layout.ts):
-// a 1480×2760 sheet = 12 cols × 30 rows, each row 92px tall, with 14px column
-// gaps and 12px row gaps and no outer padding. The editor draws its RGL drag
+// a 1782×2760 live area = 12 cols × 30 rows, each row 92px tall, with 14px column
+// gaps and 12px row gaps and no outer padding. (1782×2760 → full 381×578mm
+// broadsheet trim, the real Telugu daily size.) The editor draws its RGL drag
 // tiles over a scaled iframe of that exact page; using the SAME geometry (scaled
-// by GRID_WIDTH/1480, containerPadding 0) makes every tile land precisely on its
+// by GRID_WIDTH/1782, containerPadding 0) makes every tile land precisely on its
 // rendered content instead of drifting down and overlapping the row above.
-const EP_IFRAME_W = 1480;
+const EP_IFRAME_W = 1782;
 const EP_IFRAME_H = 2760;
 const EP_COLS = 12;
 const EP_ROWS = 30;
@@ -624,6 +625,20 @@ function EpaperEditorPage() {
     ro.observe(node);
     roRef.current = ro;
   }, []);
+  // Preview pane width, measured so the live-preview iframe scales to fit the
+  // width (fit-to-width: no horizontal scroll, only vertical).
+  const [previewW, setPreviewW] = useState(0);
+  const previewRoRef = useRef<ResizeObserver | null>(null);
+  const previewPaneRef = useCallback((node: HTMLDivElement | null) => {
+    previewRoRef.current?.disconnect();
+    if (!node) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setPreviewW(w);
+    });
+    ro.observe(node);
+    previewRoRef.current = ro;
+  }, []);
   // 24px buffer = the canvas wrapper's 8px padding on each side + a little
   // slack so a stray sub-pixel never re-triggers a horizontal scrollbar.
   const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, DESIGN_GRID_WIDTH));
@@ -804,13 +819,38 @@ function EpaperEditorPage() {
   // Delete a single block from the active page.
   const removeBlock = async (blockId: string) => {
     if (!activePage) return;
-    const blocks = activePage.layout.blocks.filter((b) => b.id !== blockId);
+    const deleted = activePage.layout.blocks.find((b) => b.id === blockId);
+    // Clone so we can grow neighbours without touching the undo snapshot.
+    const blocks = activePage.layout.blocks.filter((b) => b.id !== blockId).map((b) => ({ ...b }));
+    // Fill the hole: every block whose top edge sits exactly at the deleted
+    // block's bottom (and shares its columns) grows UP into the freed rows. The
+    // top is capped at the nearest block already occupying those columns so it
+    // can never overlap, and growing up keeps the block's bottom fixed (no new
+    // off-page overflow). Pairs with the text-fill: a taller story pulls in more
+    // body copy instead of stretching thin.
+    let grew = false;
+    if (deleted) {
+      const dx0 = deleted.x, dx1 = deleted.x + deleted.w;
+      const dyBottom = deleted.y + deleted.h;
+      for (const nb of blocks) {
+        if (nb.y !== dyBottom) continue;
+        if (nb.type === "masthead" || nb.type === "section-band" || nb.locked) continue;
+        if (!(nb.x < dx1 && nb.x + nb.w > dx0)) continue; // shares columns with the hole
+        let newY = deleted.y;
+        for (const other of blocks) {
+          if (other === nb) continue;
+          const xOverlap = other.x < nb.x + nb.w && other.x + other.w > nb.x;
+          if (xOverlap && other.y + other.h <= nb.y) newY = Math.max(newY, other.y + other.h);
+        }
+        if (newY < nb.y) { nb.h += nb.y - newY; nb.y = newY; grew = true; }
+      }
+    }
     pushUndo(activePage.id, activePage.layout.blocks);
     setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
       p.id === activePage.id ? { ...p, layout: { blocks } } : p) } : prev);
     if (selectedBlockId === blockId) setSelectedBlockId(null);
     await patchPage({ blocks });
-    toast("success", "Block removed");
+    toast("success", grew ? "Block removed - neighbours expanded to fill the gap" : "Block removed");
   };
 
   // Bulk-delete every block whose footprint lands past the 30-row print cap.
@@ -1367,6 +1407,66 @@ function EpaperEditorPage() {
     await patchPage(isV2 ? { blocks: newBlocks, coordSystem: "mm-v2" } : { blocks: newBlocks });
   };
 
+  // Explicit "Save changes": the editor already auto-saves every edit, so this
+  // just re-persists the current page and confirms - a reassurance button.
+  const saveChanges = async () => {
+    if (!activePage) return;
+    const isV2 = editorVersion === "v2";
+    const res = await patchPage(isV2 ? { blocks: activePage.layout.blocks, coordSystem: "mm-v2" } : { blocks: activePage.layout.blocks });
+    if (res) toast("success", "All changes saved");
+  };
+
+  // Reset every block's STYLE overrides (heading font, heading / heading-BG /
+  // block-BG colours, text colour, heading scale, and any legacy padding/margin)
+  // back to the template default. Layout positions and linked articles are left
+  // untouched. Goes through saveLayout so it's a single undoable step.
+  const STYLE_RESET_KEYS = ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "textColor", "hlScale", "padding", "margin"] as const;
+  const resetStyles = async () => {
+    if (!activePage) return;
+    const hasAny = activePage.layout.blocks.some(
+      (b) => b.style && STYLE_RESET_KEYS.some((k) => (b.style as any)[k] !== undefined),
+    );
+    if (!hasAny) { toast("info", "This page already uses the default styles."); return; }
+    if (!(await confirm({
+      title: "Reset styles to default?",
+      description: "Clears custom fonts, colours and backgrounds on every block of this page. Your layout and articles stay exactly as they are. You can undo this.",
+      confirmText: "Reset styles",
+      destructive: true,
+    }))) return;
+    const next = activePage.layout.blocks.map((b) => {
+      if (!b.style) return b;
+      const s: any = { ...b.style };
+      for (const k of STYLE_RESET_KEYS) delete s[k];
+      return { ...b, style: Object.keys(s).length ? s : undefined };
+    });
+    await saveLayout(next);
+    toast("success", "Styles reset to default");
+  };
+
+  // Close every vertical gap on the page: each non-static block grows UP until
+  // it touches the block above it in its columns (or the page top). This is the
+  // on-demand version of the auto-fill that runs on delete - use it to clean up
+  // a hole left by an earlier delete (e.g. a removed ad). Single undoable step;
+  // growing up keeps each block's bottom fixed, so nothing shifts off-page.
+  const fillGaps = async () => {
+    if (!activePage) return;
+    const blocks = activePage.layout.blocks.map((b) => ({ ...b }));
+    let changed = false;
+    for (const nb of [...blocks].sort((a, b) => a.y - b.y)) {
+      if (nb.type === "masthead" || nb.type === "section-band" || nb.locked) continue;
+      let newY = 0;
+      for (const other of blocks) {
+        if (other === nb) continue;
+        const xOverlap = other.x < nb.x + nb.w && other.x + other.w > nb.x;
+        if (xOverlap && other.y + other.h <= nb.y) newY = Math.max(newY, other.y + other.h);
+      }
+      if (newY < nb.y) { nb.h += nb.y - newY; nb.y = newY; changed = true; }
+    }
+    if (!changed) { toast("info", "No gaps to fill on this page"); return; }
+    await saveLayout(blocks);
+    toast("success", "Gaps filled - blocks expanded to close the empty rows");
+  };
+
   const undo = useCallback(async () => {
     if (!activePage) return;
     const stack = undoStacks[activePage.id];
@@ -1418,8 +1518,6 @@ function EpaperEditorPage() {
   const [styleHlBgColor, setStyleHlBgColor] = useState("");
   const [styleBlockBgColor, setStyleBlockBgColor] = useState("");
   const [styleTextColor, setStyleTextColor] = useState("#34302a");
-  const [stylePadding, setStylePadding] = useState(6);
-  const [styleMargin, setStyleMargin] = useState(0);
   const openStyle = (blockId: string) => {
     const b = activePage?.layout.blocks.find((x) => x.id === blockId);
     if (!b) return;
@@ -1432,15 +1530,12 @@ function EpaperEditorPage() {
     setStyleHlBgColor(b.style?.hlBgColor ?? "");
     setStyleBlockBgColor(b.style?.blockBgColor ?? "");
     setStyleTextColor(b.style?.textColor ?? "#34302a");
-    setStylePadding(b.style?.padding ?? 6);
-    setStyleMargin(b.style?.margin ?? 0);
   };
   const saveStyle = async () => {
     if (!activePage || !styleBlockId) return;
     const style: any = {
       imagePosition: styleImgPos, imageSize: styleImgSize,
       textColumns: styleCols, hlScale: styleHlScale,
-      padding: stylePadding, margin: styleMargin,
     };
     if (styleHlColor && styleHlColor !== "#14110b") style.hlColor = styleHlColor;
     if (styleHlBgColor) style.hlBgColor = styleHlBgColor;
@@ -1726,17 +1821,6 @@ function EpaperEditorPage() {
                     <button onClick={() => setStyleBlockBgColor("")} style={{ display: "inline-flex", alignItems: "center", padding: "0 8px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 4, cursor: "pointer" }} aria-label="Clear"><X size={12} /></button>
                   </WithTooltip>
                 </div>
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Padding (px): {stylePadding}</label>
-                <input type="range" min="0" max="40" step="2" value={stylePadding} onChange={(e) => setStylePadding(parseInt(e.target.value, 10))} style={{ width: "100%" }} />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Margin (px): {styleMargin}</label>
-                <input type="range" min="0" max="40" step="2" value={styleMargin} onChange={(e) => setStyleMargin(parseInt(e.target.value, 10))} style={{ width: "100%" }} />
               </div>
             </div>
 
@@ -2259,6 +2343,24 @@ function EpaperEditorPage() {
                           </div>
                         )}
                       </div>
+                      <WithTooltip text="Re-save this page (changes already auto-save)">
+                        <Button variant="outline" size="sm" onClick={saveChanges}
+                          className="gap-1.5 h-9 rounded-lg border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold">
+                          <Save size={15} /> Save changes
+                        </Button>
+                      </WithTooltip>
+                      <WithTooltip text="Clear custom fonts/colours on every block - layout & articles stay">
+                        <Button variant="outline" size="sm" onClick={resetStyles}
+                          className="gap-1.5 h-9 rounded-lg border-slate-300 text-slate-600 hover:bg-slate-50 font-bold">
+                          <RotateCcw size={15} /> Reset styles
+                        </Button>
+                      </WithTooltip>
+                      <WithTooltip text="Close empty bands (e.g. a deleted ad): grow the blocks below up to fill them">
+                        <Button variant="outline" size="sm" onClick={fillGaps}
+                          className="gap-1.5 h-9 rounded-lg border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-bold">
+                          <ChevronsUp size={15} /> Fill gaps
+                        </Button>
+                      </WithTooltip>
                     </>
                   )}
                 </div>
@@ -2489,12 +2591,16 @@ function EpaperEditorPage() {
             </aside>
 
             {/* Page canvas + (optionally) live preview iframe */}
-            <section style={{ flex: 1, background: "#fff", borderRadius: 8, padding: 16, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 800, color: "#555", marginBottom: 10 }}>
-                Page {activePage?.pageNumber} · {activePage?.label} · template: <code style={{ fontSize: 11 }}>{activePage?.templateSlug}</code>
-              </h3>
+            <section className={viewMode === "preview" ? "ep-hide-scrollbar" : undefined} style={{ flex: 1, background: "#fff", borderRadius: viewMode === "preview" ? 0 : 8, padding: 16, overflow: "auto", display: "flex", flexDirection: "column", minWidth: 0 }}>
+              {viewMode !== "preview" && (
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: "#555", marginBottom: 10 }}>
+                  Page {activePage?.pageNumber} · {activePage?.label} · template: <code style={{ fontSize: 11 }}>{activePage?.templateSlug}</code>
+                </h3>
+              )}
               {activePage && (
-                <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
+                /* Preview mode lets the whole page flow at natural height so the
+                   SECTION's scrollbar (outside the page) handles scrolling. */
+                <div style={{ display: "flex", gap: 12, flex: viewMode === "preview" ? "0 0 auto" : 1, minHeight: 0 }}>
                   {(viewMode === "edit" || viewMode === "split") && (
                     <div ref={canvasPaneRef} style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
                       {selectedBlockIds.size > 1 && (
@@ -2696,18 +2802,35 @@ function EpaperEditorPage() {
                     </div>
                   )}
                   {(viewMode === "split" || viewMode === "preview") && (
-                    <div style={{ flex: 1, minWidth: 0, border: "1px solid #e5e7eb", borderRadius: 6, background: "#FFFFFF", overflow: "hidden" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderBottom: "1px solid #e5e7eb", fontSize: 11 }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "#6b7280", fontWeight: 700 }}>
-                          <input type="checkbox" checked={showBaseline} onChange={(e) => setShowBaseline(e.target.checked)} />
-                          Show baseline grid
-                        </label>
+                    <div style={{ flex: 1, minWidth: 0, border: viewMode === "preview" ? "none" : "1px solid #e5e7eb", borderRadius: viewMode === "preview" ? 0 : 6, background: "#FFFFFF", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                      {viewMode !== "preview" && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderBottom: "1px solid #e5e7eb", fontSize: 11, flex: "0 0 auto" }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "#6b7280", fontWeight: 700 }}>
+                            <input type="checkbox" checked={showBaseline} onChange={(e) => setShowBaseline(e.target.checked)} />
+                            Show baseline grid
+                          </label>
+                        </div>
+                      )}
+                      {/* Fit-to-width preview: the page is a fixed EP_IFRAME_W×
+                          EP_IFRAME_H render, so we scale the native-size iframe by
+                          (paneWidth / pageWidth) - the page fills the width with no
+                          horizontal scroll, and only this box scrolls vertically. */}
+                      <div ref={previewPaneRef} style={{ flex: viewMode === "preview" ? "0 0 auto" : 1, minHeight: 0, overflowX: "hidden", overflowY: viewMode === "preview" ? "visible" : "auto", background: "#f3f4f6" }}>
+                        {(() => {
+                          const scale = previewW > 0 ? previewW / EP_IFRAME_W : 1;
+                          return (
+                            <div style={{ width: previewW || "100%", height: EP_IFRAME_H * scale, position: "relative" }}>
+                              <iframe
+                                title="Live preview"
+                                src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${showBaseline ? "&grid=1" : ""}`}
+                                width={EP_IFRAME_W}
+                                height={EP_IFRAME_H}
+                                style={{ border: "none", background: "#FFFFFF", display: "block", position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "0 0" }}
+                              />
+                            </div>
+                          );
+                        })()}
                       </div>
-                      <iframe
-                        title="Live preview"
-                        src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${showBaseline ? "&grid=1" : ""}`}
-                        style={{ width: "100%", height: "calc(100% - 32px)", border: "none", background: "#FFFFFF" }}
-                      />
                     </div>
                   )}
                 </div>
@@ -2995,6 +3118,11 @@ function DraggableBlockGrid({
   onInlineEdit?: (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => void;
 }) {
   const [settingsBlockId, setSettingsBlockId] = useState<string | null>(null);
+  // True only while a tile is being dragged/resized. We hide the heavy scaled
+  // iframe underlay during the gesture so each frame composites just the light
+  // grid tiles instead of repainting the full rendered page - the difference
+  // between butter-smooth and laggy. The underlay reappears on release.
+  const [interacting, setInteracting] = useState(false);
   const activeSettingsBlock = layout.blocks.find(b => b.id === settingsBlockId);
   // Which block's inline text editor is open. Opening is now explicit (double-
   // click or the "Edit text" toolbar button) - it no longer pops up on every
@@ -3071,12 +3199,24 @@ function DraggableBlockGrid({
       // News blocks snap to columns; masthead / section band / ad / footer stay
       // free so they can span the full width.
       if (it && movedType && !COLUMN_EXEMPT_TYPES.has(movedType)) {
+        const beforeX = it.x, beforeW = it.w;
         if (mode === "resize") {
           const right = nearestBoundary(it.x + it.w, colBounds);
           it.w = Math.max(1, right - it.x);
         } else {
           const left = nearestBoundary(it.x, colBounds);
           it.x = Math.min(Math.max(0, left), EP_COLS - it.w);
+        }
+        // Collision guard: react-grid-layout already handed us a NON-overlapping
+        // layout, but the column snap above can shove this block sideways onto a
+        // neighbour (CSS grid would then stack both in the same cells). If the
+        // snapped position overlaps any other block, abandon the snap and keep
+        // RGL's collision-free coords - blocks must never overlap.
+        const overlaps = (a: RGLLayout, c: RGLLayout) =>
+          a.x < c.x + c.w && a.x + a.w > c.x && a.y < c.y + c.h && a.y + a.h > c.y;
+        if (newRGL.some((o) => o.i !== it.i && overlaps(it, o))) {
+          it.x = beforeX;
+          it.w = beforeW;
         }
       }
     }
@@ -3143,6 +3283,9 @@ function DraggableBlockGrid({
             background: "#FFFFFF",
             border: "1px solid #d8d0bd",
             zIndex: 0,
+            // Drop the heavy underlay out of the paint path during a drag/resize
+            // so frames stay smooth; it pops back instantly on release.
+            visibility: interacting ? "hidden" : "visible",
           }}>
             <iframe
               title="WYSIWYG underlay"
@@ -3189,7 +3332,7 @@ function DraggableBlockGrid({
           </div>
         )}
       <GridLayout
-        className="re-epaper-grid"
+        className={`re-epaper-grid${interacting ? " is-interacting" : ""}`}
         layout={rglLayout}
         cols={COLS}
         rowHeight={ROW_H}
@@ -3197,8 +3340,10 @@ function DraggableBlockGrid({
         margin={[GRID_MARGIN_X, GRID_MARGIN_Y]}
         containerPadding={[0, 0]}
         compactType="vertical"
-        onDragStop={(l, o, n) => onChange(l, o, n, "drag")}
-        onResizeStop={(l, o, n) => onChange(l, o, n, "resize")}
+        onDragStart={() => setInteracting(true)}
+        onResizeStart={() => setInteracting(true)}
+        onDragStop={(l, o, n) => { setInteracting(false); onChange(l, o, n, "drag"); }}
+        onResizeStop={(l, o, n) => { setInteracting(false); onChange(l, o, n, "resize"); }}
         draggableCancel=".lock-btn"
       >
         {layout.blocks.map((b) => {
@@ -3356,6 +3501,14 @@ function DraggableBlockGrid({
       </GridLayout>
       <style>{`
         .re-epaper-grid .react-grid-item.react-grid-placeholder { background: #4f46e5; opacity: 0.18; border-radius: 6px; }
+        /* While dragging/resizing, kill the per-frame work: no tile transitions,
+           and hide the hover toolbar / warning chips / resize handles so each
+           frame only composites the moving tile. Restores on release. */
+        .re-epaper-grid.is-interacting .epb-tile { transition: none; }
+        .re-epaper-grid.is-interacting .epb-toolbar,
+        .re-epaper-grid.is-interacting .epb-warn,
+        .re-epaper-grid.is-interacting .react-resizable-handle { display: none; }
+        .re-epaper-grid.is-interacting .epb-tile:hover { border-color: #d1d5db; }
         /* Make the resize handle a clearly grabbable corner instead of the
            library's faint default - it was a big part of "clunky resize". */
         .re-epaper-grid .react-resizable-handle { z-index: 9; opacity: 0; transition: opacity .12s ease; }

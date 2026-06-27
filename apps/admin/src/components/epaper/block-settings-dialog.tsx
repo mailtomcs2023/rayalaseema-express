@@ -12,15 +12,13 @@ import { TELUGU_FONTS } from "@/lib/epaper/telugu-fonts";
 // string value, so we map it to "" on change.
 const DEFAULT_FONT = "__default__";
 
-// Public contract: what onSave emits. padding/margin are always coerced to a
-// number in handleSave, so the block layout stays numeric (matches Block.style).
+// Public contract: what onSave emits. (Per-block padding/margin were removed -
+// they broke the uniform grid alignment; spacing is grid + per-type CSS only.)
 export interface BlockStyleSettings {
   hlFontFamily?: string;
   hlColor?: string;
   hlBgColor?: string;
   blockBgColor?: string;
-  padding?: number;
-  margin?: number;
 }
 
 interface BlockSettingsDialogProps {
@@ -31,8 +29,8 @@ interface BlockSettingsDialogProps {
 }
 
 export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }: BlockSettingsDialogProps) {
-  // Draft state holds raw input values (padding/margin arrive as strings from
-  // the number inputs); handleSave coerces them to the numeric public contract.
+  // Draft state holds the in-progress font/colour values; handleSave drops any
+  // empty ones so only set overrides are emitted.
   const [settings, setSettings] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -42,8 +40,6 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
         hlColor: initialStyle?.hlColor || "",
         hlBgColor: initialStyle?.hlBgColor || "",
         blockBgColor: initialStyle?.blockBgColor || "",
-        padding: initialStyle?.padding !== undefined ? initialStyle.padding : "",
-        margin: initialStyle?.margin !== undefined ? initialStyle.margin : "",
       } as any);
     }
   }, [open, initialStyle]);
@@ -58,9 +54,7 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
     if (settings.hlColor) cleanSettings.hlColor = settings.hlColor;
     if (settings.hlBgColor) cleanSettings.hlBgColor = settings.hlBgColor;
     if (settings.blockBgColor) cleanSettings.blockBgColor = settings.blockBgColor;
-    if (settings.padding !== undefined && settings.padding !== "") cleanSettings.padding = Number(settings.padding);
-    if (settings.margin !== undefined && settings.margin !== "") cleanSettings.margin = Number(settings.margin);
-    
+
     onSave(cleanSettings);
     onOpenChange(false);
   };
@@ -157,33 +151,6 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
             </div>
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="padding" className="text-right">
-              Padding (px)
-            </Label>
-            <Input
-              id="padding"
-              type="number"
-              className="col-span-3"
-              value={settings.padding !== undefined ? settings.padding : ""}
-              placeholder="e.g. 10"
-              onChange={(e) => handleChange("padding", e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="margin" className="text-right">
-              Margin (px)
-            </Label>
-            <Input
-              id="margin"
-              type="number"
-              className="col-span-3"
-              value={settings.margin !== undefined ? settings.margin : ""}
-              placeholder="e.g. 5"
-              onChange={(e) => handleChange("margin", e.target.value)}
-            />
-          </div>
         </div>
         <DialogFooter>
           <Button onClick={handleSave}>Save changes</Button>

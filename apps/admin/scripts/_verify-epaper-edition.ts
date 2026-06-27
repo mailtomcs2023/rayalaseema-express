@@ -69,7 +69,7 @@ async function main() {
   try {
     for (const ep of pages) {
       const coordSystem = (ep.layout as { coordSystem?: string } | null)?.coordSystem === "mm-v2" ? "mm-v2" : "grid-v1";
-      const viewport = coordSystem === "mm-v2" ? { width: 1875, height: 2843 } : { width: 1480, height: 2760 };
+      const viewport = coordSystem === "mm-v2" ? { width: 1875, height: 2843 } : { width: 1782, height: 2760 };
       const html = await renderEpaperPageById(ep.id);
       const page = await browser.newPage({ viewport });
       page.setDefaultTimeout(20000);

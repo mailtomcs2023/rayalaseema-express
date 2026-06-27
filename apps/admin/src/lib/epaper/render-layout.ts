@@ -13,6 +13,7 @@ import { prisma } from "@rayalaseema/db";
 import { hyphenateTelugu } from "./telugu-hyphenation";
 import { migrateLegacyLayout, isLegacyLayout } from "./migrate-layout";
 import { TELUGU_FONTS_HREF } from "./telugu-fonts";
+import { estimateCapacity, findSplit } from "./continuation";
 
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
@@ -158,6 +159,18 @@ function articleLink(a: ResolvedArticle, inner: string): string {
   return `<a class="story-link" href="${esc(articleHref(a))}">${inner}</a>`;
 }
 
+// Like articleLink but for blocks whose body can contain ANOTHER <a> (the
+// continuation "jump" link). Nesting <a> inside <a> is invalid HTML - the
+// browser auto-closes the outer <a>, which splits the DOM and knocks the
+// content out of the block's flex column (it sinks to the bottom, leaving a big
+// gap at the top). Here the story-link is a full-bleed transparent OVERLAY that
+// is a SIBLING of the content, so nothing is nested. It still carries class
+// "story-link" (web hotspot harvest) and a real href (PDF article link), and it
+// is emitted FIRST so the inner jump-link's PDF annotation sits on top of it.
+function articleOverlay(a: ResolvedArticle, inner: string): string {
+  return `<a class="story-link story-overlay" href="${esc(articleHref(a))}" aria-label="${esc(a.title)}"></a>${inner}`;
+}
+
 // Module-scoped layout flag - set by renderLayoutToHtml before iterating
 // blocks. blockStyle reads it to pick grid-v1 vs mm-v2 positioning.
 let CURRENT_COORD_SYSTEM: "grid-v1" | "mm-v2" = "grid-v1";
@@ -178,6 +191,15 @@ function cmykColorBar(): string {
   return `<div class="cmyk-bar" aria-hidden="true">${cross}${mid}${cross}</div>`;
 }
 
+// Corner crop / trim marks (#71). The four "+" registration crosses every major
+// Telugu daily (Eenadu, Sakshi, Andhra Jyothi) prints at the live-area corners
+// so the press knows where to cut the sheet. Centred on each trim corner - half
+// the cross sits in the white margin. Press/QC aid only: aria-hidden +
+// pointer-events:none so it never affects hotspot harvesting or screen readers.
+function cropMarks(): string {
+  return `<div class="crop-marks" aria-hidden="true"><span class="cm cm-tl"></span><span class="cm cm-tr"></span><span class="cm cm-bl"></span><span class="cm cm-br"></span></div>`;
+}
+
 function blockStyle(b: Block, extra = ""): string {
   // Merge user style overrides for the block's outer wrapper.
   const s = b.style ?? {};
@@ -196,8 +218,11 @@ function blockStyle(b: Block, extra = ""): string {
       ];
   if (s.blockBgColor) parts.push(`background-color: ${s.blockBgColor}`);
   if (s.textColor) parts.push(`color: ${s.textColor}`);
-  if (typeof s.padding === "number") parts.push(`padding: ${s.padding}px`);
-  if (typeof s.margin === "number") parts.push(`margin: ${s.margin}px`);
+  // Per-block padding/margin overrides are intentionally ignored: they broke
+  // the uniform grid alignment (one block sitting inset while its neighbours
+  // were flush). Spacing now comes only from the grid gaps + per-type CSS
+  // classes, so every block lines up. Any legacy style.padding/style.margin
+  // still stored on a block is a no-op.
   if (extra) parts.push(extra);
   return parts.join("; ");
 }
@@ -283,7 +308,6 @@ function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNum
 }
 
 function leadBlock(b: Block, a: ResolvedArticle): string {
-  const desk = a.deskName ? `<div class="byline">- ${esc(a.deskName.replace(/ - /g, ", "))}</div>` : "";
   const displayTitle = b.overrideTitle?.trim() || a.title;
   const displaySummary = b.overrideDek?.trim() || a.summary || "";
 
@@ -317,9 +341,17 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
       // the continuation block, but the renderer can re-derive a sensible cut
       // by trimming summary || bodyText to the same approximate length.
       const text = a.bodyText || a.summary || "";
-      const splitAt = findApproxSplit(text, 1400);
+      // Split where the block actually fills (same capacity the continuation
+      // wiring used to set bodyStart) so the source isn't left half-empty.
+      const splitAt = findSplit(text, estimateCapacity(b));
       const head = text.slice(0, splitAt).trim();
-      return `<div class="${dekClass}"${dekStyle}>${wrapImageMarkup}${bodyParas(head)}<p class="jump-p"><a class="jump-link" href="#page=${target}">→ మిగతా కథనం పేజీ ${target}</a></p></div>`;
+      // Only show the "continued on page N" jump when there's actually a tail
+      // left over - if the (possibly enlarged) block now fits the whole story,
+      // drop the jump so it isn't misleading.
+      const jump = splitAt < text.length
+        ? `<p class="jump-p"><a class="jump-link" href="#page=${target}">→ మిగతా కథనం పేజీ ${target}</a></p>`
+        : "";
+      return `<div class="${dekClass}"${dekStyle}>${wrapImageMarkup}${bodyParas(head)}${jump}</div>`;
     }
     // No continuation → flow the full article body so the tall lead block reads
     // like a real newspaper column instead of a headline floating in whitespace.
@@ -338,14 +370,12 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner ${wrapClass}">
       <div class="lead-text">
-        <div class="kicker">${esc(a.categoryName)}</div>
         <h1 class="lead-hl"${hlStyle}>${esc(displayTitle)}</h1>
-        ${desk}
         ${dekHtml}
       </div>
       ${imgHtml}
     </div>`;
-  return `<article class="lead block" style="${blockStyle(b)}">${articleLink(a, inner)}</article>`;
+  return `<article class="lead block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
 function majorBlock(b: Block, a: ResolvedArticle): string {
@@ -354,9 +384,12 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
   const dekHtml = (() => {
     if (b.continuesToPage) {
       const text = a.bodyText || a.summary || "";
-      const splitAt = findApproxSplit(text, 280);
+      const splitAt = findSplit(text, estimateCapacity(b));
       const head = text.slice(0, splitAt).trim();
-      return `<div class="maj-dek">${bodyParas(head)}<p class="jump-p"><a class="jump-link" href="#page=${b.continuesToPage}">→పేజీ ${b.continuesToPage}</a></p></div>`;
+      const jump = splitAt < text.length
+        ? `<p class="jump-p"><a class="jump-link" href="#page=${b.continuesToPage}">→పేజీ ${b.continuesToPage}</a></p>`
+        : "";
+      return `<div class="maj-dek">${bodyParas(head)}${jump}</div>`;
     }
     const content = bodyParas(a.bodyText) || (displaySummary ? `<p>${bodyEsc(displaySummary)}</p>` : "");
     return content ? `<div class="maj-dek">${content}</div>` : "";
@@ -365,29 +398,10 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner">
       ${imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
-      <div class="kicker sm">${esc(a.categoryName)}</div>
       <h2 class="maj-hl"${hlStyle}>${esc(displayTitle)}</h2>
       ${dekHtml}
     </div>`;
-  return `<article class="major block" style="${blockStyle(b)}">${articleLink(a, inner)}</article>`;
-}
-
-/** Splits `text` near `target` chars at the nearest sentence/word boundary. */
-function findApproxSplit(text: string, target: number): number {
-  if (text.length <= target) return text.length;
-  const candidates = [". ", "। ", "? ", "! ", "; "];
-  let best = target;
-  for (const c of candidates) {
-    const i = text.indexOf(c, Math.max(0, target - 200));
-    if (i > 0 && i <= target + 100 && Math.abs(i - target) < Math.abs(best - target)) {
-      best = i + c.length;
-    }
-  }
-  if (best === target) {
-    const sp = text.lastIndexOf(" ", target);
-    if (sp > target - 200) best = sp + 1;
-  }
-  return Math.min(best, text.length);
+  return `<article class="major block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
 /**
@@ -425,7 +439,7 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
       </div>
       <p class="cont-body">${esc(slice)}</p>
     </div>`;
-  return `<article class="continuation block" style="${blockStyle(b)}">${articleLink(a, inner)}</article>`;
+  return `<article class="continuation block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
 function secondaryBlock(b: Block, a: ResolvedArticle): string {
@@ -436,11 +450,10 @@ function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner">
       ${imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
-      <div class="kicker sm">${esc(a.categoryName)}</div>
       <h3 class="sec-hl"${hlStyle}>${esc(displayTitle)}</h3>
       ${dek}
     </div>`;
-  return `<article class="secondary block" style="${blockStyle(b)}">${articleLink(a, inner)}</article>`;
+  return `<article class="secondary block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
 function briefBlock(b: Block, articles: ResolvedArticle[]): string {
@@ -631,9 +644,14 @@ export function epaperSheet(coordSystem: "grid-v1" | "mm-v2", withMargin: boolea
       pdf: { width: `${w}mm`, height: `${h}mm` },
     };
   }
-  const m = withMargin ? 54 : 0; // px (~3.6% frame, Eenadu-like; grid live area 1480×2760)
-  const w = 1480 + 2 * m, h = 2760 + 2 * m;
-  const wMm = Math.round((300 * w) / 1480), hMm = Math.round((560 * h) / 2760);
+  // Live area 1782×2760 px → full page (with 54px frame) 1890×2868 px, which at
+  // 0.2016 mm/px is 381×578 mm: the real Telugu broadsheet trim (Eenadu / Sakshi
+  // / Andhra Jyothi), aspect 1:1.517. px and mm aspect ratios match exactly so
+  // page.pdf() scales uniformly with no distortion and no overflow. Height (30
+  // rows × 92px) is unchanged; only the width grew (was a too-narrow 1:1.87).
+  const m = withMargin ? 54 : 0; // px (~3% white frame, Eenadu-like)
+  const w = 1782 + 2 * m, h = 2760 + 2 * m;
+  const wMm = Math.round((359 * w) / 1782), hMm = Math.round((556 * h) / 2760);
   return {
     pageSize: `${wMm}mm ${hMm}mm`, cssWidth: `${w}px`, cssHeight: `${h}px`, padding: `${m}px`,
     viewport: { width: w, height: h },
@@ -650,6 +668,9 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
     (input.layout as any)?.coordSystem === "mm-v2" ? "mm-v2" : "grid-v1";
   CURRENT_COORD_SYSTEM = coordSystem;
   const sheet = epaperSheet(coordSystem, opts?.withMargin ?? false);
+  // Crop marks only make sense once the trim margin exists (the print render);
+  // in the marginless editor preview they'd sit clipped at the very corner.
+  const withMargin = opts?.withMargin ?? false;
 
   const articles = await resolveArticles(input.layout.blocks);
 
@@ -834,10 +855,10 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
     grid-template-rows: repeat(${maxRow}, 92px);
     column-gap: 14px;
     row-gap: 12px;
-    /* Hard contain the page to one PDF sheet (1480×2760px = 300×560mm
-       @ ~125 dpi). 30 rows × 92px = 2760px = exact fit. No padding so
-       the grid math stays clean - visual breathing room is per-block. */
-    width: 1480px;
+    /* Hard contain the page to one PDF sheet (live area 1782×2760px → full
+       381×578mm broadsheet trim). 30 rows × 92px = 2760px = exact fit. No
+       padding so the grid math stays clean - visual breathing room is per-block. */
+    width: 1782px;
     height: 2760px;
     max-height: 2760px;
     overflow: hidden;
@@ -853,8 +874,14 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      the grid-v1 path collapses lead/major to invisible content when a
      percentage-height chain hangs off the grid item, but a flex chain off the
      same definite-height item fills + clips without that trap. */
-  .lead.block, .major.block, .secondary.block, .continuation.block { display: flex; flex-direction: column; }
+  .lead.block, .major.block, .secondary.block, .continuation.block { display: flex; flex-direction: column; position: relative; }
   .block a.story-link { color: inherit; text-decoration: none; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  /* Story-link as a transparent full-bleed overlay (see articleOverlay): keeps
+     the article hotspot/PDF-link over the whole block while leaving the content
+     (and its inner continuation jump-link) un-nested so the flex column flows
+     from the top. z-index:1 so it sits above the content for clicks; the
+     jump-link lifts itself to z-index:2 to stay clickable. */
+  .block a.story-overlay { position: absolute; inset: 0; z-index: 1; display: block; flex: none; }
   .block .block-inner { width:100%; display:flex; flex-direction:column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   /* Belt-and-braces: any image anywhere inside a block can't exceed the block. */
   .block img { max-width: 100%; max-height: 100%; object-fit: cover; }
@@ -862,8 +889,11 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Masthead */
   /* Eenadu-style masthead: 3-col [ad | logo+tag | ad] band on top,
      bibliographic info row, cities band on the bottom. */
+  /* No left/right padding: the masthead band must sit flush to the live-area
+     edges, exactly like every body block (.lead/.major/.secondary start at 0),
+     so the page has one uniform margin on all sides instead of a narrower top. */
   .masthead { display: flex; flex-direction: column; height: 100%;
-    border-bottom: 2px solid #14110b; padding: 0 10px 0; gap: 4px; }
+    border-bottom: 2px solid #14110b; padding: 0; gap: 4px; }
   .mast-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex: 1; min-height: 0; }
   .mast-adslot { flex: 0 0 25%; max-width: 320px; height: 100%; display: flex; align-items: center; justify-content: center;
     border: 1px dashed #d8d0bd; border-radius: 4px; overflow: hidden; }
@@ -910,9 +940,11 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .lead-flex-row-rev > .lead-image-wrap { flex: 0 0 40%; }
   .lead-flex-row > .lead-text,
   .lead-flex-row-rev > .lead-text { flex: 1 1 auto; min-width: 0; }
-  .lead-text { display: flex; flex-direction: column; min-width: 0; }
+  /* flex:1 so the text column fills the block height ABOVE the bottom photo -
+     without it the dek can't stretch and the story floats with a gap below. */
+  .lead-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; min-height: 0; }
   .lead { padding: 6px 0; border-right: 1px solid #c9c1ad; padding-right: 12px; }
-  .lead-hl{font-family:'Noto Serif Telugu',serif;font-weight:900;font-size:42px;line-height:1.18;margin-bottom:10px}
+  .lead-hl{font-family:'Noto Serif Telugu',serif;font-weight:900;font-size:42px;line-height:1.5;margin-bottom:10px}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
     font-size:15.5px;line-height:1.72;color:#34302a;text-align:justify;
@@ -926,7 +958,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Major */
   .major { padding: 6px 0; border-bottom: 1px dotted #c9c1ad; }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
-  .maj-hl{font-family:'Noto Serif Telugu',serif;font-weight:800;font-size:22px;line-height:1.25;margin-bottom:5px}
+  .maj-hl{font-family:'Noto Serif Telugu',serif;font-weight:800;font-size:22px;line-height:1.5;margin-bottom:5px}
   .maj-dek{font-size:13px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .maj-dek p{ margin:0 0 6px; }
   .maj-dek p:last-child{ margin-bottom:0; }
@@ -934,7 +966,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Secondary */
   .secondary { padding: 6px 0; border-right: 1px solid #c9c1ad; padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
-  .sec-hl{font-family:'Noto Serif Telugu',serif;font-weight:800;font-size:17px;line-height:1.3;flex:0 0 auto;margin-bottom:5px}
+  .sec-hl{font-family:'Noto Serif Telugu',serif;font-weight:800;font-size:17px;line-height:1.5;flex:0 0 auto;margin-bottom:5px}
   .sec-dek{font-size:12.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0 0 5px; }
 
@@ -948,12 +980,12 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .continuation { padding: 6px 0; border-top: 2px solid #14110b; }
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
-  .cont-hl { font-family: 'Noto Serif Telugu', serif; font-weight: 800; font-size: 18px; line-height: 1.25; color: #14110b; }
+  .cont-hl { font-family: 'Noto Serif Telugu', serif; font-weight: 800; font-size: 18px; line-height: 1.5; color: #14110b; }
   .cont-body { font-size: 13px; line-height: 1.6; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
 
   /* Inline jump link inside lead / major dek */
-  .jump-link { color: #A50D0D; font-weight: 800; text-decoration: none; font-family: 'Noto Sans Telugu', sans-serif; font-size: 0.95em; white-space: nowrap; }
+  .jump-link { color: #A50D0D; font-weight: 800; text-decoration: none; font-family: 'Noto Sans Telugu', sans-serif; font-size: 0.95em; white-space: nowrap; position: relative; z-index: 2; }
 
   /* Briefs */
   .briefs{ display:flex; flex-direction:column; padding-top:8px; }
@@ -985,9 +1017,12 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      print PDF (all three flow through renderLayoutToHtml). The colour patches
      use process-primary RGB so the print pipeline's RGB->CMYK conversion maps
      them to clean 100% C / M / Y / K separations. */
+  /* No horizontal padding: the "+" registration crosses are the outermost flex
+     children, so they sit flush at the very left/right ends of the page (the
+     corners) instead of 6mm in. */
   .cmyk-bar{ position:absolute; left:0; right:0; bottom:0; height:6mm;
     display:flex; align-items:center; justify-content:space-between;
-    padding:0 6mm; gap:3mm; background:#fff; z-index:50; pointer-events:none; }
+    padding:0; gap:3mm; background:#fff; z-index:50; pointer-events:none; }
   .cmyk-bar .grp{ display:inline-flex; gap:1.4mm; align-items:center; }
   .cmyk-bar .grp i{ width:3mm; height:3mm; border-radius:50%; display:inline-block; }
   .cmyk-bar .reg{ display:inline-flex; gap:1.2mm; align-items:center; }
@@ -998,12 +1033,26 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .cb-m{ background:#EC008C } .cb-mt{ background:#F7C5DD }
   .cb-y{ background:#FFF200 } .cb-yt{ background:#FBF4B4 }
   .cb-k{ background:#000000 } .cb-g{ background:#9B9B9B }
+
+  /* Corner crop / trim marks (#71): four thin "+" crosses at the live-area
+     corners, positioned ${sheet.padding} in from each sheet edge (the trim
+     line) and centred on the corner. Rendered identically in the editor
+     preview, the published e-paper and the print PDF. */
+  .crop-marks .cm{ position:absolute; width:5mm; height:5mm; z-index:50; pointer-events:none; }
+  .crop-marks .cm::before,.crop-marks .cm::after{ content:""; position:absolute; background:#111; }
+  .crop-marks .cm::before{ left:50%; top:0; width:0.3mm; height:100%; transform:translateX(-50%); }
+  .crop-marks .cm::after{ top:50%; left:0; height:0.3mm; width:100%; transform:translateY(-50%); }
+  .crop-marks .cm-tl{ top:${sheet.padding}; left:${sheet.padding}; transform:translate(-50%,-50%); }
+  .crop-marks .cm-tr{ top:${sheet.padding}; right:${sheet.padding}; transform:translate(50%,-50%); }
+  .crop-marks .cm-bl{ bottom:${sheet.padding}; left:${sheet.padding}; transform:translate(-50%,50%); }
+  .crop-marks .cm-br{ bottom:${sheet.padding}; right:${sheet.padding}; transform:translate(50%,50%); }
 </style></head>
 <body>
   <div class="${coordSystem === "mm-v2" ? "page-mm" : "page"}">
     ${blockHtml.join("\n    ")}
   </div>
   ${cmykColorBar()}
+  ${withMargin ? cropMarks() : ""}
 </body></html>`;
 }
 

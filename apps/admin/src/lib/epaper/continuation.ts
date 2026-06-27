@@ -13,6 +13,8 @@ export interface Block {
   locked?: boolean;
   content?: string;
   href?: string;
+  // Per-block style overrides we need for capacity estimation.
+  style?: { imagePosition?: string; textColumns?: number } & Record<string, unknown>;
   // Continuation metadata - set on BOTH source and continuation blocks.
   // Source block: { continuesToPage, continuesToBlockId }
   // Continuation block: { continuesFromPage, continuesFromBlockId, bodyStart, articleId (same article) }
@@ -30,31 +32,40 @@ interface PageBundle {
 }
 
 /**
- * Estimate how many characters of plain-text body fit visibly in a story block.
- * Numbers are empirical for the broadsheet render grid (1480×2760 px, 92px rows,
- * 12 cols). Headline-only blocks (secondary/brief) return 0 - they can't host a
- * continuation tail.
+ * Estimate how many characters of plain-text body fit VISIBLY in a story block.
+ * Geometry-based (tracks render-layout's .page: 12 cols across 1782px, 92px
+ * rows): subtract the headline + photo, then count lines × chars-per-line for
+ * the body dek. Used both to decide WHEN to continue a story and to pick the
+ * split point - so a continued story's head segment FILLS its block instead of
+ * leaving white space. Headline-only blocks (secondary/brief) return 0.
  */
+const EP_COL_GAP = 14, EP_ROW_GAP = 12;             // grid gutters (track render-layout)
+const EP_COL_W = (1782 - 11 * EP_COL_GAP) / 12;     // content width of ONE column
+const EP_ROW_H = 92;                                // content height of ONE row
 export function estimateCapacity(b: Block): number {
-  const area = b.w * b.h;     // rough proxy for total area in grid cells
-  switch (b.type) {
-    case "lead": {
-      // Body sits below the photo, runs as 2-column justified dek.
-      // ~5 chars per cell unit for body copy after subtracting headline + image area.
-      return Math.max(400, area * 18 - 600);
-    }
-    case "major": {
-      return Math.max(150, area * 10 - 100);
-    }
-    // Continuation slots themselves can host more body. Treat them generously.
-    case "continuation": {
-      return area * 25;
-    }
-    case "secondary":
-    case "brief":
-    default:
-      return 0;
-  }
+  if (!b.w || !b.h) return 0;
+  if (b.type === "secondary" || b.type === "brief") return 0;
+  // Block pixel size INCLUDING the gutters that fall INSIDE the span: a block
+  // spanning h rows is h*92 + (h-1)*12 tall, not h*92. Omitting the internal
+  // gaps under-counted tall blocks (~156px on an h14 lead) and split the body
+  // too early, leaving a gap below the photo.
+  const blockW = b.w * EP_COL_W + (b.w - 1) * EP_COL_GAP;
+  const blockH = b.h * EP_ROW_H + (b.h - 1) * EP_ROW_GAP;
+  // Vertical space the photo + headline eat before the body dek begins. Photo
+  // heights mirror the CSS flex-basis (.lead-img 380, .maj-img 160); side/none
+  // image positions don't push the text down.
+  const imgPos = b.style?.imagePosition ?? "top";
+  const hasTopImg = imgPos === "top";
+  const imgH = !hasTopImg ? 0 : b.type === "lead" ? 380 : b.type === "major" ? 160 : 120;
+  const headlineH = b.type === "lead" ? 110 : b.type === "major" ? 62 : 50;
+  const textH = Math.max(0, blockH - imgH - headlineH - 16);
+  // Continuation tails run full-width single column unless overridden.
+  const textCols = b.style?.textColumns ?? (b.type === "lead" ? 2 : 1);
+  const fontPx = b.type === "lead" ? 16 : b.type === "major" ? 13 : 12.5;
+  const lines = Math.floor(textH / (fontPx * 1.5)) * textCols;
+  const colW = (blockW - (textCols - 1) * 12) / textCols;
+  const charsPerLine = Math.max(1, Math.floor(colW / (fontPx * 0.63))); // Telugu ~0.63em/char (measured)
+  return Math.max(0, Math.floor(lines * charsPerLine * 0.9)); // 0.9 = justification/widow slack
 }
 
 function stripHtml(s: string): string {
@@ -178,7 +189,24 @@ export async function buildContinuations(editionId: string): Promise<number> {
     }
   }
 
-  if (created === 0) return 0;
+  // Refresh pass: re-sync every already-wired continuation's bodyStart with the
+  // current source-block capacity (the split formula was recalibrated and blocks
+  // can be resized). Keeps the source head and the page-2 tail meeting at the
+  // same point instead of repeating or dropping lines.
+  const blockById = new Map<string, Block>();
+  for (const p of pages) for (const b of p.blocks) blockById.set(b.id, b);
+  for (const p of pages) {
+    for (const cb of p.blocks) {
+      if (cb.type !== "continuation" || !cb.continuesFromBlockId || !cb.articleId) continue;
+      const src = blockById.get(cb.continuesFromBlockId);
+      if (!src) continue;
+      const text = stripHtml((bodies.find((x) => x.id === cb.articleId)?.body) || "");
+      const fresh = findSplit(text, estimateCapacity(src));
+      if (cb.bodyStart !== fresh) { cb.bodyStart = fresh; dirtyPages.add(p.id); }
+    }
+  }
+
+  if (created === 0 && dirtyPages.size === 0) return created;
 
   // Persist mutated pages
   for (const p of pages) {

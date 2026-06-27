@@ -527,7 +527,8 @@ export function EpaperViewer({
         .ev-thumb:hover { transform: translateY(-1px); }
         .ev-thumb.active { border-color: #E01B1B; box-shadow: 0 0 0 2px rgba(224,27,27,0.18); }
         .ev-thumb img {
-          width: 100%; aspect-ratio: 1/1.6; object-fit: cover; display: block; background: #eee;
+          /* Match the broadsheet page trim (1890×2868 = 381×578mm, 1:1.517). */
+          width: 100%; aspect-ratio: 1890 / 2868; object-fit: cover; display: block; background: #eee;
         }
         .ev-thumb-no {
           position: absolute; top: 3px; left: 3px;
