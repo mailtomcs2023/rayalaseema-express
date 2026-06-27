@@ -65,6 +65,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Full Telugu family set so the e-paper block-settings font picker can
             preview each option in its own typeface. See lib/epaper/telugu-fonts. */}
         <link href={TELUGU_FONTS_HREF} rel="stylesheet" />
+        {/* Self-hosted legacy Anu faces (110 .ttf) so the same picker can offer
+            and resolve them. @font-face family = .ttf basename. */}
+        <link href="/anu-fonts/anu-fonts.css" rel="stylesheet" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <Providers session={session}>{children}</Providers>

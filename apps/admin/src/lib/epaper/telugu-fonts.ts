@@ -8,6 +8,8 @@
 // renderer. To add a font that is NOT on Google Fonts, drop its @font-face in
 // and add an entry here with `google: null`.
 
+import { ANU_FONTS } from "./anu-fonts-list";
+
 export interface TeluguFont {
   /** Display label shown in the dropdown. */
   label: string;
@@ -15,6 +17,8 @@ export interface TeluguFont {
   value: string;
   /** Google Fonts css2 `family=` query segment, or null for self-hosted. */
   google: string | null;
+  /** True for the legacy self-hosted Anu faces (see ./anu-fonts-list). */
+  anu?: boolean;
 }
 
 export const TELUGU_FONTS: TeluguFont[] = [
@@ -55,3 +59,22 @@ export const TELUGU_FONTS_HREF =
     .map((g) => `family=${g}`)
     .join("&") +
   "&display=swap";
+
+/**
+ * Anu faces hidden from the picker: the Dingbits-* symbol/dingbat fonts and
+ * Anu-Subhalekha-Two are not usable text faces. Matched against the .ttf
+ * basename so regenerating anu-fonts-list.ts never reintroduces them.
+ */
+const HIDDEN_ANU = (basename: string) =>
+  basename.startsWith("Dingbits-") || basename === "Anu-Subhalekha-Two";
+
+/**
+ * Every heading font offered in the block-settings picker: the Google-hosted
+ * Telugu families above plus the usable self-hosted legacy Anu faces. Kept as a
+ * single list so the dropdown and favourites logic iterate one source.
+ */
+export const ALL_HEADING_FONTS: TeluguFont[] = [
+  ...TELUGU_FONTS,
+  // value is the quoted family (e.g. "'Dingbits-Two'"); strip quotes to match.
+  ...ANU_FONTS.filter((f) => !HIDDEN_ANU(f.value.replace(/'/g, ""))),
+];
