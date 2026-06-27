@@ -623,7 +623,7 @@ async function resolveArticles(blocks: Block[]): Promise<Map<string, ResolvedArt
 // Single source of truth for render-layout's CSS AND render-v2's viewport/pdf.
 export function epaperSheet(coordSystem: "grid-v1" | "mm-v2", withMargin: boolean) {
   if (coordSystem === "mm-v2") {
-    const m = withMargin ? 6 : 0; // mm
+    const m = withMargin ? 11 : 0; // mm (~ Eenadu-style frame)
     const w = 330 + 2 * m, h = 520 + 2 * m;
     return {
       pageSize: `${w}mm ${h}mm`, cssWidth: `${w}mm`, cssHeight: `${h}mm`, padding: `${m}mm`,
@@ -631,7 +631,7 @@ export function epaperSheet(coordSystem: "grid-v1" | "mm-v2", withMargin: boolea
       pdf: { width: `${w}mm`, height: `${h}mm` },
     };
   }
-  const m = withMargin ? 30 : 0; // px (grid live area is 1480×2760)
+  const m = withMargin ? 54 : 0; // px (~3.6% frame, Eenadu-like; grid live area 1480×2760)
   const w = 1480 + 2 * m, h = 2760 + 2 * m;
   const wMm = Math.round((300 * w) / 1480), hMm = Math.round((560 * h) / 2760);
   return {

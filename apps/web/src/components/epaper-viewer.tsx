@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight,
   ZoomIn, ZoomOut,
   Scissors, FileDown,
-  Mail, Copy, Download, X,
+  Mail, Copy, Download, X, LayoutGrid,
 } from "lucide-react";
 
 // Resize-handle positions for the clip selection box.
@@ -76,6 +76,7 @@ export function EpaperViewer({
   const [sel, setSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [clipBusy, setClipBusy] = useState(false);
+  const [showThumbs, setShowThumbs] = useState(true); // all-pages thumbnail strip
   const imgRef = useRef<HTMLImageElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -306,15 +307,28 @@ export function EpaperViewer({
             className={clipMode ? "bg-yellow-400 text-red-800 hover:bg-yellow-300 font-bold" : "font-bold"}
             onClick={() => {
               if (clipMode) { setClipMode(false); setSel(null); setClipUrl(null); return; }
-              // Entering clip mode: drop a default centered selection box right
-              // away (with the share toolbar) - the reader just moves/resizes it.
+              // Entering clip mode: drop a default selection box near the TOP of
+              // what's CURRENTLY visible in the stage (not the centre of the tall
+              // page, which would be off-screen) - the reader just moves/resizes.
               setClipMode(true);
               setClipUrl(null);
               const el = imgRef.current;
+              const stage = stageRef.current;
               if (el && el.clientWidth) {
-                const w = Math.round(el.clientWidth * 0.5);
-                const h = Math.round(el.clientHeight * 0.22);
-                const s = { x: Math.round((el.clientWidth - w) / 2), y: Math.round((el.clientHeight - h) / 2), w, h };
+                const iw = el.clientWidth, ih = el.clientHeight;
+                // Visible band of the image, in image-Y coords.
+                let visTop = 0, visH = ih;
+                if (stage) {
+                  const ir = el.getBoundingClientRect();
+                  const sr = stage.getBoundingClientRect();
+                  visTop = Math.max(0, sr.top - ir.top);
+                  visH = Math.max(80, Math.min(ih, sr.bottom - ir.top) - visTop);
+                }
+                const w = Math.round(iw * 0.5);
+                const h = Math.round(Math.min(ih * 0.22, visH - 48));
+                const x = Math.round((iw - w) / 2);
+                const y = Math.round(Math.min(visTop + 24, ih - h));
+                const s = { x, y, w, h };
                 setSel(s);
                 doClip(s);
               } else {
@@ -334,14 +348,27 @@ export function EpaperViewer({
               </a>
             </Button>
           )}
+
+          {/* Show / hide the all-pages thumbnail strip */}
+          <Button
+            variant={showThumbs ? "default" : "secondary"}
+            size="sm"
+            className={showThumbs ? "bg-yellow-400 text-red-800 hover:bg-yellow-300 font-bold" : "font-bold"}
+            onClick={() => setShowThumbs((v) => !v)}
+            title={showThumbs ? "పేజీలను దాచండి" : "అన్ని పేజీలు చూడండి"}
+          >
+            <LayoutGrid className="size-4" />
+            పేజీలు
+          </Button>
         </div>
 
         {/* Search (far right) */}
         {searchSlot && <div className="ev-grp ev-search">{searchSlot}</div>}
       </div>
 
-      {/* HORIZONTAL THUMBNAIL STRIP - Eenadu-style, with page number + label */}
-      <div className="ev-thumbs-h">
+      {/* HORIZONTAL THUMBNAIL STRIP - Eenadu-style; toggled with a smooth
+          collapse (kept mounted so max-height/opacity can animate). */}
+      <div className={`ev-thumbs-h${showThumbs ? "" : " is-hidden"}`}>
         {pages.map((p, i) => (
           <button key={p.pageNumber} className={`ev-thumb${i === idx ? " active" : ""}`} onClick={() => go(i)}>
             <span className="ev-thumb-no">{String(p.pageNumber).padStart(2, "0")}</span>
@@ -480,6 +507,14 @@ export function EpaperViewer({
           display: flex; gap: 8px; padding: 12px 14px;
           background: #fff; border-bottom: 1px solid rgba(0,0,0,0.06);
           overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
+          /* Smooth collapse/expand when toggled with the "పేజీలు" button. */
+          max-height: 220px; opacity: 1;
+          transition: max-height .3s ease, opacity .22s ease, padding .3s ease, border-width .3s ease;
+        }
+        .ev-thumbs-h.is-hidden {
+          max-height: 0; opacity: 0;
+          padding-top: 0; padding-bottom: 0; border-bottom-width: 0;
+          overflow: hidden; pointer-events: none;
         }
         .ev-thumbs-h::-webkit-scrollbar { height: 6px; }
         .ev-thumbs-h::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 3px; }
@@ -536,14 +571,29 @@ export function EpaperViewer({
           .ev-hotspot { background: rgba(0,120,255,0.05); outline: 1px solid rgba(0,120,255,0.18); }
         }
         /* CLIP SELECTION BOX + resize handles */
+        /* Animated "marching ants" dashed border (Sakshi-style). The four
+           edges are drawn as repeating gradients and the background-position is
+           animated so the dashes crawl. Interior stays transparent. */
         .ev-sel {
           position: absolute; z-index: 6; cursor: move;
-          border: 2px solid #FFD400; background: rgba(255,212,0,0.12);
-          box-shadow: 0 0 0 9999px rgba(0,0,0,0.32);
+          background:
+            linear-gradient(90deg, #fff 50%, transparent 0) repeat-x top left,
+            linear-gradient(90deg, #fff 50%, transparent 0) repeat-x bottom left,
+            linear-gradient(0deg, #fff 50%, transparent 0) repeat-y top left,
+            linear-gradient(0deg, #fff 50%, transparent 0) repeat-y top right;
+          background-size: 10px 2px, 10px 2px, 2px 10px, 2px 10px;
+          box-shadow: 0 0 0 9999px rgba(0,0,0,0.28);
+          animation: ev-march .5s linear infinite;
         }
+        @keyframes ev-march {
+          to { background-position: 10px 0, -10px 100%, 0 -10px, 100% 10px; }
+        }
+        /* Resize handles - larger, translucent black fill, white outline (with a
+           thin dark ring so they read on any background). */
         .ev-handle {
-          position: absolute; width: 12px; height: 12px; background: #fff;
-          border: 2px solid #B91414; border-radius: 2px; z-index: 7;
+          position: absolute; width: 15px; height: 15px; background: rgba(0,0,0,0.4);
+          border: 2px solid #fff; border-radius: 1px; z-index: 7;
+          box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
         }
         .ev-h-nw { left: -7px; top: -7px; cursor: nwse-resize; }
         .ev-h-n  { left: 50%; top: -7px; transform: translateX(-50%); cursor: ns-resize; }
