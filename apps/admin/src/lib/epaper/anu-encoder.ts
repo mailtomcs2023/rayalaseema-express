@@ -5,8 +5,8 @@
 // Only the I/O was refactored from DOM to a pure (string)=>string function.
 /* eslint-disable */
 const vowels: Record<number, string> = {
-	3074: String.fromCharCode(0x2B), // ం    // need to add కః symbol
-	//3075: String.fromCharCode(),
+	3074: String.fromCharCode(0x2B), // ం
+	3075: String.fromCharCode(0x27), // ః  visarga (U+0C03)
 	3077: String.fromCharCode(0x6E), // అ
 	3078: String.fromCharCode(0x80), //  ఆ
 	3079: String.fromCharCode(0x82), //  ఇ
@@ -609,6 +609,13 @@ const consonants: Record<number, { base: string; symbols: Record<number, string>
 	}
 }
 
+// Conjuncts that Anu draws as a single precomposed glyph; building them from
+// base+ottu renders wrong (e.g. శ్రీ). Keyed by the exact Unicode cluster,
+// checked before the compositional logic. Longest keys should be listed first.
+const ligatures: Record<string, string> = {
+	"శ్రీ": String.fromCharCode(0x6C), // శ్రీ (U+0C36 0C4D 0C30 0C40)
+}
+
 export function unicodeToAnu(input: string): string {
 	let out = "";
 	let i = 0, j = 0, x = 0, y = 0;
@@ -622,6 +629,12 @@ export function unicodeToAnu(input: string): string {
 			out += String.fromCharCode(uniText.charCodeAt(i))
 			continue
 		}
+		// precomposed ligatures take precedence over compositional building
+		let ligHit = ""
+		for (const cl in ligatures) {
+			if (uniText.substr(i, cl.length) === cl) { ligHit = cl; break }
+		}
+		if (ligHit) { out += ligatures[ligHit]; i += ligHit.length - 1; continue }
 		//check for spaces and enters
 		switch (uniText.charCodeAt(i)) {
 			case 0x20: // space
@@ -651,12 +664,15 @@ export function unicodeToAnu(input: string): string {
 				// console.log("Found Visarga")	
 				let extensionNumber = uniText.charCodeAt(i + 2)
 				/////////////////////////////////
-				if (!!uniText.charCodeAt(i + 3) && uniText.charCodeAt(i + 3) >= 3134 && uniText.charCodeAt(i + 1) <= 3150) { // check if the next char is a symbol
+				if (uniText.charCodeAt(i + 3) === 3149 && uniText.charCodeAt(i + 4) === 3120) { // stacked conjunct + rakaar: C1్C2్ర (e.g. ష్ట్ర in రాష్ట్రం) -> prepend ra-vottu
+					totalLetter = extensions[3120] + consonants[x].base + extensions[extensionNumber]
+					i = i + 4
+				} else if (!!uniText.charCodeAt(i + 3) && uniText.charCodeAt(i + 3) >= 3134 && uniText.charCodeAt(i + 1) <= 3150) { // check if the next char is a symbol
 					for (y = 3134; y <= 3150; y++) {
 						if (uniText.charCodeAt(i + 3) === y){
-							totalLetter = (consonants[x].symbols[y] || consonants[x].base) + extensions[extensionNumber]// find the symbol (if it exists) and assign it
+							totalLetter = (consonants[x].symbols[y] || consonants[x].base) + extensions[extensionNumber] + (y === 3139 ? String.fromCharCode(0x8F) : "")// find the symbol (if it exists) and assign it; ru-matra (U+0C43) appends 0x8F
 							if (extensionNumber === 3120) {
-								totalLetter = extensions[extensionNumber] + (consonants[x].symbols[y] || consonants[x].base) // special case for "RA" extension
+								totalLetter = extensions[extensionNumber] + (consonants[x].symbols[y] || consonants[x].base) + (y === 3139 ? String.fromCharCode(0x8F) : "") // special case for "RA" extension
 								//if (uniText.charCodeAt(i + 4 === 0x20)) {totalLetter += String.fromCharCode(0x20);}
 								//i += 4
 							}
@@ -685,7 +701,7 @@ export function unicodeToAnu(input: string): string {
 				if (!!uniText.charCodeAt(i + 1) && uniText.charCodeAt(i + 1) >= 3134 && uniText.charCodeAt(i + 1) <= 3150) { // check if the next char is a symbol
 					for (y = 3134; y <= 3150; y++) {
 						if (uniText.charCodeAt(i + 1) === y){
-							totalLetter = consonants[x].symbols[y] || consonants[x].base // guard: unknown matra falls back to base (no "undefined")
+							totalLetter = (y === 3139) ? (consonants[x].base + String.fromCharCode(0x8F)) : (consonants[x].symbols[y] || consonants[x].base) // ru-matra (U+0C43): base + 0x8F; else symbol or base
 						}
 					}
 				} else if (!totalLetter) { //////////////////
