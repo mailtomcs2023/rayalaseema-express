@@ -267,8 +267,10 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
               }}
             >
               {/* Two identical copies so the -50% loop is seamless. The second
-                  copy is aria-hidden so screen readers announce each headline once. */}
-              {[0, 1].map((copy) => (
+                  copy is aria-hidden so screen readers announce each headline once.
+                  Only render when there are items - otherwise the trailing
+                  separators show up as stray dots on an empty ticker. */}
+              {breakingNews.length > 0 && [0, 1].map((copy) => (
                 <span key={copy} aria-hidden={copy === 1} style={{ display: "inline-flex", alignItems: "center", flexShrink: 0 }}>
                   {breakingNews.map((item, i) => (
                     <span key={item.id || i} style={{ display: "inline-flex", alignItems: "center" }}>
