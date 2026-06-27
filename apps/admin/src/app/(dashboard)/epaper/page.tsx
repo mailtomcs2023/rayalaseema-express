@@ -1408,16 +1408,32 @@ function EpaperEditorPage() {
   };
 
   // Explicit "Save changes": persist the current page, then re-render the
-  // edition. The website shows the rendered page images / PDF (not the live
-  // layout), so without a re-render the published e-paper keeps showing the
-  // old output. Re-rendering here makes saved edits appear on the site.
+  // edition IN PLACE so the published e-paper (the website shows the rendered
+  // images / PDF, not the live layout) reflects the edit. Unlike the "Render
+  // PDF" button this stays put - no loadEdition() reload and no PDF tab - so
+  // the editor keeps the same page, scroll and selection.
   const saveChanges = async () => {
-    if (!activePage) return;
+    if (!activePage || !edition) return;
     const isV2 = editorVersion === "v2";
     const res = await patchPage(isV2 ? { blocks: activePage.layout.blocks, coordSystem: "mm-v2" } : { blocks: activePage.layout.blocks });
     if (!res) return;
-    toast("success", "Saved - updating the published e-paper…");
-    await renderEdition();
+    setBusy("rendering");
+    try {
+      const r = await fetch("/api/epaper/render-v2", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ editionId: edition.id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Render failed");
+      setPreflightReload((n) => n + 1);
+      setWarnings(Array.isArray(d.qualityWarnings) ? d.qualityWarnings : []);
+      toast("success", `Saved & published${d.pageCount ? ` - ${d.pageCount} pages re-rendered` : ""}`);
+    } catch (e: any) {
+      toast("error", e.message || "Saved, but the re-render failed - use Render PDF to retry");
+    } finally {
+      setBusy(null);
+    }
   };
 
   // Reset every block's STYLE overrides (heading font, heading / heading-BG /
@@ -3122,11 +3138,6 @@ function DraggableBlockGrid({
   onInlineEdit?: (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => void;
 }) {
   const [settingsBlockId, setSettingsBlockId] = useState<string | null>(null);
-  // True only while a tile is being dragged/resized. We hide the heavy scaled
-  // iframe underlay during the gesture so each frame composites just the light
-  // grid tiles instead of repainting the full rendered page - the difference
-  // between butter-smooth and laggy. The underlay reappears on release.
-  const [interacting, setInteracting] = useState(false);
   const activeSettingsBlock = layout.blocks.find(b => b.id === settingsBlockId);
   // Which block's inline text editor is open. Opening is now explicit (double-
   // click or the "Edit text" toolbar button) - it no longer pops up on every
@@ -3287,9 +3298,6 @@ function DraggableBlockGrid({
             background: "#FFFFFF",
             border: "1px solid #d8d0bd",
             zIndex: 0,
-            // Drop the heavy underlay out of the paint path during a drag/resize
-            // so frames stay smooth; it pops back instantly on release.
-            visibility: interacting ? "hidden" : "visible",
           }}>
             <iframe
               title="WYSIWYG underlay"
@@ -3336,7 +3344,7 @@ function DraggableBlockGrid({
           </div>
         )}
       <GridLayout
-        className={`re-epaper-grid${interacting ? " is-interacting" : ""}`}
+        className="re-epaper-grid"
         layout={rglLayout}
         cols={COLS}
         rowHeight={ROW_H}
@@ -3344,10 +3352,8 @@ function DraggableBlockGrid({
         margin={[GRID_MARGIN_X, GRID_MARGIN_Y]}
         containerPadding={[0, 0]}
         compactType="vertical"
-        onDragStart={() => setInteracting(true)}
-        onResizeStart={() => setInteracting(true)}
-        onDragStop={(l, o, n) => { setInteracting(false); onChange(l, o, n, "drag"); }}
-        onResizeStop={(l, o, n) => { setInteracting(false); onChange(l, o, n, "resize"); }}
+        onDragStop={(l, o, n) => onChange(l, o, n, "drag")}
+        onResizeStop={(l, o, n) => onChange(l, o, n, "resize")}
         draggableCancel=".lock-btn"
       >
         {layout.blocks.map((b) => {
@@ -3505,14 +3511,6 @@ function DraggableBlockGrid({
       </GridLayout>
       <style>{`
         .re-epaper-grid .react-grid-item.react-grid-placeholder { background: #4f46e5; opacity: 0.18; border-radius: 6px; }
-        /* While dragging/resizing, kill the per-frame work: no tile transitions,
-           and hide the hover toolbar / warning chips / resize handles so each
-           frame only composites the moving tile. Restores on release. */
-        .re-epaper-grid.is-interacting .epb-tile { transition: none; }
-        .re-epaper-grid.is-interacting .epb-toolbar,
-        .re-epaper-grid.is-interacting .epb-warn,
-        .re-epaper-grid.is-interacting .react-resizable-handle { display: none; }
-        .re-epaper-grid.is-interacting .epb-tile:hover { border-color: #d1d5db; }
         /* Make the resize handle a clearly grabbable corner instead of the
            library's faint default - it was a big part of "clunky resize". */
         .re-epaper-grid .react-resizable-handle { z-index: 9; opacity: 0; transition: opacity .12s ease; }
