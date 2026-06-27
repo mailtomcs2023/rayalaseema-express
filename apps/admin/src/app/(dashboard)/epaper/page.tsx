@@ -1407,13 +1407,17 @@ function EpaperEditorPage() {
     await patchPage(isV2 ? { blocks: newBlocks, coordSystem: "mm-v2" } : { blocks: newBlocks });
   };
 
-  // Explicit "Save changes": the editor already auto-saves every edit, so this
-  // just re-persists the current page and confirms - a reassurance button.
+  // Explicit "Save changes": persist the current page, then re-render the
+  // edition. The website shows the rendered page images / PDF (not the live
+  // layout), so without a re-render the published e-paper keeps showing the
+  // old output. Re-rendering here makes saved edits appear on the site.
   const saveChanges = async () => {
     if (!activePage) return;
     const isV2 = editorVersion === "v2";
     const res = await patchPage(isV2 ? { blocks: activePage.layout.blocks, coordSystem: "mm-v2" } : { blocks: activePage.layout.blocks });
-    if (res) toast("success", "All changes saved");
+    if (!res) return;
+    toast("success", "Saved - updating the published e-paper…");
+    await renderEdition();
   };
 
   // Reset every block's STYLE overrides (heading font, heading / heading-BG /
