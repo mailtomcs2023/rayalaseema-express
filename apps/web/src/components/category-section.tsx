@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { proxyImg } from "@/lib/img";
 import { Badge } from "@rayalaseema/ui";
 import { articleHref } from "@/lib/article-href";
 import { categoryHref } from "@/lib/category-href";
@@ -55,7 +56,7 @@ function ArticleCardLarge({ article, color }: { article: Article; color: string 
       <div className="relative aspect-[16/10] rounded-xl overflow-hidden mb-3">
         {article.featuredImage ? (
           <img
-            src={article.featuredImage}
+            src={proxyImg(article.featuredImage, 640)}
             alt={article.title}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -92,7 +93,7 @@ function ArticleCardSmall({ article, color }: { article: Article; color: string 
       <div className="relative aspect-video rounded-lg overflow-hidden mb-2.5">
         {article.featuredImage ? (
           <img
-            src={article.featuredImage}
+            src={proxyImg(article.featuredImage, 640)}
             alt={article.title}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -125,7 +126,7 @@ function ArticleCardList({ article, color }: { article: Article; color: string }
       <div className="w-36 h-24 shrink-0 rounded-lg overflow-hidden">
         {article.featuredImage ? (
           <img
-            src={article.featuredImage}
+            src={proxyImg(article.featuredImage, 640)}
             alt={article.title}
             className="w-full h-full object-cover"
             loading="lazy"

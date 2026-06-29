@@ -1,4 +1,5 @@
 import { articleHref } from "@/lib/article-href";
+import { proxyImg } from "@/lib/img";
 import { Badge } from "@rayalaseema/ui";
 
 interface DistrictArticle {
@@ -64,7 +65,7 @@ export function DistrictNews({ articles }: { articles: DistrictArticle[] }) {
             <div className="w-20 h-16 shrink-0 rounded-lg overflow-hidden">
               {article.featuredImage ? (
                 <img
-                  src={article.featuredImage}
+                  src={proxyImg(article.featuredImage, 640)}
                   alt={article.title}
                   className="w-full h-full object-cover"
                   loading="lazy"

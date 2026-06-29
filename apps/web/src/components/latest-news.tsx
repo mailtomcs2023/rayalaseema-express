@@ -4,6 +4,7 @@
 // fetchLatestNews; this component is presentational.
 
 import Link from "next/link";
+import { proxyImg } from "@/lib/img";
 
 export interface LatestNewsArticle {
   id: string;
@@ -33,7 +34,7 @@ export function LatestNews({ articles }: { articles: LatestNewsArticle[] }) {
           <Link key={a.id} href={a.href} className="ln-card">
             <span className="ln-thumb">
               {a.featuredImage ? (
-                <img src={a.featuredImage} alt="" loading="lazy" />
+                <img src={proxyImg(a.featuredImage, 384)} alt="" loading="lazy" />
               ) : (
                 <span className="ln-noimg">RN</span>
               )}

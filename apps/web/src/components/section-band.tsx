@@ -1,6 +1,7 @@
 "use client";
 
 import { articleHref } from "@/lib/article-href";
+import { proxyImg } from "@/lib/img";
 import { normalizeCategoryHref } from "@/lib/category-href";
 import { SectionHeading, sectionIcon } from "@/components/section-heading";
 import Link from "next/link";
@@ -131,7 +132,7 @@ export function SectionBand({
             </div>
             <Link href={articleHref(viewLead)} className="sb-lead-img" aria-label={viewLead.title}>
               {viewLead.featuredImage ? (
-                <img src={viewLead.featuredImage} alt={viewLead.title} loading="lazy" />
+                <img src={proxyImg(viewLead.featuredImage, 640)} alt={viewLead.title} loading="lazy" />
               ) : (
                 <div className="sb-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
               )}
@@ -146,7 +147,7 @@ export function SectionBand({
                 </div>
                 <div className="sb-grid-thumb">
                   {a.featuredImage ? (
-                    <img src={a.featuredImage} alt={a.title} loading="lazy" />
+                    <img src={proxyImg(a.featuredImage, 384)} alt={a.title} loading="lazy" />
                   ) : (
                     <div className="sb-noimg sb-noimg-sm"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
                   )}
@@ -216,7 +217,7 @@ export function SectionBand({
               <div className="sb-rail-head" style={{ marginTop: 18 }}>
                 ఎట్టెట <span aria-hidden="true">›</span>
               </div>
-              <img className="sb-cartoon-img" src={cartoon.image} alt={cartoon.title} loading="lazy" />
+              <img className="sb-cartoon-img" src={proxyImg(cartoon.image, 640)} alt={cartoon.title} loading="lazy" />
               <div className="sb-cartoon-cap">{cartoon.caption || cartoon.title}</div>
               <div className="sb-cartoon-date">{cartoon.date}</div>
             </div>

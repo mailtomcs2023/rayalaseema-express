@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { proxyImg } from "@/lib/img";
 import Link from "next/link";
 import { articleHref } from "@/lib/article-href";
 import { categoryHref } from "@/lib/category-href";
@@ -56,7 +57,7 @@ export function NewsSlider({ items }: { items: SliderItem[] }) {
         {item.featuredImage ? (
           <img
             key={item.id}
-            src={item.featuredImage}
+            src={proxyImg(item.featuredImage, 1080)}
             alt={item.title}
             width={1280}
             height={720}

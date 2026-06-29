@@ -1,4 +1,5 @@
 import { articleHref } from "@/lib/article-href";
+import { proxyImg } from "@/lib/img";
 import Link from "next/link";
 
 interface NewsGridItem {
@@ -28,7 +29,7 @@ export function NewsGrid({ items }: { items: NewsGridItem[] }) {
             <div className="w-[130px] h-[90px] shrink-0 overflow-hidden rounded">
               {item.featuredImage ? (
                 <img
-                  src={item.featuredImage}
+                  src={proxyImg(item.featuredImage, 384)}
                   alt={item.title}
                   className="w-full h-full object-cover news-card-img transition-transform duration-300"
                   loading="lazy"
