@@ -11,7 +11,7 @@
 //   5. lock toggle per block (autofill skips locked blocks on regenerate)
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
-import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
 import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, ChevronsUp } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
@@ -22,6 +22,7 @@ import { confirm, prompt } from "@/components/confirm-dialog";
 import { PreflightPanel, PreflightChip } from "@/components/epaper/preflight-panel";
 import { InlineTextEditor } from "@/components/epaper/inline-text-editor";
 import { BlockSettingsDialog } from "@/components/epaper/block-settings-dialog";
+import { TELUGU_FONTS_HREF } from "@/lib/epaper/telugu-fonts";
 import { WithTooltip } from "@/components/ui/tooltip";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -143,7 +144,6 @@ const EP_ROW_GAP = 12;
 // every layout still sums to the full 6-column width:
 //   6 cols → 2+2+2+2+2+2     5 cols → 2+2+2+3+3 (three 1-col + two 1.5-col)
 //   4 cols → 3+3+3+3 (1.5 each)   3 cols → 4+4+4 (2 each)   2 cols → 6+6
-const COLUMN_PRESETS = [2, 3, 4, 5, 6] as const;
 const COLUMN_BOUNDARIES: Record<number, number[]> = {
   1: [0, 12],
   2: [0, 6, 12],
@@ -181,7 +181,29 @@ export default function EpaperEditorPageWrapper() {
   return <Suspense fallback={null}><EpaperEditorPage /></Suspense>;
 }
 
+// Inject the heavy font CSS (24 Google Telugu families + 110 self-hosted Anu
+// faces) only while the e-paper editor is mounted - the block-settings font
+// picker is the only consumer. Loading these globally slowed every admin page;
+// here they're added on mount and removed on unmount. Idempotent across the
+// StrictMode double-invoke via a stable id.
+function useEpaperFonts() {
+  useEffect(() => {
+    const links: HTMLLinkElement[] = [];
+    const add = (href: string, id: string) => {
+      if (document.getElementById(id)) return;
+      const l = document.createElement("link");
+      l.rel = "stylesheet"; l.href = href; l.id = id;
+      document.head.appendChild(l);
+      links.push(l);
+    };
+    add(TELUGU_FONTS_HREF, "epaper-google-fonts");
+    add("/anu-fonts/anu-fonts.css", "epaper-anu-fonts");
+    return () => { links.forEach((l) => l.remove()); };
+  }, []);
+}
+
 function EpaperEditorPage() {
+  useEpaperFonts();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -620,7 +642,13 @@ function EpaperEditorPage() {
     if (!node) return;
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
-      if (w && w > 0) setCanvasW(w);
+      // Quantise to whole pixels and ignore sub-1px jitter. The raw contentRect
+      // width is fractional and flickers on scrollbar/reflow; since it feeds
+      // GRID_SCALE -> the underlay iframe's ?zoom= URL, every fractional change
+      // used to fully reload that iframe (server re-render + image refetch) and
+      // could even thrash in a ResizeObserver feedback loop. Rounding + the 1px
+      // threshold keeps the iframe URL stable so it only reloads on real edits.
+      if (w && w > 0) setCanvasW((prev) => Math.abs(prev - w) < 1 ? prev : Math.round(w));
     });
     ro.observe(node);
     roRef.current = ro;
@@ -634,7 +662,8 @@ function EpaperEditorPage() {
     if (!node) return;
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
-      if (w && w > 0) setPreviewW(w);
+      // Same sub-pixel quantisation as the canvas pane (see canvasPaneRef).
+      if (w && w > 0) setPreviewW((prev) => Math.abs(prev - w) < 1 ? prev : Math.round(w));
     });
     ro.observe(node);
     previewRoRef.current = ro;
@@ -1304,15 +1333,10 @@ function EpaperEditorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage?.id]);
 
-  // Active page's newspaper-column preset (persisted on the layout). Drives the
-  // column guides + edge snapping in the canvas.
-  const activeColumns = (((activePage?.layout as any)?.columns as number) || DEFAULT_COLUMNS);
-  const setColumns = async (n: number) => {
-    if (!activePage || n === activeColumns) return;
-    setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
-      p.id === activePage.id ? { ...p, layout: { ...(p.layout as any), columns: n } } : p) } : prev);
-    await patchPage({ columns: n });
-  };
+  // Column count is fixed at a 6-column broadsheet grid (DEFAULT_COLUMNS). The
+  // per-page picker was removed; every page uses the same 6 columns for guides
+  // + edge snapping. Hold Alt while dragging a block for free placement.
+  const activeColumns = DEFAULT_COLUMNS;
 
   const setBlockArticle = async (articleId: string | null, targetBlockId?: string) => {
     if (!activePage) return;
@@ -1721,6 +1745,66 @@ function EpaperEditorPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
+
+  // --- Performance ----------------------------------------------------------
+  // <DraggableBlockGrid> (the canvas + its underlay iframe + every block tile)
+  // is the heaviest subtree in this editor. It used to re-render on EVERY
+  // parent state change - typing in the article search, hovering, opening a
+  // panel - because it isn't memoised and its callback/derived props were new
+  // objects each render. We now hand it referentially STABLE props so React.memo
+  // can skip those unrelated re-renders. The stable callbacks delegate through a
+  // ref that always holds the latest closures, so they can never go stale.
+  const gridSelect = useCallback((id: string, e?: React.MouseEvent) => {
+    if (e?.shiftKey) {
+      setSelectedBlockIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+      });
+    } else {
+      setSelectedBlockId(id);
+      setSelectedBlockIds(new Set([id]));
+    }
+  }, []);
+
+  const gridHandlersRef = useRef<Record<string, (...args: any[]) => any>>({});
+  gridHandlersRef.current = {
+    onBlockDragOver, onBlockDragLeave, onBlockDrop, removeBlock, clearOffPageBlocks, toggleLock, saveLayout,
+    onInlineEdit: async (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => {
+      if (!activePage) return;
+      const existing = activePage.layout.blocks.find((b) => b.id === blockId);
+      if (!existing) return;
+      const blocks = activePage.layout.blocks.map((b) => b.id === blockId ? { ...b, ...patch } : b);
+      const sameTitle = patch.overrideTitle !== undefined && (existing.overrideTitle ?? "") === patch.overrideTitle;
+      const sameDek = patch.overrideDek !== undefined && (existing.overrideDek ?? "") === patch.overrideDek;
+      if ((patch.overrideTitle !== undefined ? sameTitle : true) && (patch.overrideDek !== undefined ? sameDek : true)) return;
+      pushUndo(activePage.id, activePage.layout.blocks);
+      setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
+        p.id === activePage.id ? { ...p, layout: { blocks } } : p) } : prev);
+      await patchPage({ blocks });
+    },
+  };
+  const sDragOver = useCallback((e: React.DragEvent, id: string) => gridHandlersRef.current.onBlockDragOver(e, id), []);
+  const sDragLeave = useCallback((id: string) => gridHandlersRef.current.onBlockDragLeave(id), []);
+  const sDrop = useCallback((e: React.DragEvent, id: string) => gridHandlersRef.current.onBlockDrop(e, id), []);
+  const sRemove = useCallback((id: string) => gridHandlersRef.current.removeBlock(id), []);
+  const sClearOff = useCallback(() => gridHandlersRef.current.clearOffPageBlocks(), []);
+  const sToggleLock = useCallback((id: string) => gridHandlersRef.current.toggleLock(id), []);
+  const sSaveLayout = useCallback((b: Block[]) => gridHandlersRef.current.saveLayout(b), []);
+  const sInlineEdit = useCallback((id: string, patch: { overrideTitle?: string; overrideDek?: string }) => gridHandlersRef.current.onInlineEdit(id, patch), []);
+
+  // Per-page block warnings, memoised so the grid doesn't get a fresh object
+  // (and re-render) on every parent render.
+  const warningsByBlock = useMemo(() => {
+    if (!activePage) return {} as Record<string, QWarning[]>;
+    const map = new Map<string, QWarning[]>();
+    for (const w of warnings) {
+      if (w.pageNumber !== activePage.pageNumber) continue;
+      const arr = map.get(w.blockId) || [];
+      arr.push(w); map.set(w.blockId, arr);
+    }
+    return Object.fromEntries(map);
+  }, [warnings, activePage?.pageNumber]);
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#f3f4f6" }}>
@@ -2726,24 +2810,10 @@ function EpaperEditorPage() {
                                 {t}
                               </button>
                             ))}
-                            {/* Newspaper column preset for this page - draws guides
-                                + snaps block edges. 6-col broadsheet base. */}
-                            <div style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                              <WithTooltip text="Newspaper columns for this page. Block edges snap to these; widths always fill the 6-column page (e.g. 4 = four 1.5-col, 5 = three 1-col + two 1.5-col).">
-                                <span style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>Columns</span>
-                              </WithTooltip>
-                              <div style={{ display: "inline-flex", border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden" }}>
-                                {COLUMN_PRESETS.map((n, idx) => (
-                                  <button key={n} onClick={() => setColumns(n)}
-                                    style={{ padding: "3px 9px", fontSize: 11, fontWeight: 700, lineHeight: 1.4,
-                                      border: "none", borderLeft: idx === 0 ? "none" : "1px solid #e5e7eb",
-                                      background: activeColumns === n ? "#4f46e5" : "#fff",
-                                      color: activeColumns === n ? "#fff" : "#374151", cursor: "pointer" }}>
-                                    {n}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                            {/* Column-count picker removed - the page is now fixed
+                                at a 6-column broadsheet grid (DEFAULT_COLUMNS).
+                                Block edges still snap to those 6 columns; hold Alt
+                                while dragging for free placement. */}
                             {drawType && (
                               <span style={{ width: "100%", fontSize: 11, color: "#16a34a", fontWeight: 700 }}>
                                 Drag on canvas to draw a {drawType} block. Esc cancels.
@@ -2767,55 +2837,21 @@ function EpaperEditorPage() {
                           columns={activeColumns}
                           layout={activePage.layout}
                           titles={titles}
-                          warningsByBlock={Object.fromEntries(
-                            warnings.filter((w) => w.pageNumber === activePage.pageNumber)
-                              .reduce((acc: Map<string, QWarning[]>, w) => {
-                                const arr = acc.get(w.blockId) || [];
-                                arr.push(w);
-                                acc.set(w.blockId, arr);
-                                return acc;
-                              }, new Map())
-                          )}
+                          warningsByBlock={warningsByBlock}
                           selectedBlockId={selectedBlockId}
                           multiSelected={selectedBlockIds}
                           dragOverBlockId={dragOverBlockId}
-                          onDragOverBlock={onBlockDragOver}
-                          onDragLeaveBlock={onBlockDragLeave}
-                          onDropBlock={onBlockDrop}
-                          onRemoveBlock={removeBlock}
-                          onClearOffPage={clearOffPageBlocks}
+                          onDragOverBlock={sDragOver}
+                          onDragLeaveBlock={sDragLeave}
+                          onDropBlock={sDrop}
+                          onRemoveBlock={sRemove}
+                          onClearOffPage={sClearOff}
                           pageId={activePage.id}
                           pageVersion={underlayVersion}
-                          onInlineEdit={async (blockId, patch) => {
-                            if (!activePage) return;
-                            const blocks = activePage.layout.blocks.map((b) =>
-                              b.id === blockId ? { ...b, ...patch } : b);
-                            // Skip patch + state update when nothing changed.
-                            const existing = activePage.layout.blocks.find((b) => b.id === blockId);
-                            if (!existing) return;
-                            const sameTitle = patch.overrideTitle !== undefined && (existing.overrideTitle ?? "") === patch.overrideTitle;
-                            const sameDek = patch.overrideDek !== undefined && (existing.overrideDek ?? "") === patch.overrideDek;
-                            if ((patch.overrideTitle !== undefined ? sameTitle : true) && (patch.overrideDek !== undefined ? sameDek : true)) return;
-                            pushUndo(activePage.id, activePage.layout.blocks);
-                            setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
-                              p.id === activePage.id ? { ...p, layout: { blocks } } : p) } : prev);
-                            await patchPage({ blocks });
-                          }}
-                          onSelect={(id, e) => {
-                            if (e?.shiftKey) {
-                              setSelectedBlockIds((prev) => {
-                                const next = new Set(prev);
-                                if (next.has(id)) next.delete(id);
-                                else next.add(id);
-                                return next;
-                              });
-                            } else {
-                              setSelectedBlockId(id);
-                              setSelectedBlockIds(new Set([id]));
-                            }
-                          }}
-                          onToggleLock={toggleLock}
-                          onLayoutChange={saveLayout}
+                          onInlineEdit={sInlineEdit}
+                          onSelect={gridSelect}
+                          onToggleLock={sToggleLock}
+                          onLayoutChange={sSaveLayout}
                         />
                         </div>
                       )}
@@ -2839,13 +2875,12 @@ function EpaperEditorPage() {
                         {(() => {
                           const scale = previewW > 0 ? previewW / EP_IFRAME_W : 1;
                           return (
-                            <div style={{ width: previewW || "100%", height: EP_IFRAME_H * scale, position: "relative" }}>
+                            <div style={{ width: previewW || "100%", height: EP_IFRAME_H * scale }}>
                               <iframe
                                 title="Live preview"
-                                src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${showBaseline ? "&grid=1" : ""}`}
-                                width={EP_IFRAME_W}
-                                height={EP_IFRAME_H}
-                                style={{ border: "none", background: "#FFFFFF", display: "block", position: "absolute", top: 0, left: 0, transform: `scale(${scale})`, transformOrigin: "0 0" }}
+                                // &zoom shrinks the page INSIDE the iframe (crisp re-render); shown 1:1 here.
+                                src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${showBaseline ? "&grid=1" : ""}${scale < 1 ? `&zoom=${scale}` : ""}`}
+                                style={{ border: "none", background: "#FFFFFF", display: "block", width: previewW || EP_IFRAME_W, height: EP_IFRAME_H * scale }}
                               />
                             </div>
                           );
@@ -3103,7 +3138,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
  *  - Static (non-draggable) treatment for masthead/section-band so DTP staff
  *    can't accidentally drag the brand band off the page
  */
-function DraggableBlockGrid({
+const DraggableBlockGrid = memo(function DraggableBlockGrid({
   layout, titles, warningsByBlock, selectedBlockId, multiSelected,
   dragOverBlockId, onDragOverBlock, onDragLeaveBlock, onDropBlock,
   onSelect, onToggleLock, onLayoutChange, onRemoveBlock, onClearOffPage,
@@ -3258,6 +3293,7 @@ function DraggableBlockGrid({
         open={!!settingsBlockId}
         onOpenChange={(open) => !open && setSettingsBlockId(null)}
         initialStyle={activeSettingsBlock?.style}
+        previewText={activeSettingsBlock?.overrideTitle?.trim() || (activeSettingsBlock?.articleId ? titles[activeSettingsBlock.articleId]?.title : "") || ""}
         onSave={(style) => {
           if (!settingsBlockId) return;
           const next = layout.blocks.map(b =>
@@ -3301,15 +3337,17 @@ function DraggableBlockGrid({
           }}>
             <iframe
               title="WYSIWYG underlay"
-              src={`/api/epaper/page/${pageId}/preview?v=${pageVersion ?? 0}`}
-              width={EP_IFRAME_W}
-              height={EP_IFRAME_H}
+              // &zoom shrinks the page INSIDE the iframe (re-rendered crisp at
+              // that size); the iframe is then shown 1:1 at the display size, so
+              // there's no bitmap downscaling that softened the fonts.
+              src={`/api/epaper/page/${pageId}/preview?v=${pageVersion ?? 0}&zoom=${GRID_SCALE}`}
               style={{
                 border: "none",
-                transform: `scale(${GRID_SCALE})`,
-                transformOrigin: "0 0",
+                width: GRID_WIDTH,
+                height: MAX_ROWS * ROW_H,
                 pointerEvents: "none",
                 background: "#FFFFFF",
+                display: "block",
               }}
             />
           </div>
@@ -3584,4 +3622,4 @@ function DraggableBlockGrid({
       </div>
     </div>
   );
-}
+});

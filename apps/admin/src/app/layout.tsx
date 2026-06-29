@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { Providers } from "./providers";
 import { auth } from "@/lib/auth";
 import { validateActiveSession } from "@/lib/session-guard";
-import { TELUGU_FONTS_HREF } from "@/lib/epaper/telugu-fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -62,12 +61,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-        {/* Full Telugu family set so the e-paper block-settings font picker can
-            preview each option in its own typeface. See lib/epaper/telugu-fonts. */}
-        <link href={TELUGU_FONTS_HREF} rel="stylesheet" />
-        {/* Self-hosted legacy Anu faces (110 .ttf) so the same picker can offer
-            and resolve them. @font-face family = .ttf basename. */}
-        <link href="/anu-fonts/anu-fonts.css" rel="stylesheet" />
+        {/* The full Telugu family set (24 Google families) + 110 self-hosted Anu
+            faces are NOT loaded here - they are only needed by the e-paper block-
+            settings font picker, so the e-paper editor injects them on mount
+            (see apps/.../epaper/page.tsx). Keeping them off the global layout
+            stops every admin page from parsing that heavy font CSS. */}
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <Providers session={session}>{children}</Providers>

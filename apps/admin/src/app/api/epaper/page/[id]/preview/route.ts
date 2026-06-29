@@ -34,6 +34,14 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       html = html.replace("</head>", `${overlay}</head>`);
     }
 
+    // Editor underlay sharpness: render the page at a reduced size INSIDE the
+    // iframe (CSS zoom on <html>) so text is rasterized crisp at that size. The
+    // editor then shows the iframe 1:1 - no bitmap downscaling, no soft fonts.
+    const zoom = parseFloat(url.searchParams.get("zoom") || "");
+    if (zoom > 0 && zoom < 1) {
+      html = html.replace("</head>", `<style>html{zoom:${zoom}!important}body{-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}</style></head>`);
+    }
+
     return new NextResponse(html, {
       status: 200,
       headers: {

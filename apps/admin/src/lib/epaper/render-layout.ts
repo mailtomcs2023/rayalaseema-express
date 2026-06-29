@@ -14,6 +14,8 @@ import { hyphenateTelugu } from "./telugu-hyphenation";
 import { migrateLegacyLayout, isLegacyLayout } from "./migrate-layout";
 import { TELUGU_FONTS_HREF } from "./telugu-fonts";
 import { estimateCapacity, findSplit } from "./continuation";
+import { isAnuFont, anuFontFaceCss, anuToPua } from "./anu-font-face";
+import { unicodeToAnu } from "./anu-encoder";
 
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
@@ -69,6 +71,13 @@ export interface Block {
     textColor?: string;
     padding?: number;
     margin?: number;
+    // Photoshop-style heading type controls (all optional, headline only).
+    hlLetterSpacing?: number;   // px
+    hlLineHeight?: number;      // unitless multiplier
+    hlShadowX?: number; hlShadowY?: number; hlShadowBlur?: number; hlShadowColor?: string;
+    hlStrokeWidth?: number; hlStrokeColor?: string;
+    hlGradFrom?: string; hlGradTo?: string; hlGradAngle?: number;       // text-fill gradient
+    hlBgGradFrom?: string; hlBgGradTo?: string; hlBgGradAngle?: number; // heading-bg gradient
     dropCap?: boolean;           // #103 - drop cap on lead body first letter
     pullQuoteAttribution?: string; // #103 - small "- By X" line under pull-quote
   };
@@ -191,6 +200,33 @@ function cmykColorBar(): string {
   return `<div class="cmyk-bar" aria-hidden="true">${cross}${mid}${cross}</div>`;
 }
 
+// Bare family name from a CSS font-family value: "'Pragathi-Special'" -> "Pragathi-Special".
+function fontFamilyName(value?: string): string {
+  return (value || "").split(",")[0].trim().replace(/^['"]|['"]$/g, "");
+}
+
+// Headline text for a block. Legacy Anu faces are NOT Unicode - they map glyphs
+// into the font's Private-Use-Area, so the real Telugu must first be byte-
+// encoded (unicodeToAnu) and projected into the PUA (anuToPua). For any normal
+// Unicode font we just HTML-escape. The matching @font-face is injected by
+// anuFacesFor() so the chosen Anu .ttf actually loads.
+function headlineHtml(text: string, b: Block): string {
+  const fam = fontFamilyName(b.style?.hlFontFamily);
+  if (fam && isAnuFont(fam)) return anuToPua(unicodeToAnu(text));
+  return esc(text);
+}
+
+// Collect the @font-face rules for every distinct Anu heading font used on the
+// page, so their .ttf are embedded once in the render.
+function anuFacesFor(blocks: Block[]): string {
+  const fams = new Set<string>();
+  for (const b of blocks) {
+    const fam = fontFamilyName(b.style?.hlFontFamily);
+    if (fam && isAnuFont(fam)) fams.add(fam);
+  }
+  return Array.from(fams).map((fam) => anuFontFaceCss(fam)).join("\n");
+}
+
 // Corner crop / trim marks (#71). The four "+" registration crosses every major
 // Telugu daily (Eenadu, Sakshi, Andhra Jyothi) prints at the live-area corners
 // so the press knows where to cut the sheet. Centred on each trim corner - half
@@ -227,13 +263,33 @@ function blockStyle(b: Block, extra = ""): string {
   return parts.join("; ");
 }
 
-function hlInlineStyle(s: Block["style"] | undefined, basePx: number): string {
+// Single source of truth for headline styling. Kept in sync with the live
+// preview in block-settings-dialog.tsx (headingPreviewCss) so what the operator
+// sees in Settings is exactly what renders.
+export function headingCss(s: Block["style"] | undefined, basePx: number): string[] {
   const out: string[] = [];
   if (s?.hlScale && s.hlScale !== 1) out.push(`font-size:${(basePx * s.hlScale).toFixed(0)}px`);
-  if (s?.hlColor) out.push(`color:${s.hlColor}`);
-  if (s?.hlBgColor) out.push(`background:${s.hlBgColor}`);
-  if (s?.hlBgColor) out.push(`padding:6px 12px`);
   if (s?.hlFontFamily) out.push(`font-family:${s.hlFontFamily}`);
+  if (typeof s?.hlLetterSpacing === "number") out.push(`letter-spacing:${s.hlLetterSpacing}px`);
+  if (typeof s?.hlLineHeight === "number") out.push(`line-height:${s.hlLineHeight}`);
+  // Text fill: a gradient (background-clip:text) takes precedence over a solid
+  // colour; the heading background is then suppressed (both use `background`).
+  const textGrad = s?.hlGradFrom && s?.hlGradTo;
+  if (textGrad) {
+    out.push(`background-image:linear-gradient(${s!.hlGradAngle ?? 90}deg,${s!.hlGradFrom},${s!.hlGradTo})`);
+    out.push(`-webkit-background-clip:text`, `background-clip:text`, `-webkit-text-fill-color:transparent`, `color:transparent`);
+  } else {
+    if (s?.hlColor) out.push(`color:${s.hlColor}`);
+    if (s?.hlBgGradFrom && s?.hlBgGradTo) out.push(`background:linear-gradient(${s.hlBgGradAngle ?? 90}deg,${s.hlBgGradFrom},${s.hlBgGradTo})`, `padding:6px 12px`);
+    else if (s?.hlBgColor) out.push(`background:${s.hlBgColor}`, `padding:6px 12px`);
+  }
+  if (typeof s?.hlStrokeWidth === "number" && s.hlStrokeWidth > 0) out.push(`-webkit-text-stroke:${s.hlStrokeWidth}px ${s.hlStrokeColor || "#000000"}`);
+  if (s?.hlShadowColor) out.push(`text-shadow:${s.hlShadowX ?? 1}px ${s.hlShadowY ?? 1}px ${s.hlShadowBlur ?? 2}px ${s.hlShadowColor}`);
+  return out;
+}
+
+function hlInlineStyle(s: Block["style"] | undefined, basePx: number): string {
+  const out = headingCss(s, basePx);
   return out.length ? ` style="${out.join(";")}"` : "";
 }
 
@@ -370,7 +426,7 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner ${wrapClass}">
       <div class="lead-text">
-        <h1 class="lead-hl"${hlStyle}>${esc(displayTitle)}</h1>
+        <h1 class="lead-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h1>
         ${dekHtml}
       </div>
       ${imgHtml}
@@ -398,7 +454,7 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner">
       ${imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
-      <h2 class="maj-hl"${hlStyle}>${esc(displayTitle)}</h2>
+      <h2 class="maj-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
       ${dekHtml}
     </div>`;
   return `<article class="major block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
@@ -450,7 +506,7 @@ function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner">
       ${imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
-      <h3 class="sec-hl"${hlStyle}>${esc(displayTitle)}</h3>
+      <h3 class="sec-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h3>
       ${dek}
     </div>`;
   return `<article class="secondary block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
@@ -769,6 +825,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
 <html lang="te"><head><meta charset="UTF-8">
 <link href="${FONTS_HREF}" rel="stylesheet">
 <style>
+  ${anuFacesFor(input.layout.blocks)}
   *{margin:0;padding:0;box-sizing:border-box}
   /* @page declares the exact PDF sheet size; preferCSSPageSize=true in
      Playwright honors it. Eliminates the ~80px body-padding overflow that

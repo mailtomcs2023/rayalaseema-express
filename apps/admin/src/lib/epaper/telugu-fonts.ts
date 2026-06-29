@@ -61,20 +61,8 @@ export const TELUGU_FONTS_HREF =
   "&display=swap";
 
 /**
- * Anu faces hidden from the picker: the Dingbits-* symbol/dingbat fonts and
- * Anu-Subhalekha-Two are not usable text faces. Matched against the .ttf
- * basename so regenerating anu-fonts-list.ts never reintroduces them.
- */
-const HIDDEN_ANU = (basename: string) =>
-  basename.startsWith("Dingbits-") || basename === "Anu-Subhalekha-Two";
-
-/**
  * Every heading font offered in the block-settings picker: the Google-hosted
- * Telugu families above plus the usable self-hosted legacy Anu faces. Kept as a
+ * Telugu families above plus all 110 self-hosted legacy Anu faces. Kept as a
  * single list so the dropdown and favourites logic iterate one source.
  */
-export const ALL_HEADING_FONTS: TeluguFont[] = [
-  ...TELUGU_FONTS,
-  // value is the quoted family (e.g. "'Dingbits-Two'"); strip quotes to match.
-  ...ANU_FONTS.filter((f) => !HIDDEN_ANU(f.value.replace(/'/g, ""))),
-];
+export const ALL_HEADING_FONTS: TeluguFont[] = [...TELUGU_FONTS, ...ANU_FONTS];

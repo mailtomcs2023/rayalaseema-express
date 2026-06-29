@@ -10,6 +10,15 @@ import { Select, SelectContent, SelectItem, SelectLabel, SelectSeparator, Select
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ALL_HEADING_FONTS, type TeluguFont } from "@/lib/epaper/telugu-fonts";
+import { unicodeToAnu } from "@/lib/epaper/anu-encoder";
+
+// Map Anu encoder output to the font's Private-Use-Area glyphs. Inlined here
+// (the server helper anuToPua lives in anu-font-face.ts, which imports `fs`).
+function anuToPua(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; i++) out += String.fromCodePoint(0xf000 + s.charCodeAt(i));
+  return out;
+}
 
 // Sentinel for the "Default" choice - shadcn SelectItem cannot use an empty
 // string value, so we map it to "" on change.
@@ -34,9 +43,17 @@ function loadFavFonts(): string[] {
 // they broke the uniform grid alignment; spacing is grid + per-type CSS only.)
 export interface BlockStyleSettings {
   hlFontFamily?: string;
+  hlScale?: number;
   hlColor?: string;
   hlBgColor?: string;
   blockBgColor?: string;
+  // Photoshop-style heading type controls.
+  hlLetterSpacing?: number;
+  hlLineHeight?: number;
+  hlShadowX?: number; hlShadowY?: number; hlShadowBlur?: number; hlShadowColor?: string;
+  hlStrokeWidth?: number; hlStrokeColor?: string;
+  hlGradFrom?: string; hlGradTo?: string; hlGradAngle?: number;
+  hlBgGradFrom?: string; hlBgGradTo?: string; hlBgGradAngle?: number;
 }
 
 interface BlockSettingsDialogProps {
@@ -44,6 +61,33 @@ interface BlockSettingsDialogProps {
   onOpenChange: (open: boolean) => void;
   initialStyle?: Record<string, any>;
   onSave: (style: BlockStyleSettings) => void;
+  /** Heading text shown in the live preview (the block's actual title). */
+  previewText?: string;
+}
+
+// CSS for the live heading preview - MUST mirror render-layout's headingCss so
+// the dialog shows exactly what prints. Reads the raw draft settings (strings
+// from inputs are coerced here).
+function headingPreviewCss(s: Record<string, any>): React.CSSProperties {
+  const css: React.CSSProperties = {};
+  if (s.hlFontFamily) css.fontFamily = s.hlFontFamily;
+  if (s.hlLetterSpacing !== "" && s.hlLetterSpacing != null) css.letterSpacing = `${Number(s.hlLetterSpacing)}px`;
+  if (s.hlLineHeight !== "" && s.hlLineHeight != null) css.lineHeight = Number(s.hlLineHeight);
+  const textGrad = s.hlGradFrom && s.hlGradTo;
+  if (textGrad) {
+    css.backgroundImage = `linear-gradient(${s.hlGradAngle || 90}deg,${s.hlGradFrom},${s.hlGradTo})`;
+    (css as any).WebkitBackgroundClip = "text";
+    css.backgroundClip = "text";
+    (css as any).WebkitTextFillColor = "transparent";
+    css.color = "transparent";
+  } else {
+    if (s.hlColor) css.color = s.hlColor;
+    if (s.hlBgGradFrom && s.hlBgGradTo) { css.background = `linear-gradient(${s.hlBgGradAngle || 90}deg,${s.hlBgGradFrom},${s.hlBgGradTo})`; css.padding = "6px 12px"; }
+    else if (s.hlBgColor) { css.background = s.hlBgColor; css.padding = "6px 12px"; }
+  }
+  if (s.hlStrokeWidth && Number(s.hlStrokeWidth) > 0) (css as any).WebkitTextStroke = `${Number(s.hlStrokeWidth)}px ${s.hlStrokeColor || "#000000"}`;
+  if (s.hlShadowColor) css.textShadow = `${Number(s.hlShadowX) || 0}px ${Number(s.hlShadowY) || 0}px ${Number(s.hlShadowBlur) || 0}px ${s.hlShadowColor}`;
+  return css;
 }
 
 // One row in the font picker: the selectable font plus a star toggle pinned to
@@ -85,14 +129,16 @@ function FontItem({ font, isFav, onToggleFav }: { font: TeluguFont; isFav: boole
   );
 }
 
-export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }: BlockSettingsDialogProps) {
+export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, previewText }: BlockSettingsDialogProps) {
   // Draft state holds the in-progress font/colour values; handleSave drops any
   // empty ones so only set overrides are emitted.
   const [settings, setSettings] = useState<Record<string, any>>({});
 
   // Favourite heading fonts (per-browser). Starred fonts float to the top.
   const [favFonts, setFavFonts] = useState<string[]>([]);
-  useEffect(() => { setFavFonts(loadFavFonts()); }, [open]);
+  // Font picker search query. Reset whenever the dialog (re)opens.
+  const [fontQuery, setFontQuery] = useState("");
+  useEffect(() => { setFavFonts(loadFavFonts()); setFontQuery(""); }, [open]);
 
   const toggleFav = (value: string) => {
     setFavFonts((prev) => {
@@ -103,18 +149,25 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
   };
 
   // Split the master list into starred (top) + the rest, each preserving the
-  // master order so the picker stays predictable.
+  // master order so the picker stays predictable. The search query narrows both
+  // groups by label (case-insensitive).
   const favSet = new Set(favFonts);
-  const favoriteFonts = ALL_HEADING_FONTS.filter((f) => favSet.has(f.value));
-  const otherFonts = ALL_HEADING_FONTS.filter((f) => !favSet.has(f.value));
+  const q = fontQuery.trim().toLowerCase();
+  const matches = (f: TeluguFont) => !q || f.label.toLowerCase().includes(q);
+  const favoriteFonts = ALL_HEADING_FONTS.filter((f) => favSet.has(f.value) && matches(f));
+  const otherFonts = ALL_HEADING_FONTS.filter((f) => !favSet.has(f.value) && matches(f));
+  const noFontMatches = favoriteFonts.length === 0 && otherFonts.length === 0;
 
   useEffect(() => {
     if (open) {
+      const g = (k: string) => initialStyle?.[k] ?? "";
       setSettings({
-        hlFontFamily: initialStyle?.hlFontFamily || "",
-        hlColor: initialStyle?.hlColor || "",
-        hlBgColor: initialStyle?.hlBgColor || "",
-        blockBgColor: initialStyle?.blockBgColor || "",
+        hlFontFamily: g("hlFontFamily"), hlScale: g("hlScale"), hlColor: g("hlColor"), hlBgColor: g("hlBgColor"), blockBgColor: g("blockBgColor"),
+        hlLetterSpacing: g("hlLetterSpacing"), hlLineHeight: g("hlLineHeight"),
+        hlShadowX: g("hlShadowX"), hlShadowY: g("hlShadowY"), hlShadowBlur: g("hlShadowBlur"), hlShadowColor: g("hlShadowColor"),
+        hlStrokeWidth: g("hlStrokeWidth"), hlStrokeColor: g("hlStrokeColor"),
+        hlGradFrom: g("hlGradFrom"), hlGradTo: g("hlGradTo"), hlGradAngle: g("hlGradAngle"),
+        hlBgGradFrom: g("hlBgGradFrom"), hlBgGradTo: g("hlBgGradTo"), hlBgGradAngle: g("hlBgGradAngle"),
       } as any);
     }
   }, [open, initialStyle]);
@@ -124,23 +177,40 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
   };
 
   const handleSave = () => {
-    const cleanSettings: any = {};
-    if (settings.hlFontFamily) cleanSettings.hlFontFamily = settings.hlFontFamily;
-    if (settings.hlColor) cleanSettings.hlColor = settings.hlColor;
-    if (settings.hlBgColor) cleanSettings.hlBgColor = settings.hlBgColor;
-    if (settings.blockBgColor) cleanSettings.blockBgColor = settings.blockBgColor;
-
-    onSave(cleanSettings);
+    // Emit EVERY managed key (value or undefined). The parent merges this into
+    // the block's style, so undefined is how a cleared/“off” control actually
+    // removes a previously-saved value. Keys this dialog doesn't manage (image
+    // position, columns…) are left untouched.
+    const c: any = {};
+    for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo"]) {
+      c[k] = settings[k] ? settings[k] : undefined;
+    }
+    for (const k of ["hlScale", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle"]) {
+      c[k] = (settings[k] !== "" && settings[k] != null) ? Number(settings[k]) : undefined;
+    }
+    onSave(c);
     onOpenChange(false);
   };
 
+  // Anu faces aren't Unicode: the preview must byte-encode the text into the
+  // font's PUA glyphs and load the .ttf from /anu-fonts/ (same as the renderer).
+  const selectedFont = ALL_HEADING_FONTS.find((f) => f.value === settings.hlFontFamily);
+  const anuFamily = selectedFont?.anu ? selectedFont.value.replace(/'/g, "") : "";
+  const rawPreview = previewText?.trim() || "మీ హెడ్‌లైన్ ప్రివ్యూ";
+  const previewBody = anuFamily ? anuToPua(unicodeToAnu(rawPreview)) : rawPreview;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[980px] max-h-[88vh] overflow-y-auto">
+        {anuFamily && (
+          <style>{`@font-face{font-family:'${anuFamily}';src:url(/anu-fonts/${anuFamily}.ttf) format('truetype');font-display:swap;}`}</style>
+        )}
         <DialogHeader>
           <DialogTitle>Block Settings</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="flex gap-6">
+          {/* Settings - left column */}
+          <div className="grid flex-1 min-w-0 gap-4 py-2">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="hlFontFamily" className="text-right">
               Heading Font
@@ -153,7 +223,21 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
                 <SelectValue placeholder="Default" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
-                <SelectItem value={DEFAULT_FONT}>Default</SelectItem>
+                {/* Search box. Sticky so it stays visible while scrolling the
+                    long list. Key events are stopped from bubbling so Radix's
+                    built-in typeahead/arrow navigation doesn't steal them while
+                    the operator is typing a query. */}
+                <div className="sticky top-0 z-10 bg-popover px-1 pb-1 pt-0.5">
+                  <Input
+                    autoFocus
+                    value={fontQuery}
+                    onChange={(e) => setFontQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key !== "Escape") e.stopPropagation(); }}
+                    placeholder="Search fonts…"
+                    className="h-8"
+                  />
+                </div>
+                {!q && <SelectItem value={DEFAULT_FONT}>Default</SelectItem>}
                 {favoriteFonts.length > 0 && (
                   <>
                     <SelectSeparator />
@@ -168,6 +252,9 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
                 {otherFonts.map((font) => (
                   <FontItem key={font.value} font={font} isFav={false} onToggleFav={toggleFav} />
                 ))}
+                {noFontMatches && (
+                  <div className="px-2 py-3 text-center text-sm text-muted-foreground">No fonts found</div>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -235,6 +322,98 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave }
             </div>
           </div>
 
+          <div className="mt-1 border-t pt-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Typography (heading)</div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Heading size</Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <input type="range" min={0.5} max={2.5} step={0.05} className="flex-1"
+                value={settings.hlScale === "" || settings.hlScale == null ? 1 : settings.hlScale}
+                onChange={(e) => handleChange("hlScale", e.target.value)} />
+              <span className="w-12 text-right text-sm tabular-nums">{Number(settings.hlScale === "" || settings.hlScale == null ? 1 : settings.hlScale).toFixed(2)}×</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Letter spacing</Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <input type="range" min={-3} max={20} step={0.5} className="flex-1"
+                value={settings.hlLetterSpacing === "" || settings.hlLetterSpacing == null ? 0 : settings.hlLetterSpacing}
+                onChange={(e) => handleChange("hlLetterSpacing", e.target.value)} />
+              <span className="w-12 text-right text-sm tabular-nums">{(settings.hlLetterSpacing === "" || settings.hlLetterSpacing == null ? 0 : settings.hlLetterSpacing)}px</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Line height</Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <input type="range" min={0.8} max={2.5} step={0.05} className="flex-1"
+                value={settings.hlLineHeight === "" || settings.hlLineHeight == null ? 1.1 : settings.hlLineHeight}
+                onChange={(e) => handleChange("hlLineHeight", e.target.value)} />
+              <span className="w-12 text-right text-sm tabular-nums">{(settings.hlLineHeight === "" || settings.hlLineHeight == null ? 1.1 : settings.hlLineHeight)}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Stroke</Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <input type="range" min={0} max={6} step={0.5} className="flex-1"
+                value={settings.hlStrokeWidth || 0} onChange={(e) => handleChange("hlStrokeWidth", e.target.value)} />
+              <span className="w-8 text-right text-sm tabular-nums">{settings.hlStrokeWidth || 0}</span>
+              <Input type="color" className="w-10 p-1 h-9" value={settings.hlStrokeColor || "#000000"} onChange={(e) => handleChange("hlStrokeColor", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Shadow</Label>
+            <div className="col-span-3 flex items-center gap-1.5">
+              <Input type="color" className="w-10 p-1 h-9" value={settings.hlShadowColor || "#000000"} onChange={(e) => handleChange("hlShadowColor", e.target.value)} />
+              <Input type="number" className="h-9 w-14" placeholder="x" value={settings.hlShadowX ?? ""} onChange={(e) => handleChange("hlShadowX", e.target.value)} />
+              <Input type="number" className="h-9 w-14" placeholder="y" value={settings.hlShadowY ?? ""} onChange={(e) => handleChange("hlShadowY", e.target.value)} />
+              <Input type="number" className="h-9 w-16" placeholder="blur" value={settings.hlShadowBlur ?? ""} onChange={(e) => handleChange("hlShadowBlur", e.target.value)} />
+              <button type="button" className="text-xs text-muted-foreground underline" onClick={() => handleChange("hlShadowColor", "")}>off</button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Text gradient</Label>
+            <div className="col-span-3 flex items-center gap-1.5">
+              <Input type="color" className="w-10 p-1 h-9" value={settings.hlGradFrom || "#e11d48"}
+                onChange={(e) => { handleChange("hlGradFrom", e.target.value); if (!settings.hlGradTo) handleChange("hlGradTo", "#1d4ed8"); }} />
+              <span className="text-xs">→</span>
+              <Input type="color" className="w-10 p-1 h-9" value={settings.hlGradTo || "#1d4ed8"}
+                onChange={(e) => { handleChange("hlGradTo", e.target.value); if (!settings.hlGradFrom) handleChange("hlGradFrom", "#e11d48"); }} />
+              <input type="range" min={0} max={360} step={5} className="flex-1" value={settings.hlGradAngle || 90} onChange={(e) => handleChange("hlGradAngle", e.target.value)} />
+              <button type="button" className="text-xs text-muted-foreground underline" onClick={() => { handleChange("hlGradFrom", ""); handleChange("hlGradTo", ""); }}>off</button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">BG gradient</Label>
+            <div className="col-span-3 flex items-center gap-1.5">
+              <Input type="color" className="w-10 p-1 h-9" value={settings.hlBgGradFrom || "#fde68a"}
+                onChange={(e) => { handleChange("hlBgGradFrom", e.target.value); if (!settings.hlBgGradTo) handleChange("hlBgGradTo", "#f59e0b"); }} />
+              <span className="text-xs">→</span>
+              <Input type="color" className="w-10 p-1 h-9" value={settings.hlBgGradTo || "#f59e0b"}
+                onChange={(e) => { handleChange("hlBgGradTo", e.target.value); if (!settings.hlBgGradFrom) handleChange("hlBgGradFrom", "#fde68a"); }} />
+              <input type="range" min={0} max={360} step={5} className="flex-1" value={settings.hlBgGradAngle || 90} onChange={(e) => handleChange("hlBgGradAngle", e.target.value)} />
+              <button type="button" className="text-xs text-muted-foreground underline" onClick={() => { handleChange("hlBgGradFrom", ""); handleChange("hlBgGradTo", ""); }}>off</button>
+            </div>
+          </div>
+
+          </div>
+
+          {/* Live heading preview - right column, vertically centred. */}
+          <div className="w-[360px] shrink-0 flex flex-col justify-center">
+            <div className="sticky top-0">
+              <div className="mb-1 text-center text-xs font-bold uppercase tracking-wide text-muted-foreground">Preview</div>
+              <div className="rounded-md border bg-[repeating-conic-gradient(#f3f4f6_0_25%,#fff_0_50%)] bg-[length:16px_16px] p-5 text-center overflow-hidden min-h-[200px] flex items-center justify-center">
+                <div style={{ fontSize: 26 * (Number(settings.hlScale) || 1), fontWeight: 800, lineHeight: 1.1, display: "inline-block", ...headingPreviewCss(settings) }}>
+                  {previewBody}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button onClick={handleSave}>Save changes</Button>
