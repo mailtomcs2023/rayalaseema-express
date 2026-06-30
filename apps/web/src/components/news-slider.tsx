@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { proxyImg } from "@/lib/img";
+import { SmartImg } from "@/components/smart-img";
 import Link from "next/link";
 import { articleHref } from "@/lib/article-href";
 import { categoryHref } from "@/lib/category-href";
@@ -55,12 +55,13 @@ export function NewsSlider({ items }: { items: SliderItem[] }) {
       {/* Image area */}
       <div className="news-slider-img">
         {item.featuredImage ? (
-          <img
+          <SmartImg
             key={item.id}
-            src={proxyImg(item.featuredImage, 1080)}
+            src={item.featuredImage}
+            width={1080}
             alt={item.title}
-            width={1280}
-            height={720}
+            imgWidth={1280}
+            imgHeight={720}
             loading={current === 0 ? "eager" : "lazy"}
             fetchPriority={current === 0 ? "high" : "auto"}
             decoding="async"

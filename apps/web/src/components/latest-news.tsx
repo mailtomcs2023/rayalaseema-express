@@ -4,7 +4,7 @@
 // fetchLatestNews; this component is presentational.
 
 import Link from "next/link";
-import { proxyImg } from "@/lib/img";
+import { SmartImg } from "@/components/smart-img";
 
 export interface LatestNewsArticle {
   id: string;
@@ -34,7 +34,7 @@ export function LatestNews({ articles }: { articles: LatestNewsArticle[] }) {
           <Link key={a.id} href={a.href} className="ln-card">
             <span className="ln-thumb">
               {a.featuredImage ? (
-                <img src={proxyImg(a.featuredImage, 384)} alt="" loading="lazy" />
+                <SmartImg src={a.featuredImage} width={384} alt="" />
               ) : (
                 <span className="ln-noimg">RN</span>
               )}

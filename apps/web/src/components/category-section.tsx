@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { proxyImg } from "@/lib/img";
+import { SmartImg } from "@/components/smart-img";
 import { Badge } from "@rayalaseema/ui";
 import { articleHref } from "@/lib/article-href";
 import { categoryHref } from "@/lib/category-href";
@@ -55,11 +55,11 @@ function ArticleCardLarge({ article, color }: { article: Article; color: string 
     <Link href={articleHref(article)} className="group block">
       <div className="relative aspect-[16/10] rounded-xl overflow-hidden mb-3">
         {article.featuredImage ? (
-          <img
-            src={proxyImg(article.featuredImage, 640)}
+          <SmartImg
+            src={article.featuredImage}
+            width={640}
             alt={article.title}
             className="w-full h-full object-cover"
-            loading="lazy"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -92,11 +92,11 @@ function ArticleCardSmall({ article, color }: { article: Article; color: string 
     <Link href={articleHref(article)} className="group block">
       <div className="relative aspect-video rounded-lg overflow-hidden mb-2.5">
         {article.featuredImage ? (
-          <img
-            src={proxyImg(article.featuredImage, 640)}
+          <SmartImg
+            src={article.featuredImage}
+            width={640}
             alt={article.title}
             className="w-full h-full object-cover"
-            loading="lazy"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -125,11 +125,11 @@ function ArticleCardList({ article, color }: { article: Article; color: string }
     >
       <div className="w-36 h-24 shrink-0 rounded-lg overflow-hidden">
         {article.featuredImage ? (
-          <img
-            src={proxyImg(article.featuredImage, 640)}
+          <SmartImg
+            src={article.featuredImage}
+            width={640}
             alt={article.title}
             className="w-full h-full object-cover"
-            loading="lazy"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center rounded-lg">

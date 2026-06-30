@@ -17,8 +17,14 @@ export interface TeluguFont {
   value: string;
   /** Google Fonts css2 `family=` query segment, or null for self-hosted. */
   google: string | null;
-  /** True for the legacy self-hosted Anu faces (see ./anu-fonts-list). */
+  /** True for self-hosted faces served from /anu-fonts/ (loads a local
+   *  @font-face). NOTE: "anu" here means self-hosted, not necessarily
+   *  byte-encoded - see `unicode`. */
   anu?: boolean;
+  /** True for self-hosted faces that are actually standard UNICODE fonts (e.g.
+   *  the Anek Telugu weights), NOT legacy byte-encoded Anu. The picker renders
+   *  their preview from raw Unicode text instead of the PUA byte-encoding. */
+  unicode?: boolean;
 }
 
 export const TELUGU_FONTS: TeluguFont[] = [
@@ -61,8 +67,31 @@ export const TELUGU_FONTS_HREF =
   "&display=swap";
 
 /**
- * Every heading font offered in the block-settings picker: the Google-hosted
- * Telugu families above plus all 110 self-hosted legacy Anu faces. Kept as a
- * single list so the dropdown and favourites logic iterate one source.
+ * Anu faces hidden from the picker because they don't preview/render as usable
+ * Telugu text. Matched against the .ttf basename so regenerating the Anu list
+ * never reintroduces them:
+ *   - Dingbits-*         symbol/dingbat fonts (not text)
+ *   - Anu-Subhalekha-Two not a usable text face
+ *   - Telun-*            ~12 KB near-empty fonts - no usable Telugu glyphs
  */
-export const ALL_HEADING_FONTS: TeluguFont[] = [...TELUGU_FONTS, ...ANU_FONTS];
+const HIDDEN_ANU = (basename: string) =>
+  basename.startsWith("Dingbits-") ||
+  basename === "Anu-Subhalekha-Two" ||
+  basename === "Anuso" ||
+  basename.startsWith("Telun-");
+
+// Self-hosted faces that are actually standard Unicode fonts (NOT byte-encoded
+// Anu) - their preview must use raw Unicode text, not the PUA encoding.
+const UNICODE_SELF_HOSTED = (basename: string) => basename.startsWith("Anek-Telugu-");
+
+/**
+ * Every heading font offered in the block-settings picker: the Google-hosted
+ * Telugu families above plus the usable self-hosted faces. Kept as a single
+ * list so the dropdown and favourites logic iterate one source.
+ */
+export const ALL_HEADING_FONTS: TeluguFont[] = [
+  ...TELUGU_FONTS,
+  // value is the quoted family (e.g. "'Anek-Telugu-Bold'"); strip quotes to match.
+  ...ANU_FONTS.filter((f) => !HIDDEN_ANU(f.value.replace(/'/g, "")))
+    .map((f) => (UNICODE_SELF_HOSTED(f.value.replace(/'/g, "")) ? { ...f, unicode: true } : f)),
+];

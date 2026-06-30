@@ -9,7 +9,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Select, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ALL_HEADING_FONTS, type TeluguFont } from "@/lib/epaper/telugu-fonts";
+import { ALL_HEADING_FONTS, TELUGU_FONTS_HREF, type TeluguFont } from "@/lib/epaper/telugu-fonts";
 import { unicodeToAnu } from "@/lib/epaper/anu-encoder";
 
 // Map Anu encoder output to the font's Private-Use-Area glyphs. Inlined here
@@ -19,6 +19,13 @@ function anuToPua(s: string): string {
   for (let i = 0; i < s.length; i++) out += String.fromCodePoint(0xf000 + s.charCodeAt(i));
   return out;
 }
+
+// @font-face for every Anu face, so the picker can render each option in its
+// own typeface (the .ttf load lazily from /anu-fonts/). Computed once.
+const ANU_FACES_CSS = ALL_HEADING_FONTS
+  .filter((f) => f.anu)
+  .map((f) => { const fam = f.value.replace(/'/g, ""); return `@font-face{font-family:'${fam}';src:url(/anu-fonts/${fam}.ttf) format('truetype');font-display:swap;}`; })
+  .join("");
 
 // Sentinel for the "Default" choice - shadcn SelectItem cannot use an empty
 // string value, so we map it to "" on change.
@@ -44,6 +51,7 @@ function loadFavFonts(): string[] {
 export interface BlockStyleSettings {
   hlFontFamily?: string;
   hlScale?: number;
+  hlFontSize?: number;
   hlColor?: string;
   hlBgColor?: string;
   blockBgColor?: string;
@@ -85,19 +93,22 @@ function headingPreviewCss(s: Record<string, any>): React.CSSProperties {
     if (s.hlBgGradFrom && s.hlBgGradTo) { css.background = `linear-gradient(${s.hlBgGradAngle || 90}deg,${s.hlBgGradFrom},${s.hlBgGradTo})`; css.padding = "6px 12px"; }
     else if (s.hlBgColor) { css.background = s.hlBgColor; css.padding = "6px 12px"; }
   }
-  if (s.hlStrokeWidth && Number(s.hlStrokeWidth) > 0) (css as any).WebkitTextStroke = `${Number(s.hlStrokeWidth)}px ${s.hlStrokeColor || "#000000"}`;
+  if (s.hlStrokeWidth && Number(s.hlStrokeWidth) > 0) {
+    (css as any).WebkitTextStroke = `${Number(s.hlStrokeWidth)}px ${s.hlStrokeColor || "#000000"}`;
+    (css as any).paintOrder = "stroke fill"; // outline OUTSIDE the letters
+  }
   if (s.hlShadowColor) css.textShadow = `${Number(s.hlShadowX) || 0}px ${Number(s.hlShadowY) || 0}px ${Number(s.hlShadowBlur) || 0}px ${s.hlShadowColor}`;
   return css;
 }
 
-// One row in the font picker: the selectable font plus a star toggle pinned to
-// the right. Built on the Radix primitive (not the shadcn SelectItem) so the
-// star sits OUTSIDE <ItemText> - otherwise Radix projects it into the trigger's
-// selected value. The star stops pointer/click propagation so tapping it
-// favourites the font instead of selecting + closing the dropdown. Anu faces
-// are byte-encoded (Latin labels would garble), so only Google families preview
-// in their own typeface; Anu rows render the label in the default UI font.
-function FontItem({ font, isFav, onToggleFav }: { font: TeluguFont; isFav: boolean; onToggleFav: (value: string) => void }) {
+// One row in the font picker: a small UPPERCASE name on top, and below it a
+// SAMPLE of the heading text rendered IN that font - so you choose by how it
+// looks. The sample (rendered in the typeface) is the <ItemText>, so the
+// trigger also shows the selected font's look. Anu faces are byte-encoded, so
+// their sample is pre-converted (sampleAnu); the @font-face for every Anu face
+// is injected by the dialog. Star + indicator sit OUTSIDE ItemText so Radix
+// doesn't project them into the trigger value.
+function FontItem({ font, isFav, onToggleFav, sample, sampleAnu }: { font: TeluguFont; isFav: boolean; onToggleFav: (value: string) => void; sample: string; sampleAnu: string }) {
   return (
     <SelectPrimitive.Item
       value={font.value}
@@ -106,14 +117,17 @@ function FontItem({ font, isFav, onToggleFav }: { font: TeluguFont; isFav: boole
         "focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       )}
     >
-      <span className="absolute right-8 flex h-3.5 w-3.5 items-center justify-center">
+      <span className="absolute right-8 top-2 flex h-3.5 w-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <Check className="h-4 w-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
-      <SelectPrimitive.ItemText>
-        <span style={font.anu ? undefined : { fontFamily: font.value }}>{font.label}</span>
-      </SelectPrimitive.ItemText>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-[10px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">{font.label}</span>
+        <SelectPrimitive.ItemText asChild>
+          <span className="truncate leading-snug" style={{ fontFamily: font.value, fontSize: 16 }}>{font.anu && !font.unicode ? sampleAnu : sample}</span>
+        </SelectPrimitive.ItemText>
+      </div>
       <span
         role="button"
         tabIndex={-1}
@@ -162,7 +176,7 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
     if (open) {
       const g = (k: string) => initialStyle?.[k] ?? "";
       setSettings({
-        hlFontFamily: g("hlFontFamily"), hlScale: g("hlScale"), hlColor: g("hlColor"), hlBgColor: g("hlBgColor"), blockBgColor: g("blockBgColor"),
+        hlFontFamily: g("hlFontFamily"), hlFontSize: g("hlFontSize"), hlColor: g("hlColor"), hlBgColor: g("hlBgColor"), blockBgColor: g("blockBgColor"),
         hlLetterSpacing: g("hlLetterSpacing"), hlLineHeight: g("hlLineHeight"),
         hlShadowX: g("hlShadowX"), hlShadowY: g("hlShadowY"), hlShadowBlur: g("hlShadowBlur"), hlShadowColor: g("hlShadowColor"),
         hlStrokeWidth: g("hlStrokeWidth"), hlStrokeColor: g("hlStrokeColor"),
@@ -185,9 +199,10 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
     for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo"]) {
       c[k] = settings[k] ? settings[k] : undefined;
     }
-    for (const k of ["hlScale", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle"]) {
+    for (const k of ["hlFontSize", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle"]) {
       c[k] = (settings[k] !== "" && settings[k] != null) ? Number(settings[k]) : undefined;
     }
+    c.hlScale = undefined; // legacy multiplier replaced by hlFontSize (real px)
     onSave(c);
     onOpenChange(false);
   };
@@ -195,22 +210,36 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
   // Anu faces aren't Unicode: the preview must byte-encode the text into the
   // font's PUA glyphs and load the .ttf from /anu-fonts/ (same as the renderer).
   const selectedFont = ALL_HEADING_FONTS.find((f) => f.value === settings.hlFontFamily);
-  const anuFamily = selectedFont?.anu ? selectedFont.value.replace(/'/g, "") : "";
+  // Only true byte-encoded Anu faces need PUA encoding; self-hosted Unicode
+  // faces (Anek Telugu) preview from raw text like any Google font.
+  const anuFamily = selectedFont?.anu && !selectedFont?.unicode ? selectedFont.value.replace(/'/g, "") : "";
   const rawPreview = previewText?.trim() || "మీ హెడ్‌లైన్ ప్రివ్యూ";
   const previewBody = anuFamily ? anuToPua(unicodeToAnu(rawPreview)) : rawPreview;
+  // Short sample shown in every font-picker row (the block's own text, so you
+  // see how YOUR headline looks in each face). Anu version is pre-encoded.
+  const fontSample = rawPreview.slice(0, 10);
+  const fontSampleAnu = anuToPua(unicodeToAnu(fontSample));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[980px] max-h-[88vh] overflow-y-auto">
-        {anuFamily && (
-          <style>{`@font-face{font-family:'${anuFamily}';src:url(/anu-fonts/${anuFamily}.ttf) format('truetype');font-display:swap;}`}</style>
-        )}
+      <DialogContent className="sm:max-w-[760px] max-h-[88vh] overflow-y-auto">
+        {/* Load every Google + Anu face so each font-picker row previews in its
+            own typeface (and the selected Anu face renders in the main preview). */}
+        <link rel="stylesheet" href={TELUGU_FONTS_HREF} />
+        <style>{ANU_FACES_CSS}</style>
         <DialogHeader>
           <DialogTitle>Block Settings</DialogTitle>
         </DialogHeader>
-        <div className="flex gap-6">
-          {/* Settings - left column */}
-          <div className="grid flex-1 min-w-0 gap-4 py-2">
+        {/* Live heading preview - full width across the top so the whole headline shows. */}
+        <div className="mb-1 text-center text-xs font-bold uppercase tracking-wide text-muted-foreground">Preview</div>
+        <div className="rounded-md border bg-[repeating-conic-gradient(#f3f4f6_0_25%,#fff_0_50%)] bg-[length:16px_16px] p-4 text-center overflow-x-hidden overflow-y-auto min-h-[120px] flex items-center justify-center">
+          {/* maxWidth + wrap so a long headline at large size wraps to the next
+              line instead of forcing a horizontal scrollbar. */}
+          <div style={{ fontSize: Number(settings.hlFontSize) || 42, fontWeight: anuFamily ? "normal" : 800, lineHeight: 1.1, display: "inline-block", maxWidth: "100%", overflowWrap: "break-word", ...headingPreviewCss(settings) }}>
+            {previewBody}
+          </div>
+        </div>
+        <div className="grid gap-4 py-2">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="hlFontFamily" className="text-right">
               Heading Font
@@ -222,35 +251,40 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
               <SelectTrigger id="hlFontFamily" className="col-span-3">
                 <SelectValue placeholder="Default" />
               </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {/* Search box. Sticky so it stays visible while scrolling the
-                    long list. Key events are stopped from bubbling so Radix's
-                    built-in typeahead/arrow navigation doesn't steal them while
-                    the operator is typing a query. */}
-                <div className="sticky top-0 z-10 bg-popover px-1 pb-1 pt-0.5">
-                  <Input
-                    autoFocus
-                    value={fontQuery}
-                    onChange={(e) => setFontQuery(e.target.value)}
-                    onKeyDown={(e) => { if (e.key !== "Escape") e.stopPropagation(); }}
-                    placeholder="Search fonts…"
-                    className="h-8"
-                  />
-                </div>
+              <SelectContent
+                className="max-h-72"
+                hideScrollButtons
+                header={
+                  /* Fixed search box ABOVE the scrolling list (outside the
+                     viewport) so items never peek above it. Key events are
+                     stopped from bubbling so Radix's typeahead/arrow nav doesn't
+                     steal them while the operator types a query. */
+                  <div className="border-b p-2">
+                    <Input
+                      autoFocus
+                      value={fontQuery}
+                      onChange={(e) => setFontQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key !== "Escape") e.stopPropagation(); }}
+                      placeholder="Search fonts…"
+                      className="h-8"
+                    />
+                  </div>
+                }
+              >
                 {!q && <SelectItem value={DEFAULT_FONT}>Default</SelectItem>}
                 {favoriteFonts.length > 0 && (
                   <>
                     <SelectSeparator />
                     <SelectLabel className="text-xs text-muted-foreground">Favorites</SelectLabel>
                     {favoriteFonts.map((font) => (
-                      <FontItem key={font.value} font={font} isFav onToggleFav={toggleFav} />
+                      <FontItem key={font.value} font={font} isFav onToggleFav={toggleFav} sample={fontSample} sampleAnu={fontSampleAnu} />
                     ))}
                     <SelectSeparator />
                     <SelectLabel className="text-xs text-muted-foreground">All fonts</SelectLabel>
                   </>
                 )}
                 {otherFonts.map((font) => (
-                  <FontItem key={font.value} font={font} isFav={false} onToggleFav={toggleFav} />
+                  <FontItem key={font.value} font={font} isFav={false} onToggleFav={toggleFav} sample={fontSample} sampleAnu={fontSampleAnu} />
                 ))}
                 {noFontMatches && (
                   <div className="px-2 py-3 text-center text-sm text-muted-foreground">No fonts found</div>
@@ -327,10 +361,10 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">Heading size</Label>
             <div className="col-span-3 flex items-center gap-2">
-              <input type="range" min={0.5} max={2.5} step={0.05} className="flex-1"
-                value={settings.hlScale === "" || settings.hlScale == null ? 1 : settings.hlScale}
-                onChange={(e) => handleChange("hlScale", e.target.value)} />
-              <span className="w-12 text-right text-sm tabular-nums">{Number(settings.hlScale === "" || settings.hlScale == null ? 1 : settings.hlScale).toFixed(2)}×</span>
+              <input type="range" min={14} max={120} step={1} className="flex-1"
+                value={settings.hlFontSize === "" || settings.hlFontSize == null ? 42 : settings.hlFontSize}
+                onChange={(e) => handleChange("hlFontSize", e.target.value)} />
+              <span className="w-12 text-right text-sm tabular-nums">{Number(settings.hlFontSize === "" || settings.hlFontSize == null ? 42 : settings.hlFontSize)}px</span>
             </div>
           </div>
 
@@ -403,18 +437,6 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
 
           </div>
 
-          {/* Live heading preview - right column, vertically centred. */}
-          <div className="w-[360px] shrink-0 flex flex-col justify-center">
-            <div className="sticky top-0">
-              <div className="mb-1 text-center text-xs font-bold uppercase tracking-wide text-muted-foreground">Preview</div>
-              <div className="rounded-md border bg-[repeating-conic-gradient(#f3f4f6_0_25%,#fff_0_50%)] bg-[length:16px_16px] p-5 text-center overflow-hidden min-h-[200px] flex items-center justify-center">
-                <div style={{ fontSize: 26 * (Number(settings.hlScale) || 1), fontWeight: 800, lineHeight: 1.1, display: "inline-block", ...headingPreviewCss(settings) }}>
-                  {previewBody}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
         <DialogFooter>
           <Button onClick={handleSave}>Save changes</Button>
         </DialogFooter>

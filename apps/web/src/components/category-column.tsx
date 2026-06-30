@@ -1,5 +1,5 @@
 import { articleHref } from "@/lib/article-href";
-import { proxyImg } from "@/lib/img";
+import { SmartImg } from "@/components/smart-img";
 import { categoryHref } from "@/lib/category-href";
 import { BullionStrip, ForexStrip } from "@/components/market-strips-server";
 import Link from "next/link";
@@ -62,7 +62,7 @@ export function CategoryColumn({
       {/* LEAD - image on top, headline below (vertical card for 4-up rows) */}
       <Link href={articleHref(lead)} className="cc-lead-img" aria-label={lead.title}>
         {lead.featuredImage ? (
-          <img src={proxyImg(lead.featuredImage, 640)} alt={lead.title} loading="lazy" />
+          <SmartImg src={lead.featuredImage} width={640} alt={lead.title} />
         ) : (
           <div className="cc-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
         )}

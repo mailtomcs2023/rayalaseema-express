@@ -72,6 +72,7 @@ export interface Block {
     padding?: number;
     margin?: number;
     // Photoshop-style heading type controls (all optional, headline only).
+    hlFontSize?: number;        // px - absolute headline size (overrides hlScale)
     hlLetterSpacing?: number;   // px
     hlLineHeight?: number;      // unitless multiplier
     hlShadowX?: number; hlShadowY?: number; hlShadowBlur?: number; hlShadowColor?: string;
@@ -268,8 +269,16 @@ function blockStyle(b: Block, extra = ""): string {
 // sees in Settings is exactly what renders.
 export function headingCss(s: Block["style"] | undefined, basePx: number): string[] {
   const out: string[] = [];
-  if (s?.hlScale && s.hlScale !== 1) out.push(`font-size:${(basePx * s.hlScale).toFixed(0)}px`);
-  if (s?.hlFontFamily) out.push(`font-family:${s.hlFontFamily}`);
+  // Real px size wins; fall back to the legacy multiplier for old blocks.
+  if (typeof s?.hlFontSize === "number" && s.hlFontSize > 0) out.push(`font-size:${s.hlFontSize}px`);
+  else if (s?.hlScale && s.hlScale !== 1) out.push(`font-size:${(basePx * s.hlScale).toFixed(0)}px`);
+  if (s?.hlFontFamily) {
+    out.push(`font-family:${s.hlFontFamily}`);
+    // Anu faces ship a SINGLE weight. The per-type headline class asks for
+    // 800-900, which makes the browser synthesise faux-bold (smeared/blurry).
+    // Force normal weight so it uses the font's real (already-bold) glyphs.
+    if (isAnuFont(fontFamilyName(s.hlFontFamily))) out.push(`font-weight:normal`);
+  }
   if (typeof s?.hlLetterSpacing === "number") out.push(`letter-spacing:${s.hlLetterSpacing}px`);
   if (typeof s?.hlLineHeight === "number") out.push(`line-height:${s.hlLineHeight}`);
   // Text fill: a gradient (background-clip:text) takes precedence over a solid
@@ -283,7 +292,11 @@ export function headingCss(s: Block["style"] | undefined, basePx: number): strin
     if (s?.hlBgGradFrom && s?.hlBgGradTo) out.push(`background:linear-gradient(${s.hlBgGradAngle ?? 90}deg,${s.hlBgGradFrom},${s.hlBgGradTo})`, `padding:6px 12px`);
     else if (s?.hlBgColor) out.push(`background:${s.hlBgColor}`, `padding:6px 12px`);
   }
-  if (typeof s?.hlStrokeWidth === "number" && s.hlStrokeWidth > 0) out.push(`-webkit-text-stroke:${s.hlStrokeWidth}px ${s.hlStrokeColor || "#000000"}`);
+  if (typeof s?.hlStrokeWidth === "number" && s.hlStrokeWidth > 0) {
+    // paint-order:stroke fill paints the stroke FIRST, then the fill on top, so
+    // the outline sits OUTSIDE the letters instead of eating into them.
+    out.push(`-webkit-text-stroke:${s.hlStrokeWidth}px ${s.hlStrokeColor || "#000000"}`, `paint-order:stroke fill`);
+  }
   if (s?.hlShadowColor) out.push(`text-shadow:${s.hlShadowX ?? 1}px ${s.hlShadowY ?? 1}px ${s.hlShadowBlur ?? 2}px ${s.hlShadowColor}`);
   return out;
 }

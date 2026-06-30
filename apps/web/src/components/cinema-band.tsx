@@ -1,7 +1,7 @@
 "use client";
 
 import { articleHref } from "@/lib/article-href";
-import { proxyImg } from "@/lib/img";
+import { SmartImg } from "@/components/smart-img";
 import Link from "next/link";
 import { useState } from "react";
 import { BandEmpty } from "@/components/band-empty";
@@ -117,7 +117,7 @@ export function CinemaBand({
             </div>
             <Link href={articleHref(viewLead)} className="cb-lead-img" aria-label={viewLead.title}>
               {viewLead.featuredImage ? (
-                <img src={proxyImg(viewLead.featuredImage, 640)} alt={viewLead.title} loading="lazy" />
+                <SmartImg src={viewLead.featuredImage} width={640} alt={viewLead.title} />
               ) : (
                 <div className="cb-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
               )}
@@ -134,7 +134,7 @@ export function CinemaBand({
                 </div>
                 <div className="cb-grid-thumb">
                   {a.featuredImage ? (
-                    <img src={proxyImg(a.featuredImage, 384)} alt={a.title} loading="lazy" />
+                    <SmartImg src={a.featuredImage} width={384} alt={a.title} />
                   ) : (
                     <div className="cb-noimg cb-noimg-sm"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
                   )}

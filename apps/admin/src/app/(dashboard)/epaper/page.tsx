@@ -614,7 +614,12 @@ function EpaperEditorPage() {
         setWarnings([]);
       }
       if (data.pdfUrl) window.open(data.pdfUrl, "_blank", "noopener,noreferrer");
-    } catch (e: any) { setError(e.message); }
+    } catch (e: any) {
+      setError(e.message);
+      // Surface the real render error so "Render: failed" isn't a dead end -
+      // the operator (and we) can see WHY the PDF didn't refresh.
+      toast("error", `Render failed: ${e.message || "unknown error"}`);
+    }
     finally { setBusy(null); }
   };
 
@@ -1159,11 +1164,7 @@ function EpaperEditorPage() {
   ];
   const [tourOpen, setTourOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem("re-epaper-tour-seen") === "1") return;
-    setTourOpen(true);
-  }, []);
+  // Onboarding tour disabled - it no longer auto-opens (tourOpen stays false).
   const dismissTour = () => {
     setTourOpen(false);
     localStorage.setItem("re-epaper-tour-seen", "1");

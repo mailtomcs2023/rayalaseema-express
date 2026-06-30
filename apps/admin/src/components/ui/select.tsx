@@ -60,13 +60,24 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+    /** Hide the up/down chevron scroll buttons (list still scrolls via wheel /
+     *  scrollbar / keyboard). Off by default so other selects are unchanged. */
+    hideScrollButtons?: boolean;
+    /** Fixed content rendered ABOVE the scrolling viewport (e.g. a search box).
+     *  Unlike a sticky child, it sits outside the scroll area, so list items
+     *  can never peek above it when the list auto-scrolls on open. */
+    header?: React.ReactNode;
+  }
+>(({ className, children, position = "popper", hideScrollButtons = false, header, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-x-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        // With a fixed header the Content is a flex column whose viewport
+        // scrolls; without one it scrolls itself (original shadcn behaviour).
+        header ? "flex flex-col overflow-hidden" : "overflow-y-auto",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className,
@@ -74,17 +85,21 @@ const SelectContent = React.forwardRef<
       position={position}
       {...props}
     >
-      <SelectScrollUpButton />
+      {!hideScrollButtons && <SelectScrollUpButton />}
+      {header && <div className="shrink-0">{header}</div>}
       <SelectPrimitive.Viewport
         className={cn(
           "p-1",
+          header && "min-h-0 flex-1 overflow-y-auto",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            "w-full min-w-[var(--radix-select-trigger-width)]",
+          position === "popper" && !header &&
+            "h-[var(--radix-select-trigger-height)]",
         )}
       >
         {children}
       </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
+      {!hideScrollButtons && <SelectScrollDownButton />}
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ));
