@@ -373,12 +373,22 @@ export async function draftEdition(editionId: string): Promise<EditionDraftResul
     select: { id: true, pageNumber: true, templateSlug: true, layout: true },
   });
 
-  const results: PageDraftResult[] = [];
-  // Pages run sequentially to keep within Azure rate limits and make the LLM
-  // load predictable; each page is at most 2 LLM calls.
-  for (const p of pages) {
-    results.push(await draftPage(p));
+  // Pages run concurrently (bounded pool) so a 9-page edition drafts in roughly
+  // the time of the slowest page instead of the sum of all pages. Each page is
+  // at most 2 LLM calls; CONCURRENCY keeps us within Azure rate limits.
+  const CONCURRENCY = 5;
+  const results: PageDraftResult[] = new Array(pages.length);
+  let next = 0;
+  async function worker() {
+    for (;;) {
+      const i = next++;
+      if (i >= pages.length) break;
+      results[i] = await draftPage(pages[i]);
+    }
   }
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, pages.length) }, () => worker()),
+  );
 
   return {
     editionId,

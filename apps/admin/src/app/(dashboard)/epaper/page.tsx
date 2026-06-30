@@ -1846,6 +1846,36 @@ function EpaperEditorPage() {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#f3f4f6" }}>
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
+      {busy === "drafting" && (
+        <div
+          aria-busy="true"
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(15,23,42,0.55)", backdropFilter: "blur(2px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "30px 40px",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.35)", minWidth: 320,
+          }}>
+            <div style={{
+              width: 46, height: 46, borderRadius: "50%",
+              border: "4px solid #ede9fe", borderTopColor: "#7c3aed",
+              animation: "ep-spin 0.8s linear infinite",
+            }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
+              <Sparkles size={18} color="#7c3aed" /> AI is drafting the edition…
+            </div>
+            <div style={{ fontSize: 13, color: "#64748b", textAlign: "center", lineHeight: 1.5 }}>
+              Ranking each page so the strongest story leads, and fitting Telugu
+              headlines to their slots. This usually takes a few seconds.
+            </div>
+          </div>
+          <style>{`@keyframes ep-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
         <DialogContent className="sm:max-w-md shadcn-scope">
           <DialogHeader>
