@@ -211,8 +211,17 @@ function fontFamilyName(value?: string): string {
 // encoded (unicodeToAnu) and projected into the PUA (anuToPua). For any normal
 // Unicode font we just HTML-escape. The matching @font-face is injected by
 // anuFacesFor() so the chosen Anu .ttf actually loads.
+// Default headline font: a heavy legacy Anu display face (the Sakshi/Eenadu
+// newspaper look). Applied to every story headline unless the block overrides
+// it via style.hlFontFamily. Must stay in sync with the `.lead-hl/.maj-hl/
+// .sec-hl/.cont-hl` font-family stacks below and anuFacesFor() (which always
+// embeds this face).
+const DEFAULT_HL_ANU_FONT = "Pragathi-Special";
+
 function headlineHtml(text: string, b: Block): string {
-  const fam = fontFamilyName(b.style?.hlFontFamily);
+  // No per-block override → fall back to the default Anu display face so all
+  // headlines render in the heavy newspaper font, not the web serif.
+  const fam = fontFamilyName(b.style?.hlFontFamily) || DEFAULT_HL_ANU_FONT;
   // Self-hosted but standard Unicode faces (e.g. Anek Telugu) must NOT be byte-
   // encoded - their .ttf has Unicode glyphs, not PUA, so encoding shows tofu
   // boxes. Their @font-face is still loaded by anuFacesFor().
@@ -221,9 +230,10 @@ function headlineHtml(text: string, b: Block): string {
 }
 
 // Collect the @font-face rules for every distinct Anu heading font used on the
-// page, so their .ttf are embedded once in the render.
+// page, so their .ttf are embedded once in the render. The default headline
+// face is always included so headlines render even when no block overrides it.
 function anuFacesFor(blocks: Block[]): string {
-  const fams = new Set<string>();
+  const fams = new Set<string>([DEFAULT_HL_ANU_FONT]);
   for (const b of blocks) {
     const fam = fontFamilyName(b.style?.hlFontFamily);
     if (fam && isAnuFont(fam)) fams.add(fam);
@@ -439,13 +449,18 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
       ? `<div class="lead-image-wrap"${imgWrapStyle}>${img}</div>`
       : img)
     : "";
+  // Default "top" layout: the image sits directly UNDER the headline and the
+  // body then flows beneath it (a real newspaper column). This removes the old
+  // gap where a short body left whitespace above a bottom-anchored image.
+  // left/right keep the image as a side column (flex row).
   const inner = `
     <div class="block-inner ${wrapClass}">
       <div class="lead-text">
         <h1 class="lead-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h1>
+        ${useFlex ? "" : imgHtml}
         ${dekHtml}
       </div>
-      ${imgHtml}
+      ${useFlex ? imgHtml : ""}
     </div>`;
   return `<article class="lead block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
@@ -1034,7 +1049,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      without it the dek can't stretch and the story floats with a gap below. */
   .lead-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; min-height: 0; }
   .lead { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 12px; }
-  .lead-hl{font-family:'Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:46px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px}
+  .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:46px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
     font-size:15.5px;line-height:1.72;color:#34302a;text-align:justify;
@@ -1048,7 +1063,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Major */
   .major { padding: 6px 0; border-bottom: 1px solid var(--rule); }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
-  .maj-hl{font-family:'Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:25px;line-height:1.1;color:var(--ink);margin-bottom:6px}
+  .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:25px;line-height:1.1;color:var(--ink);margin-bottom:6px}
   .maj-dek{font-size:13px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .maj-dek p{ margin:0 0 6px; }
   .maj-dek p:last-child{ margin-bottom:0; }
@@ -1056,7 +1071,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Secondary */
   .secondary { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
-  .sec-hl{font-family:'Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:19px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px}
+  .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:19px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px}
   .sec-dek{font-size:12.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0 0 5px; }
 
@@ -1070,7 +1085,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .continuation { padding: 6px 0; border-top: 2px solid #14110b; }
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
-  .cont-hl { font-family: 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 20px; line-height: 1.12; color: var(--ink); }
+  .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 20px; line-height: 1.12; color: var(--ink); }
   .cont-body { font-size: 13px; line-height: 1.6; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
 
