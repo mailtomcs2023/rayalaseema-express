@@ -250,12 +250,24 @@ function anuOrPlain(text: string): string {
 // block didn't opt out (style.showBanner === false). Accent colour comes from
 // the block's --accent-red override (see blockStyle) so it can be red/blue/
 // green/purple per story. An optional sub-deck line renders beneath it.
+const BANNER_MAX_CHARS = 70; // a banner is a SHORT line, never the whole summary
+
 function subBannerHtml(b: Block, summary: string): string {
-  // Default: on for the lead (Sakshi always banners the hero), opt-in elsewhere.
-  const enabled = b.style?.showBanner ?? b.type === "lead";
+  if (b.style?.showBanner === false) return "";
+  // Explicit banner text always wins. Otherwise auto-source the summary's FIRST
+  // sentence, and only if it's short enough to read as a banner line - a long
+  // summary must NOT be crammed into the bar (that's the unreadable strip bug).
+  const explicit = (b.style?.bannerText || "").trim();
+  let auto = "";
+  if (!explicit) {
+    const first = (b.overrideDek || summary || "").trim().split(/(?<=[।.!?])\s/)[0].trim();
+    if (first && first.length <= BANNER_MAX_CHARS) auto = first;
+  }
+  const text = explicit || auto;
+  if (!text) return ""; // no short line available → no banner (clean)
+  // Auto-show on the lead; opt-in elsewhere via style.showBanner === true.
+  const enabled = b.style?.showBanner === true || b.type === "lead";
   if (!enabled) return "";
-  const text = (b.style?.bannerText || b.overrideDek || summary || "").trim();
-  if (!text) return "";
   const deck = (b.style?.subDeck || "").trim();
   return `<div class="news-banner">${anuOrPlain(text)}</div>` +
     (deck ? `<div class="news-subdeck">${esc(deck)}</div>` : "");
