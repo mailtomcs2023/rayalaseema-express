@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, ChevronsUp } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, ChevronsUp, Sparkles } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -578,6 +578,10 @@ function EpaperEditorPage() {
   const renderEdition = async () => {
     if (!edition) return;
     setBusy("rendering"); setError("");
+    // The render is a long, headless-Chromium job (renders every page to vector
+    // PDF, merges, uploads) - ~1-3 min for a full edition. Tell the operator so
+    // the silent "Rendering…" button doesn't read as "nothing happened".
+    toast("info", `Rendering ${edition.pages.length} pages to PDF… this can take 1-3 minutes. You can keep editing other pages.`);
     try {
       const res = await fetch("/api/epaper/render-v2", {
         method: "POST",
@@ -622,6 +626,38 @@ function EpaperEditorPage() {
     }
     finally { setBusy(null); }
   };
+
+  // AI draft pass: re-rank each page's stories so the strongest leads, and fit
+  // Telugu headlines to their slots. Mutates only articleId + overrideTitle on
+  // the server, then we reload so the editor shows the drafted layout. Operator
+  // still reviews + Renders (AI drafts, human approves).
+  const aiDraft = kycGuard("run the AI draft", async () => {
+    if (!edition) return;
+    setBusy("drafting"); setError("");
+    try {
+      const res = await fetch("/api/epaper/ai-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ editionId: edition.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.kycRequired) {
+          toast("error", data.error || "Your KYC must be verified to run the AI draft.");
+          return;
+        }
+        const msg = data.error || `AI draft failed (${res.status})`;
+        toast("error", msg); setError(msg);
+        return;
+      }
+      await loadEdition(date);
+      toast("success", `AI draft done - ${data.totalReordered ?? 0} stories reprioritised, ${data.totalHeadlinesFitted ?? 0} headlines fitted.`);
+    } catch (e: any) {
+      toast("error", e.message || "AI draft failed");
+      setError(e.message);
+    }
+    finally { setBusy(null); }
+  });
 
   const activePage = edition?.pages?.[activePageIdx];
 
@@ -2348,6 +2384,13 @@ function EpaperEditorPage() {
                     style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     {busy === "generating" ? "Generating…" : "Regenerate"}
                   </button>
+                  <WithTooltip text="AI re-ranks each page so the strongest story leads, and rewrites Telugu headlines to fit their slots. Review the pages, then Render.">
+                    <Button onClick={aiDraft} disabled={!!busy} size="sm"
+                      style={{ height: 36, background: "#7c3aed", color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                      <Sparkles size={15} className="mr-1" />
+                      {busy === "drafting" ? "AI drafting…" : "AI Draft"}
+                    </Button>
+                  </WithTooltip>
                   <button onClick={renderEdition} disabled={busy === "rendering"}
                     style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     {busy === "rendering" ? "Rendering…" : "Render PDF"}
@@ -3353,21 +3396,9 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
             />
           </div>
         )}
-        {/* Newspaper column guides. Faint alternating column bands make the
-            chosen column structure obvious at a glance, and a dashed line down
-            each gutter marks where block edges snap. */}
-        {colBounds.slice(0, -1).map((u, i) => {
-          const next = colBounds[i + 1];
-          const left = 8 + colPitch * u;
-          const width = colPitch * (next - u) - GRID_MARGIN_X;
-          return (
-            <div key={`colband-${u}`} aria-hidden style={{
-              position: "absolute", top: 8, left, width, height: MAX_ROWS * ROW_H,
-              background: i % 2 === 0 ? "rgba(79,70,229,0.05)" : "transparent",
-              zIndex: 1, pointerEvents: "none",
-            }} />
-          );
-        })}
+        {/* Newspaper column guides. A dashed line down each gutter marks where
+            block edges snap. (The faint alternating column background bands were
+            removed - the dashed lines alone show the column structure.) */}
         {colBounds.slice(1, -1).map((u) => (
           <div key={`colguide-${u}`} aria-hidden style={{
             position: "absolute", top: 8,
