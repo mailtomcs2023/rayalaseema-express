@@ -12,7 +12,7 @@
 import { prisma } from "@rayalaseema/db";
 import { hyphenateTelugu } from "./telugu-hyphenation";
 import { migrateLegacyLayout, isLegacyLayout } from "./migrate-layout";
-import { TELUGU_FONTS_HREF } from "./telugu-fonts";
+import { TELUGU_FONTS_HREF, isUnicodeSelfHostedFont } from "./telugu-fonts";
 import { estimateCapacity, findSplit } from "./continuation";
 import { isAnuFont, anuFontFaceCss, anuToPua } from "./anu-font-face";
 import { unicodeToAnu } from "./anu-encoder";
@@ -213,7 +213,10 @@ function fontFamilyName(value?: string): string {
 // anuFacesFor() so the chosen Anu .ttf actually loads.
 function headlineHtml(text: string, b: Block): string {
   const fam = fontFamilyName(b.style?.hlFontFamily);
-  if (fam && isAnuFont(fam)) return anuToPua(unicodeToAnu(text));
+  // Self-hosted but standard Unicode faces (e.g. Anek Telugu) must NOT be byte-
+  // encoded - their .ttf has Unicode glyphs, not PUA, so encoding shows tofu
+  // boxes. Their @font-face is still loaded by anuFacesFor().
+  if (fam && isAnuFont(fam) && !isUnicodeSelfHostedFont(fam)) return anuToPua(unicodeToAnu(text));
   return esc(text);
 }
 
@@ -840,6 +843,17 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
 <style>
   ${anuFacesFor(input.layout.blocks)}
   *{margin:0;padding:0;box-sizing:border-box}
+  /* ===== Sakshi-style design tokens (kept brand-red masthead) ===== */
+  :root{
+    --brand-red:#A50D0D;   /* masthead wordmark - your identity */
+    --accent-red:#D81F2A;  /* Sakshi banners / bullets / kickers */
+    --maroon:#8E1B2E;      /* city-strip + section bands */
+    --jump-yellow:#F7C600; /* page-jump badges */
+    --reel-orange:#F0901E; /* rail headers */
+    --ink:#0d0d0d;         /* headline black */
+    --rule:#111;           /* crisp hairline column / story rules */
+    --rule-soft:#9a948a;   /* lighter inter-column rule */
+  }
   /* @page declares the exact PDF sheet size; preferCSSPageSize=true in
      Playwright honors it. Eliminates the ~80px body-padding overflow that
      caused every edition page to slice into 2 PDF pages (68 instead of
@@ -981,10 +995,10 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
     font-family: 'Noto Sans Telugu', sans-serif; font-size: 12px; color: #14110b;
     padding: 4px 2px; border-top: 1px solid #d8d0bd; }
   .mast-bib-left, .mast-bib-right { font-weight: 700; }
-  .mast-cities { background: #A50D0D; color: #fff;
+  .mast-cities { background: var(--maroon); color: #fff;
     font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700;
-    padding: 5px 8px; text-align: center; letter-spacing: 0.5px;
-    border-radius: 2px; margin-bottom: 2px; }
+    padding: 5px 8px; text-align: center; letter-spacing: 0.6px;
+    border-radius: 0; margin-bottom: 2px; }
   /* Legacy fallback styles (when logo image fails and we drop the typed name). */
   .mast-mid { text-align: center; flex: 1; }
   .mast-side { font-family: 'Noto Sans Telugu', sans-serif; font-size: 12px; line-height: 1.5; color: #6b6155; width: 170px; }
@@ -993,14 +1007,20 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Section band */
   .secbar{
     display:flex;justify-content:space-between;align-items:center;
-    background:#A50D0D;color:#fff;padding:8px 18px;height:100%;
+    background:var(--maroon);color:#fff;padding:8px 18px;height:100%;
   }
   .secbar-name{font-family:'Ramabhadra',serif;font-size:38px}
   .secbar-meta{font-family:'Noto Sans Telugu',sans-serif;font-size:13px}
 
-  .kicker{font-family:'Noto Sans Telugu',sans-serif;font-size:14px;font-weight:800;color:#A50D0D;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .kicker{font-family:'Noto Sans Telugu',sans-serif;font-size:14px;font-weight:800;color:var(--accent-red);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .kicker.sm{font-size:11px;margin:5px 0 3px}
-  .byline{font-family:'Noto Sans Telugu',sans-serif;font-size:13px;font-weight:700;color:#A50D0D;font-style:italic;margin:0 0 8px}
+  .byline{font-family:'Noto Sans Telugu',sans-serif;font-size:13px;font-weight:700;color:var(--accent-red);font-style:italic;margin:0 0 8px}
+  /* Bold red dateline lead-in (Sakshi: "హైదరాబాద్, ఏప్రిల్ 23:") */
+  .dateline{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;color:var(--accent-red)}
+  /* Red sub-banner under a big headline + centered sub-deck (Sakshi signature) */
+  .news-banner{background:var(--accent-red);color:#fff;font-family:'Ramabhadra','Noto Sans Telugu',sans-serif;
+    font-weight:400;font-size:22px;text-align:center;padding:7px 12px;margin:8px 0;letter-spacing:.3px;line-height:1.2}
+  .news-subdeck{font-family:'Noto Sans Telugu',sans-serif;font-weight:700;font-size:15px;color:#222;text-align:center;margin-bottom:8px}
 
   /* Lead - block-inner layout variants for image-position style */
   .lead-stack { display: flex; flex-direction: column; }
@@ -1013,8 +1033,8 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* flex:1 so the text column fills the block height ABOVE the bottom photo -
      without it the dek can't stretch and the story floats with a gap below. */
   .lead-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; min-height: 0; }
-  .lead { padding: 6px 0; border-right: 1px solid #c9c1ad; padding-right: 12px; }
-  .lead-hl{font-family:'Noto Serif Telugu',serif;font-weight:900;font-size:42px;line-height:1.5;margin-bottom:10px}
+  .lead { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 12px; }
+  .lead-hl{font-family:'Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:46px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
     font-size:15.5px;line-height:1.72;color:#34302a;text-align:justify;
@@ -1026,17 +1046,17 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .jump-p{ margin:0; break-inside:avoid; }
 
   /* Major */
-  .major { padding: 6px 0; border-bottom: 1px dotted #c9c1ad; }
+  .major { padding: 6px 0; border-bottom: 1px solid var(--rule); }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
-  .maj-hl{font-family:'Noto Serif Telugu',serif;font-weight:800;font-size:22px;line-height:1.5;margin-bottom:5px}
+  .maj-hl{font-family:'Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:25px;line-height:1.1;color:var(--ink);margin-bottom:6px}
   .maj-dek{font-size:13px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .maj-dek p{ margin:0 0 6px; }
   .maj-dek p:last-child{ margin-bottom:0; }
 
   /* Secondary */
-  .secondary { padding: 6px 0; border-right: 1px solid #c9c1ad; padding-right: 10px;}
+  .secondary { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
-  .sec-hl{font-family:'Noto Serif Telugu',serif;font-weight:800;font-size:17px;line-height:1.5;flex:0 0 auto;margin-bottom:5px}
+  .sec-hl{font-family:'Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:19px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px}
   .sec-dek{font-size:12.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0 0 5px; }
 
@@ -1050,31 +1070,31 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .continuation { padding: 6px 0; border-top: 2px solid #14110b; }
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
-  .cont-hl { font-family: 'Noto Serif Telugu', serif; font-weight: 800; font-size: 18px; line-height: 1.5; color: #14110b; }
+  .cont-hl { font-family: 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 20px; line-height: 1.12; color: var(--ink); }
   .cont-body { font-size: 13px; line-height: 1.6; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
 
   /* Inline jump link inside lead / major dek */
-  .jump-link { color: #A50D0D; font-weight: 800; text-decoration: none; font-family: 'Noto Sans Telugu', sans-serif; font-size: 0.95em; white-space: nowrap; position: relative; z-index: 2; }
+  .jump-link { color: var(--accent-red); font-weight: 800; text-decoration: none; font-family: 'Noto Sans Telugu', sans-serif; font-size: 0.95em; white-space: nowrap; position: relative; z-index: 2; }
 
   /* Briefs */
   .briefs{ display:flex; flex-direction:column; padding-top:8px; }
-  .briefs-head{font-family:'Ramabhadra',serif;font-size:22px;color:#A50D0D;margin-bottom:8px;
-    border-bottom:2px solid #14110b;padding-bottom:4px}
-  .briefs-cols{column-count:1;column-gap:20px;column-rule:1px solid #d8d0bd;flex:1 1 auto;overflow:hidden}
-  .brief-item{display:flex;gap:8px;padding:5px 0;border-bottom:1px dotted #cdc6b5;break-inside:avoid;
+  .briefs-head{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:16px;color:#fff;
+    background:var(--reel-orange);display:inline-block;padding:3px 12px;margin-bottom:8px;border-radius:2px}
+  .briefs-cols{column-count:1;column-gap:20px;column-rule:1px solid var(--rule-soft);flex:1 1 auto;overflow:hidden}
+  .brief-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule-soft);break-inside:avoid;
     font-size:14px;font-weight:600;line-height:1.4}
   .brief-item a{color:inherit;text-decoration:none}
-  .dot{width:6px;height:6px;border-radius:50%;background:#A50D0D;flex-shrink:0;margin-top:7px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-red);flex-shrink:0;margin-top:7px}
 
   /* Ads */
   .adzone{width:100%;overflow:hidden;height:100%}
   .adzone img,.adzone .ad-img,.adzone .ph{width:100%;height:100%;object-fit:cover;display:block}
   .adzone.empty{background:transparent}
 
-  /* Jump */
-  .jump{display:flex;align-items:center;justify-content:center;background:#fff3e0;border:1px dashed #A50D0D;border-radius:4px;height:100%}
-  .jump a{color:#A50D0D;font-weight:700;font-size:12px;text-decoration:none;font-family:'Noto Sans Telugu',sans-serif}
+  /* Jump - Sakshi yellow page-jump badge */
+  .jump{display:flex;align-items:center;justify-content:center;background:var(--jump-yellow);border:none;border-radius:50%;height:100%;aspect-ratio:1/1;margin:0 auto}
+  .jump a{color:#111;font-weight:800;font-size:13px;text-decoration:none;font-family:'Noto Sans Telugu',sans-serif}
 
   /* Folio (#146): master footer line. Centered, small, italic. */
   .folio { display: flex; align-items: center; justify-content: center;
