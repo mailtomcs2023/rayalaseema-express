@@ -619,6 +619,21 @@ const ligatures: Record<string, string> = {
 	"శ్రీ": String.fromCharCode(0x6C), // శ్రీ (U+0C36 0C4D 0C30 0C40)
 }
 
+// Smart/curly punctuation → Anu bytes. These codepoints sit ABOVE the Telugu
+// block, so without this map they hit the raw passthrough below and anuToPua
+// (0xF000 + charCode) turns them into out-of-range garbage glyphs - the visible
+// bug in headlines like 'నెట్' / 'సీమ'. The Anu fonts carry dedicated raised
+// quote glyphs at 0xBB (open) and 0x84 (close), verified by render test.
+const ANU_PUNCT: Record<number, string> = {
+	0x2018: String.fromCharCode(0xBB), // ' left single quote
+	0x2019: String.fromCharCode(0x84), // ' right single quote
+	0x201C: String.fromCharCode(0xBB), // " left double quote (approx - reuse raised glyph)
+	0x201D: String.fromCharCode(0x84), // " right double quote (approx)
+	0x2013: String.fromCharCode(0x2D), // – en dash → hyphen (ASCII glyph renders)
+	0x2014: String.fromCharCode(0x2D), // — em dash → hyphen
+	0x2026: "...",                     // … ellipsis → three ASCII dots
+};
+
 export function unicodeToAnu(input: string): string {
 	let out = "";
 	let i = 0, j = 0, x = 0, y = 0;
@@ -629,6 +644,7 @@ export function unicodeToAnu(input: string): string {
 
 	for (i = 0; i < uniText.length; i++) {
 		if (uniText.charCodeAt(i) === 0x200C || uniText.charCodeAt(i) === 0x200D) continue // strip ZWNJ/ZWJ (zero-width joiners render as garbage)
+		if (ANU_PUNCT[uniText.charCodeAt(i)] !== undefined) { out += ANU_PUNCT[uniText.charCodeAt(i)]; continue } // smart quotes / dashes / ellipsis → real Anu glyphs
 		if (uniText.charCodeAt(i) < 3073 || uniText.charCodeAt(i) > 3183) {
 			out += String.fromCharCode(uniText.charCodeAt(i))
 			continue
