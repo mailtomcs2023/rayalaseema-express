@@ -81,6 +81,12 @@ export interface Block {
     hlBgGradFrom?: string; hlBgGradTo?: string; hlBgGradAngle?: number; // heading-bg gradient
     dropCap?: boolean;           // #103 - drop cap on lead body first letter
     pullQuoteAttribution?: string; // #103 - small "- By X" line under pull-quote
+    // Sakshi-style block treatments (markup pass)
+    accentColor?: string;        // hex - per-block accent (sub-banner bg, bullets, dateline). Default brand red.
+    showBanner?: boolean;        // render the coloured sub-banner under the headline (default: on for lead when a summary exists)
+    bannerText?: string;         // explicit sub-banner text; falls back to overrideDek / article.summary
+    subDeck?: string;            // optional centered sub-deck line under the banner
+    bulletBody?: boolean;        // render the body as red-bullet points instead of flowing paragraphs
   };
   // Continuation metadata (matches continuation.ts)
   continuesToPage?: number;
@@ -229,6 +235,44 @@ function headlineHtml(text: string, b: Block): string {
   return esc(text);
 }
 
+// Render arbitrary Telugu through the default Anu display face (PUA-encoded) so
+// sub-banners / section headers match the heavy headline weight. Falls back to
+// plain HTML-escaped Unicode when the Anu font isn't available.
+function anuOrPlain(text: string): string {
+  if (isAnuFont(DEFAULT_HL_ANU_FONT) && !isUnicodeSelfHostedFont(DEFAULT_HL_ANU_FONT)) {
+    return anuToPua(unicodeToAnu(text));
+  }
+  return esc(text);
+}
+
+// Sakshi-style coloured sub-banner that sits under a big headline (e.g.
+// "సర్కారు అప్పలకు ఆస్పత్రుల షూరిటీ!"). Shown when a banner text exists and the
+// block didn't opt out (style.showBanner === false). Accent colour comes from
+// the block's --accent-red override (see blockStyle) so it can be red/blue/
+// green/purple per story. An optional sub-deck line renders beneath it.
+function subBannerHtml(b: Block, summary: string): string {
+  // Default: on for the lead (Sakshi always banners the hero), opt-in elsewhere.
+  const enabled = b.style?.showBanner ?? b.type === "lead";
+  if (!enabled) return "";
+  const text = (b.style?.bannerText || b.overrideDek || summary || "").trim();
+  if (!text) return "";
+  const deck = (b.style?.subDeck || "").trim();
+  return `<div class="news-banner">${anuOrPlain(text)}</div>` +
+    (deck ? `<div class="news-subdeck">${esc(deck)}</div>` : "");
+}
+
+// Render a body as Sakshi-style bullet points (opt-in via style.bulletBody).
+// Splits the plain text into sentence-points; the .dek-bullets CSS draws the
+// coloured square/round marker and flows them in the block's columns.
+function bulletListHtml(text: string | null | undefined, cols = 1): string {
+  const flat = (text || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!flat) return "";
+  const points = flat.split(/(?<=[.।?!])\s+/).map((p) => p.trim()).filter(Boolean);
+  if (points.length === 0) return "";
+  return `<ul class="dek-bullets" style="column-count:${cols}">` +
+    points.map((p) => `<li>${bodyEsc(p)}</li>`).join("") + `</ul>`;
+}
+
 // Collect the @font-face rules for every distinct Anu heading font used on the
 // page, so their .ttf are embedded once in the render. The default headline
 // face is always included so headlines render even when no block overrides it.
@@ -268,6 +312,10 @@ function blockStyle(b: Block, extra = ""): string {
       ];
   if (s.blockBgColor) parts.push(`background-color: ${s.blockBgColor}`);
   if (s.textColor) parts.push(`color: ${s.textColor}`);
+  // Per-block accent (sub-banner bg, bullets, dateline). Overrides the page
+  // --accent-red for this block + its children so each story can carry its own
+  // Sakshi accent (red / blue / green / purple).
+  if (s.accentColor) parts.push(`--accent-red: ${s.accentColor}`);
   // Per-block padding/margin overrides are intentionally ignored: they broke
   // the uniform grid alignment (one block sitting inset while its neighbours
   // were flush). Spacing now comes only from the grid gaps + per-type CSS
@@ -437,7 +485,12 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
     }
     // No continuation → flow the full article body so the tall lead block reads
     // like a real newspaper column instead of a headline floating in whitespace.
-    // (overflow:hidden on .lead-dek clips the tail.)
+    // (overflow:hidden on .lead-dek clips the tail.) Sakshi bullet mode renders
+    // the body as red-bullet points instead of paragraphs.
+    if (b.style?.bulletBody) {
+      const bl = bulletListHtml(a.bodyText || displaySummary, cols);
+      return bl ? `<div class="${dekClass}"${dekStyle}>${wrapImageMarkup}${bl}</div>` : "";
+    }
     const content = bodyParas(a.bodyText) || (displaySummary ? `<p>${bodyEsc(displaySummary)}</p>` : "");
     return content ? `<div class="${dekClass}"${dekStyle}>${wrapImageMarkup}${content}</div>` : "";
   })();
@@ -457,6 +510,7 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
     <div class="block-inner ${wrapClass}">
       <div class="lead-text">
         <h1 class="lead-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h1>
+        ${subBannerHtml(b, displaySummary)}
         ${useFlex ? "" : imgHtml}
         ${dekHtml}
       </div>
@@ -478,14 +532,19 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
         : "";
       return `<div class="maj-dek">${bodyParas(head)}${jump}</div>`;
     }
+    if (b.style?.bulletBody) {
+      const bl = bulletListHtml(a.bodyText || displaySummary, b.style?.textColumns ?? 1);
+      return bl ? `<div class="maj-dek">${bl}</div>` : "";
+    }
     const content = bodyParas(a.bodyText) || (displaySummary ? `<p>${bodyEsc(displaySummary)}</p>` : "");
     return content ? `<div class="maj-dek">${content}</div>` : "";
   })();
   const hlStyle = hlInlineStyle(b.style, 22);
   const inner = `
     <div class="block-inner">
-      ${imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
       <h2 class="maj-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
+      ${subBannerHtml(b, displaySummary)}
+      ${imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
       ${dekHtml}
     </div>`;
   return `<article class="major block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
@@ -531,13 +590,17 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
 
 function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const displayTitle = b.overrideTitle?.trim() || a.title;
+  const displaySummary = b.overrideDek?.trim() || a.summary || "";
   const hlStyle = hlInlineStyle(b.style, 17);
-  const body = bodyParas(a.bodyText) || (a.summary ? `<p>${bodyEsc(a.summary)}</p>` : "");
+  const body = b.style?.bulletBody
+    ? bulletListHtml(a.bodyText || displaySummary, b.style?.textColumns ?? 1)
+    : (bodyParas(a.bodyText) || (a.summary ? `<p>${bodyEsc(a.summary)}</p>` : ""));
   const dek = body ? `<div class="sec-dek">${body}</div>` : "";
   const inner = `
     <div class="block-inner">
-      ${imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
       <h3 class="sec-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h3>
+      ${subBannerHtml(b, displaySummary)}
+      ${imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
       ${dek}
     </div>`;
   return `<article class="secondary block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
@@ -1033,9 +1096,17 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Bold red dateline lead-in (Sakshi: "హైదరాబాద్, ఏప్రిల్ 23:") */
   .dateline{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;color:var(--accent-red)}
   /* Red sub-banner under a big headline + centered sub-deck (Sakshi signature) */
-  .news-banner{background:var(--accent-red);color:#fff;font-family:'Ramabhadra','Noto Sans Telugu',sans-serif;
-    font-weight:400;font-size:22px;text-align:center;padding:7px 12px;margin:8px 0;letter-spacing:.3px;line-height:1.2}
+  .news-banner{background:var(--accent-red);color:#fff;font-family:'Pragathi-Special','Ramabhadra','Noto Sans Telugu',sans-serif;
+    font-weight:400;font-size:22px;text-align:center;padding:7px 12px;margin:8px 0;letter-spacing:.3px;line-height:1.25;break-inside:avoid}
   .news-subdeck{font-family:'Noto Sans Telugu',sans-serif;font-weight:700;font-size:15px;color:#222;text-align:center;margin-bottom:8px}
+  /* major/secondary banners are smaller than the lead's */
+  .maj-hl + .news-banner, .sec-hl + .news-banner{font-size:15px;padding:5px 10px;margin:6px 0}
+  /* Sakshi red-square bullet list (opt-in body mode) */
+  .dek-bullets{list-style:none;column-gap:18px;column-rule:1px solid var(--rule-soft);margin:0}
+  .dek-bullets li{position:relative;padding-left:18px;margin-bottom:9px;break-inside:avoid;
+    font-size:14px;line-height:1.55;color:#1f1a14;text-align:justify}
+  .dek-bullets li::before{content:"";position:absolute;left:0;top:6px;width:8px;height:8px;background:var(--accent-red)}
+  .dek-bullets.round li::before{border-radius:50%}
 
   /* Lead - block-inner layout variants for image-position style */
   .lead-stack { display: flex; flex-direction: column; }
