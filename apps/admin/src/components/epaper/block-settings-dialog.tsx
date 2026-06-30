@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Select, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ALL_HEADING_FONTS, TELUGU_FONTS_HREF, type TeluguFont } from "@/lib/epaper/telugu-fonts";
@@ -62,6 +62,12 @@ export interface BlockStyleSettings {
   hlStrokeWidth?: number; hlStrokeColor?: string;
   hlGradFrom?: string; hlGradTo?: string; hlGradAngle?: number;
   hlBgGradFrom?: string; hlBgGradTo?: string; hlBgGradAngle?: number;
+  // Sakshi-style block treatments (see render-layout subBannerHtml/bulletListHtml).
+  accentColor?: string;        // banner bg + bullets + dateline
+  showBanner?: boolean;        // coloured sub-banner under the headline
+  bannerText?: string;         // banner text override (else uses summary)
+  subDeck?: string;            // centered sub-deck line under the banner
+  bulletBody?: boolean;        // render body as red-bullet points
 }
 
 interface BlockSettingsDialogProps {
@@ -125,7 +131,7 @@ function FontItem({ font, isFav, onToggleFav, sample, sampleAnu }: { font: Telug
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-[10px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">{font.label}</span>
         <SelectPrimitive.ItemText asChild>
-          <span className="truncate leading-snug" style={{ fontFamily: font.value, fontSize: 16 }}>{font.anu && !font.unicode ? sampleAnu : sample}</span>
+          <span className="truncate leading-snug" style={{ fontFamily: font.value, fontSize: 24 }}>{font.anu && !font.unicode ? sampleAnu : sample}</span>
         </SelectPrimitive.ItemText>
       </div>
       <span
@@ -182,6 +188,10 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
         hlStrokeWidth: g("hlStrokeWidth"), hlStrokeColor: g("hlStrokeColor"),
         hlGradFrom: g("hlGradFrom"), hlGradTo: g("hlGradTo"), hlGradAngle: g("hlGradAngle"),
         hlBgGradFrom: g("hlBgGradFrom"), hlBgGradTo: g("hlBgGradTo"), hlBgGradAngle: g("hlBgGradAngle"),
+        accentColor: g("accentColor"), bannerText: g("bannerText"), subDeck: g("subDeck"),
+        // tri-state: "on" | "off" | "" (auto - banner shows on the lead by default)
+        showBanner: initialStyle?.showBanner === true ? "on" : initialStyle?.showBanner === false ? "off" : "",
+        bulletBody: initialStyle?.bulletBody === true,
       } as any);
     }
   }, [open, initialStyle]);
@@ -196,12 +206,15 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
     // removes a previously-saved value. Keys this dialog doesn't manage (image
     // position, columns…) are left untouched.
     const c: any = {};
-    for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo"]) {
+    for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo", "accentColor", "bannerText", "subDeck"]) {
       c[k] = settings[k] ? settings[k] : undefined;
     }
     for (const k of ["hlFontSize", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle"]) {
       c[k] = (settings[k] !== "" && settings[k] != null) ? Number(settings[k]) : undefined;
     }
+    // Sakshi block toggles. showBanner is tri-state: "" → undefined (auto).
+    c.showBanner = settings.showBanner === "on" ? true : settings.showBanner === "off" ? false : undefined;
+    c.bulletBody = settings.bulletBody ? true : undefined;
     c.hlScale = undefined; // legacy multiplier replaced by hlFontSize (real px)
     onSave(c);
     onOpenChange(false);
@@ -275,12 +288,12 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
                 {favoriteFonts.length > 0 && (
                   <>
                     <SelectSeparator />
-                    <SelectLabel className="text-xs text-muted-foreground">Favorites</SelectLabel>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Favorites</div>
                     {favoriteFonts.map((font) => (
                       <FontItem key={font.value} font={font} isFav onToggleFav={toggleFav} sample={fontSample} sampleAnu={fontSampleAnu} />
                     ))}
                     <SelectSeparator />
-                    <SelectLabel className="text-xs text-muted-foreground">All fonts</SelectLabel>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">All fonts</div>
                   </>
                 )}
                 {otherFonts.map((font) => (
@@ -432,6 +445,63 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
                 onChange={(e) => { handleChange("hlBgGradTo", e.target.value); if (!settings.hlBgGradFrom) handleChange("hlBgGradFrom", "#fde68a"); }} />
               <input type="range" min={0} max={360} step={5} className="flex-1" value={settings.hlBgGradAngle || 90} onChange={(e) => handleChange("hlBgGradAngle", e.target.value)} />
               <button type="button" className="text-xs text-muted-foreground underline" onClick={() => { handleChange("hlBgGradFrom", ""); handleChange("hlBgGradTo", ""); }}>off</button>
+            </div>
+          </div>
+
+          <div className="mt-1 border-t pt-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Sakshi style (banner · bullets · accent)</div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Sub-banner</Label>
+            <div className="col-span-3">
+              <Select value={settings.showBanner || "auto"} onValueChange={(v) => handleChange("showBanner", v === "auto" ? "" : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto (on for the lead)</SelectItem>
+                  <SelectItem value="on">Always show</SelectItem>
+                  <SelectItem value="off">Hide</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="bannerText" className="text-right">Banner text</Label>
+            <Input id="bannerText" className="col-span-3" placeholder="Defaults to the article summary"
+              value={settings.bannerText || ""} onChange={(e) => handleChange("bannerText", e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="subDeck" className="text-right">Sub-deck</Label>
+            <Input id="subDeck" className="col-span-3" placeholder="Optional centered line under the banner"
+              value={settings.subDeck || ""} onChange={(e) => handleChange("subDeck", e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Accent colour</Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <Input type="color" className="w-12 p-1 h-10" value={settings.accentColor || "#D81F2A"} onChange={(e) => handleChange("accentColor", e.target.value)} />
+              <Input type="text" placeholder="#D81F2A (red) · blue · green…" value={settings.accentColor || ""} onChange={(e) => handleChange("accentColor", e.target.value)} />
+              {/* quick Sakshi accent swatches */}
+              <div className="flex gap-1">
+                {["#D81F2A", "#15489E", "#2E7D32", "#7B1FA2", "#8E1B2E"].map((hex) => (
+                  <button key={hex} type="button" title={hex} onClick={() => handleChange("accentColor", hex)}
+                    className="h-6 w-6 rounded-sm border" style={{ background: hex }} />
+                ))}
+                <button type="button" className="text-xs text-muted-foreground underline" onClick={() => handleChange("accentColor", "")}>reset</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Bullet body</Label>
+            <div className="col-span-3">
+              <Select value={settings.bulletBody ? "on" : "off"} onValueChange={(v) => handleChange("bulletBody", v === "on")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">Paragraphs (default)</SelectItem>
+                  <SelectItem value="on">Red-bullet points</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
