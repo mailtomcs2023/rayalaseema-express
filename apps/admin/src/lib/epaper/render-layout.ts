@@ -1194,7 +1194,9 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* flex:1 so the text column fills the block height ABOVE the bottom photo -
      without it the dek can't stretch and the story floats with a gap below. */
   .lead-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; min-height: 0; }
-  .lead { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 12px; }
+  /* Right column-rule: 2px so it survives the editor's CSS zoom (a 1px rule
+     rasterises to sub-pixel at <1 zoom and vanishes). */
+  .lead { padding: 6px 0; border-right: 2px solid var(--rule); padding-right: 12px; }
   .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px;max-height:3.4em;overflow:hidden;flex:0 0 auto}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
