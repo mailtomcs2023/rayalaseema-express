@@ -589,10 +589,28 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
   return `<article class="continuation block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
+// Sakshi-style coloured headline banner for secondary blocks. Colour is a
+// STABLE pseudo-random pick from the palette (hashed from the block id) so each
+// card differs but doesn't flicker between renders. An explicit hlBgColor /
+// text gradient the operator sets always wins.
+const SEC_BAND_PALETTE = ["#E8730C", "#C81E1E", "#4F8A2E", "#1B4E8F", "#7A2E8F", "#0E7C86", "#B8860B"];
+function bandColorFor(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return SEC_BAND_PALETTE[Math.abs(h) % SEC_BAND_PALETTE.length];
+}
+
 function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const displayTitle = b.overrideTitle?.trim() || a.title;
   const displaySummary = b.overrideDek?.trim() || a.summary || "";
-  const hlStyle = hlInlineStyle(b.style, 17);
+  // Coloured headline banner by default (operator's explicit heading colour wins).
+  const secCss = headingCss(b.style, 17);
+  const hasBg = !!(b.style?.hlBgColor || (b.style?.hlGradFrom && b.style?.hlGradTo));
+  if (!hasBg) {
+    secCss.push(`background:${bandColorFor(b.id)}`, `padding:4px 8px`);
+    if (!b.style?.hlColor) secCss.push(`color:#fff`);
+  }
+  const hlStyle = secCss.length ? ` style="${secCss.join(";")}"` : "";
   const dek = (() => {
     // Continuation: when the story is wired to continue on another page, show
     // only the head that fits + a "→ Page N" jump link (same as lead/major).
@@ -1114,7 +1132,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Sakshi red-square bullet list (opt-in body mode) */
   .dek-bullets{list-style:none;column-gap:18px;column-rule:1px solid var(--rule-soft);margin:0}
   .dek-bullets li{position:relative;padding-left:18px;margin-bottom:9px;break-inside:avoid;
-    font-size:14px;line-height:1.55;color:#1f1a14;text-align:justify}
+    font-size:15.5px;line-height:1.55;color:#1f1a14;text-align:justify}
   .dek-bullets li::before{content:"";position:absolute;left:0;top:6px;width:8px;height:8px;background:var(--accent-red)}
   .dek-bullets.round li::before{border-radius:50%}
 
@@ -1133,7 +1151,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px;max-height:3.4em;overflow:hidden;flex:0 0 auto}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
-    font-size:15.5px;line-height:1.72;color:#34302a;text-align:justify;
+    font-size:17px;line-height:1.7;color:#34302a;text-align:justify;
     column-count:2;column-gap:18px;column-rule:1px solid #d8d0bd;column-fill:auto;
     flex: 1 1 auto; overflow: hidden;
   }
@@ -1147,7 +1165,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .major { padding: 6px 0; border-bottom: 1px solid var(--rule); }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
   .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin-bottom:6px;max-height:2.35em;overflow:hidden;flex:0 0 auto}
-  .maj-dek{font-size:13px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
+  .maj-dek{font-size:15px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   /* Continuation source: body fills, the "→ page" jump link stays pinned below. */
   .cont-src{display:flex;flex-direction:column;overflow:hidden}
   .cont-src>.cont-fill{flex:1 1 auto;min-height:0;overflow:hidden}
@@ -1159,7 +1177,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .secondary { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
   .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px;max-height:2.4em;overflow:hidden}
-  .sec-dek{font-size:12.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
+  .sec-dek{font-size:14.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0; text-indent:1.2em; }
   .sec-dek p:first-child{ text-indent:0; }
 
@@ -1174,7 +1192,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
   .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 45px; line-height: 1.12; color: var(--ink); }
-  .cont-body { font-size: 13px; line-height: 1.6; color: #34302a; text-align: justify;
+  .cont-body { font-size: 15px; line-height: 1.6; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
   .cont-body p{ margin:0; text-indent:1.2em; }
   .cont-body p:first-child{ text-indent:0; }
@@ -1188,7 +1206,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
     background:var(--reel-orange);display:inline-block;padding:3px 12px;margin-bottom:8px;border-radius:2px}
   .briefs-cols{column-count:1;column-gap:20px;column-rule:1px solid var(--rule-soft);flex:1 1 auto;overflow:hidden}
   .brief-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule-soft);break-inside:avoid;
-    font-size:14px;font-weight:600;line-height:1.4}
+    font-size:15.5px;font-weight:600;line-height:1.4}
   .brief-item a{color:inherit;text-decoration:none}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-red);flex-shrink:0;margin-top:7px}
 
