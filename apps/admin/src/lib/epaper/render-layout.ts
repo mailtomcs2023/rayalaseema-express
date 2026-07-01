@@ -601,10 +601,11 @@ function hashId(id: string, salt: number): number {
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
-// Only SOME blocks on a page get coloured (stable per-id, ~half) so a page reads
-// as a mix of colour + plain cards rather than every block being loud.
-function isColoredBlock(id: string): boolean {
-  return hashId(id, 7) % 2 === 0;
+// Every major/secondary story block gets a coloured banner (each a distinct
+// page-unique hue via assignBannerColors). Kept as a gate so it's easy to dial
+// back to "only some" later if the page reads too loud.
+function isColoredBlock(_id: string): boolean {
+  return true;
 }
 /**
  * Assign a UNIQUE banner colour to each coloured story block on a page. Walking
