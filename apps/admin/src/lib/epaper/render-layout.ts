@@ -599,6 +599,15 @@ function bandColorFor(id: string): string {
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return SEC_BAND_PALETTE[Math.abs(h) % SEC_BAND_PALETTE.length];
 }
+// A very light (≈10%) tint of a banner colour, used to wash the whole card so
+// it reads as a set with its heading bar. Non-hex input falls back to white.
+function lightTint(hex: string): string {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec((hex || "").trim());
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * 0.9);
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
 
 function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const displayTitle = b.overrideTitle?.trim() || a.title;
@@ -631,7 +640,11 @@ function secondaryBlock(b: Block, a: ResolvedArticle): string {
       ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
       ${dek}
     </div>`;
-  return `<article class="secondary block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
+  // Wash the whole card in a light tint of its banner colour so it reads as a
+  // set with the coloured heading bar (unless the operator picked a Block BG).
+  const bannerColor = b.style?.hlBgColor || bandColorFor(b.id);
+  const tintExtra = b.style?.blockBgColor ? "" : `background-color: ${lightTint(bannerColor)}`;
+  return `<article class="secondary block" style="${blockStyle(b, tintExtra)}">${articleOverlay(a, inner)}</article>`;
 }
 
 function briefBlock(b: Block, articles: ResolvedArticle[]): string {
