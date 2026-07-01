@@ -538,7 +538,7 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
     const content = bodyParas(a.bodyText) || (displaySummary ? `<p>${bodyEsc(displaySummary)}</p>` : "");
     return content ? `<div class="maj-dek fit-deck">${content}</div>` : "";
   })();
-  const hlStyle = hlInlineStyle(b.style, 22);
+  const { hlStyle, tintExtra } = bannerDecor(b, 22);
   const inner = `
     <div class="block-inner">
       <h2 class="maj-hl fit-head"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
@@ -546,7 +546,7 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
       ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
       ${dekHtml}
     </div>`;
-  return `<article class="major block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
+  return `<article class="major block" style="${blockStyle(b, tintExtra)}">${articleOverlay(a, inner)}</article>`;
 }
 
 /**
@@ -589,15 +589,22 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
   return `<article class="continuation block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
-// Sakshi-style coloured headline banner for secondary blocks. Colour is a
-// STABLE pseudo-random pick from the palette (hashed from the block id) so each
-// card differs but doesn't flicker between renders. An explicit hlBgColor /
-// text gradient the operator sets always wins.
-const SEC_BAND_PALETTE = ["#E8730C", "#C81E1E", "#4F8A2E", "#1B4E8F", "#7A2E8F", "#0E7C86", "#B8860B"];
-function bandColorFor(id: string): string {
-  let h = 0;
+// Sakshi-style coloured headline banner for story blocks. Colour is a STABLE
+// pseudo-random pick from the palette (hashed from the block id) so each card
+// differs but doesn't flicker between renders. No red (operator's call).
+const SEC_BAND_PALETTE = ["#E8730C", "#4F8A2E", "#1B4E8F", "#7A2E8F", "#0E7C86", "#B8860B"];
+function hashId(id: string, salt: number): number {
+  let h = salt;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return SEC_BAND_PALETTE[Math.abs(h) % SEC_BAND_PALETTE.length];
+  return Math.abs(h);
+}
+function bandColorFor(id: string): string {
+  return SEC_BAND_PALETTE[hashId(id, 0) % SEC_BAND_PALETTE.length];
+}
+// Only SOME blocks on a page get coloured (stable per-id, ~half) so a page reads
+// as a mix of colour + plain cards rather than every block being loud.
+function isColoredBlock(id: string): boolean {
+  return hashId(id, 7) % 2 === 0;
 }
 // A very light (≈10%) tint of a banner colour, used to wash the whole card so
 // it reads as a set with its heading bar. Non-hex input falls back to white.
@@ -608,18 +615,29 @@ function lightTint(hex: string): string {
   const mix = (c: number) => Math.round(c + (255 - c) * 0.9);
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
+// Build the coloured-banner decoration for a story block: the heading inline
+// style (with a colour bar when this block is one of the "coloured" ones) plus
+// the matching light card tint. An operator-set heading colour/gradient forces
+// colour on; an operator Block BG suppresses the auto tint.
+function bannerDecor(b: Block, basePx: number): { hlStyle: string; tintExtra: string } {
+  const css = headingCss(b.style, basePx);
+  const explicit = !!(b.style?.hlBgColor || (b.style?.hlGradFrom && b.style?.hlGradTo));
+  const auto = isColoredBlock(b.id);
+  if (!explicit && auto) {
+    css.push(`background:${bandColorFor(b.id)}`, `padding:4px 8px`);
+    if (!b.style?.hlColor) css.push(`color:#fff`);
+  }
+  const hlStyle = css.length ? ` style="${css.join(";")}"` : "";
+  const bannerColor = b.style?.hlBgColor || bandColorFor(b.id);
+  const wantTint = (explicit || auto) && !b.style?.blockBgColor;
+  const tintExtra = wantTint ? `background-color: ${lightTint(bannerColor)}` : "";
+  return { hlStyle, tintExtra };
+}
 
 function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const displayTitle = b.overrideTitle?.trim() || a.title;
   const displaySummary = b.overrideDek?.trim() || a.summary || "";
-  // Coloured headline banner by default (operator's explicit heading colour wins).
-  const secCss = headingCss(b.style, 17);
-  const hasBg = !!(b.style?.hlBgColor || (b.style?.hlGradFrom && b.style?.hlGradTo));
-  if (!hasBg) {
-    secCss.push(`background:${bandColorFor(b.id)}`, `padding:4px 8px`);
-    if (!b.style?.hlColor) secCss.push(`color:#fff`);
-  }
-  const hlStyle = secCss.length ? ` style="${secCss.join(";")}"` : "";
+  const { hlStyle, tintExtra } = bannerDecor(b, 17);
   const dek = (() => {
     // Continuation: when the story is wired to continue on another page, show
     // only the head that fits + a "→ Page N" jump link (same as lead/major).
@@ -640,10 +658,6 @@ function secondaryBlock(b: Block, a: ResolvedArticle): string {
       ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
       ${dek}
     </div>`;
-  // Wash the whole card in a light tint of its banner colour so it reads as a
-  // set with the coloured heading bar (unless the operator picked a Block BG).
-  const bannerColor = b.style?.hlBgColor || bandColorFor(b.id);
-  const tintExtra = b.style?.blockBgColor ? "" : `background-color: ${lightTint(bannerColor)}`;
   return `<article class="secondary block" style="${blockStyle(b, tintExtra)}">${articleOverlay(a, inner)}</article>`;
 }
 

@@ -357,7 +357,7 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">Banner color</Label>
             <div className="col-span-3 flex items-center gap-1.5">
-              {["#E8730C", "#C81E1E", "#4F8A2E", "#1B4E8F", "#7A2E8F", "#0E7C86", "#B8860B"].map((hex) => (
+              {["#E8730C", "#4F8A2E", "#1B4E8F", "#7A2E8F", "#0E7C86", "#B8860B"].map((hex) => (
                 <button
                   key={hex}
                   type="button"
