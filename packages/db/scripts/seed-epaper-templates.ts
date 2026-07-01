@@ -47,6 +47,9 @@ interface Block {
     breaking?: boolean;
   };
   text?: string;
+  // Per-block default style baked into the template (e.g. headline-only slots
+  // that render with no image). Carried through autofill → the generated page.
+  style?: { imagePosition?: "top" | "left" | "right" | "none" } & Record<string, unknown>;
 }
 
 interface TemplateSpec {
@@ -75,30 +78,29 @@ const frontPage: TemplateSpec = {
   sortOrder: 1,
   layout: {
     blocks: [
-      // Masthead block lives in the FRONT page (grid-v1). v2 master is a
-      // mm-v2-only feature that's gated off in render-layout, so v1 pages
-      // need their own masthead block to render the Eenadu-style header.
-      // Layout uses 30 rows total: masthead 4 + ad 2 + lead/majors 12 +
-      // secondaries 5 + briefs 4 + ad 3 = 30. Fits the print page exactly.
-      { id: "mh", type: "masthead", x: 0, y: 0, w: 12, h: 4 },
-      { id: "ad-top", type: "ad", x: 0, y: 4, w: 12, h: 2 },
-      // Lead - image preferred but not mandatory (so it always fills)
-      { id: "lead", type: "lead", x: 0, y: 6, w: 8, h: 12, slotFilter: { minImages: 1 } },
-      // Right column majors
-      { id: "maj-1", type: "major", x: 8, y: 6, w: 4, h: 6, slotFilter: { minImages: 1 } },
-      { id: "maj-2", type: "major", x: 8, y: 12, w: 4, h: 6, slotFilter: { minImages: 1 } },
-      // Secondary band
-      { id: "sec-1", type: "secondary", x: 0, y: 18, w: 3, h: 5 },
-      { id: "sec-2", type: "secondary", x: 3, y: 18, w: 3, h: 5 },
-      { id: "sec-3", type: "secondary", x: 6, y: 18, w: 3, h: 5 },
-      { id: "sec-4", type: "secondary", x: 9, y: 18, w: 3, h: 5 },
+      // FINAL front-page grid (operator-approved 2026-07). 12 cols × 30 rows.
+      // masthead 3 + ad 2 + lead/majors 9 + headline-strip 3 + secondary band 5
+      // + briefs 4 = 26 rows used (rows 26-30 spare).
+      { id: "mh", type: "masthead", x: 0, y: 0, w: 12, h: 3 },
+      { id: "ad-top", type: "ad", x: 0, y: 3, w: 12, h: 2 },
+      // Lead (left) + two right-column majors
+      { id: "lead", type: "lead", x: 0, y: 5, w: 8, h: 9, slotFilter: { minImages: 1 } },
+      { id: "maj-1", type: "major", x: 8, y: 5, w: 4, h: 4, slotFilter: { minImages: 1 } },
+      { id: "maj-2", type: "major", x: 8, y: 9, w: 4, h: 5, slotFilter: { minImages: 1 } },
+      // Headline-only secondary strip (no image)
+      { id: "sec-h1", type: "secondary", x: 0, y: 14, w: 4, h: 3, style: { imagePosition: "none" } },
+      { id: "sec-h2", type: "secondary", x: 4, y: 14, w: 4, h: 3, style: { imagePosition: "none" } },
+      { id: "sec-h3", type: "secondary", x: 8, y: 14, w: 4, h: 3, style: { imagePosition: "none" } },
+      // Secondary band with images
+      { id: "sec-1", type: "secondary", x: 0, y: 17, w: 3, h: 5 },
+      { id: "sec-2", type: "secondary", x: 3, y: 17, w: 3, h: 5 },
+      { id: "sec-3", type: "secondary", x: 6, y: 17, w: 3, h: 5 },
+      { id: "sec-4", type: "secondary", x: 9, y: 17, w: 3, h: 5 },
       // Briefs - 2 cols × 2 rows
-      { id: "br-1", type: "brief", x: 0, y: 23, w: 6, h: 2 },
-      { id: "br-2", type: "brief", x: 0, y: 25, w: 6, h: 2 },
-      { id: "br-3", type: "brief", x: 6, y: 23, w: 6, h: 2 },
-      { id: "br-4", type: "brief", x: 6, y: 25, w: 6, h: 2 },
-      // Bottom ad
-      { id: "ad-bot", type: "ad", x: 0, y: 27, w: 12, h: 3 },
+      { id: "br-1", type: "brief", x: 0, y: 22, w: 6, h: 2 },
+      { id: "br-3", type: "brief", x: 6, y: 22, w: 6, h: 2 },
+      { id: "br-2", type: "brief", x: 0, y: 24, w: 6, h: 2 },
+      { id: "br-4", type: "brief", x: 6, y: 24, w: 6, h: 2 },
     ],
   },
 };

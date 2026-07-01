@@ -55,6 +55,8 @@ export interface BlockStyleSettings {
   hlColor?: string;
   hlBgColor?: string;
   blockBgColor?: string;
+  // "none" = heading + content only (no image).
+  imagePosition?: "top" | "left" | "right" | "none";
   // Photoshop-style heading type controls.
   hlLetterSpacing?: number;
   hlLineHeight?: number;
@@ -183,6 +185,7 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
       const g = (k: string) => initialStyle?.[k] ?? "";
       setSettings({
         hlFontFamily: g("hlFontFamily"), hlFontSize: g("hlFontSize"), hlColor: g("hlColor"), hlBgColor: g("hlBgColor"), blockBgColor: g("blockBgColor"),
+        imagePosition: g("imagePosition"),
         hlLetterSpacing: g("hlLetterSpacing"), hlLineHeight: g("hlLineHeight"),
         hlShadowX: g("hlShadowX"), hlShadowY: g("hlShadowY"), hlShadowBlur: g("hlShadowBlur"), hlShadowColor: g("hlShadowColor"),
         hlStrokeWidth: g("hlStrokeWidth"), hlStrokeColor: g("hlStrokeColor"),
@@ -206,7 +209,7 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
     // removes a previously-saved value. Keys this dialog doesn't manage (image
     // position, columns…) are left untouched.
     const c: any = {};
-    for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo", "accentColor", "bannerText", "subDeck"]) {
+    for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "imagePosition", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo", "accentColor", "bannerText", "subDeck"]) {
       c[k] = settings[k] ? settings[k] : undefined;
     }
     for (const k of ["hlFontSize", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle"]) {
@@ -366,6 +369,23 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
                 placeholder="transparent or #hex"
                 onChange={(e) => handleChange("blockBgColor", e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="imagePosition" className="text-right">Image</Label>
+            <div className="col-span-3">
+              <Select value={settings.imagePosition || "top"} onValueChange={(v) => handleChange("imagePosition", v)}>
+                <SelectTrigger id="imagePosition">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top">Show (above text)</SelectItem>
+                  <SelectItem value="left">Show (left of text)</SelectItem>
+                  <SelectItem value="right">Show (right of text)</SelectItem>
+                  <SelectItem value="none">Hide — heading &amp; content only</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

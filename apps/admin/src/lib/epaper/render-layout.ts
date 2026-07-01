@@ -13,7 +13,6 @@ import { prisma } from "@rayalaseema/db";
 import { hyphenateTelugu } from "./telugu-hyphenation";
 import { migrateLegacyLayout, isLegacyLayout } from "./migrate-layout";
 import { TELUGU_FONTS_HREF, isUnicodeSelfHostedFont } from "./telugu-fonts";
-import { estimateCapacity, findSplit } from "./continuation";
 import { isAnuFont, anuFontFaceCss, anuToPua } from "./anu-font-face";
 import { unicodeToAnu } from "./anu-encoder";
 
@@ -471,7 +470,9 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
       : ""; // default top + wrap = no extra wrapper class
   const imgWrapStyle = useFlex ? ` style="flex:0 0 ${imgSize}%"` : "";
   const hlStyle = hlInlineStyle(b.style, 42);
-  const dekClass = `lead-dek${dropCap ? " drop-cap" : ""}${isWrap ? " has-wrap-image" : ""}`;
+  // fit-deck (client-side fill+ellipsis) only when the image is NOT wrapped
+  // inside the body - truncating text-content would drop the inline wrap image.
+  const dekClass = `lead-dek${isWrap ? " has-wrap-image" : " fit-deck"}${dropCap ? " drop-cap" : ""}`;
   const dekStyle = ` style="column-count:${cols}${b.style?.textColor ? `;color:${b.style.textColor}` : ""}"`;
   // If a continuation block exists on a later page, render the dek as plain
   // body-text truncated at `bodyStart` (set by the continuation post-process)
@@ -479,21 +480,11 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   const dekHtml = (() => {
     if (b.continuesToPage && b.continuesToBlockId) {
       const target = b.continuesToPage;
-      // bodyStart is char offset of where the split happens - known only on
-      // the continuation block, but the renderer can re-derive a sensible cut
-      // by trimming summary || bodyText to the same approximate length.
+      // Render the full body and let the client fit fill the box exactly (the
+      // old server-estimated split left a gap). The jump link stays pinned below.
       const text = a.bodyText || a.summary || "";
-      // Split where the block actually fills (same capacity the continuation
-      // wiring used to set bodyStart) so the source isn't left half-empty.
-      const splitAt = findSplit(text, estimateCapacity(b));
-      const head = text.slice(0, splitAt).trim();
-      // Only show the "continued on page N" jump when there's actually a tail
-      // left over - if the (possibly enlarged) block now fits the whole story,
-      // drop the jump so it isn't misleading.
-      const jump = splitAt < text.length
-        ? `<p class="jump-p"><a class="jump-link" href="#page=${target}">→ మిగతా కథనం పేజీ ${target}</a></p>`
-        : "";
-      return `<div class="${dekClass}"${dekStyle}>${wrapImageMarkup}${bodyParas(head)}${jump}</div>`;
+      const jump = `<p class="jump-p"><a class="jump-link" href="#page=${target}">→ మిగతా కథనం పేజీ ${target}</a></p>`;
+      return `<div class="lead-dek cont-src"><div class="cont-fill fit-deck"${dekStyle}>${wrapImageMarkup}${bodyParas(text)}</div>${jump}</div>`;
     }
     // No continuation → flow the full article body so the tall lead block reads
     // like a real newspaper column instead of a headline floating in whitespace.
@@ -521,7 +512,7 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   const inner = `
     <div class="block-inner ${wrapClass}">
       <div class="lead-text">
-        <h1 class="lead-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h1>
+        <h1 class="lead-hl fit-head"${hlStyle}>${headlineHtml(displayTitle, b)}</h1>
         ${subBannerHtml(b, displaySummary)}
         ${useFlex ? "" : imgHtml}
         ${dekHtml}
@@ -537,24 +528,20 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
   const dekHtml = (() => {
     if (b.continuesToPage) {
       const text = a.bodyText || a.summary || "";
-      const splitAt = findSplit(text, estimateCapacity(b));
-      const head = text.slice(0, splitAt).trim();
-      const jump = splitAt < text.length
-        ? `<p class="jump-p"><a class="jump-link" href="#page=${b.continuesToPage}">→పేజీ ${b.continuesToPage}</a></p>`
-        : "";
-      return `<div class="maj-dek">${bodyParas(head)}${jump}</div>`;
+      const jump = `<p class="jump-p"><a class="jump-link" href="#page=${b.continuesToPage}">→పేజీ ${b.continuesToPage}</a></p>`;
+      return `<div class="maj-dek cont-src"><div class="cont-fill fit-deck">${bodyParas(text)}</div>${jump}</div>`;
     }
     if (b.style?.bulletBody) {
       const bl = bulletListHtml(a.bodyText || displaySummary, b.style?.textColumns ?? 1);
       return bl ? `<div class="maj-dek">${bl}</div>` : "";
     }
     const content = bodyParas(a.bodyText) || (displaySummary ? `<p>${bodyEsc(displaySummary)}</p>` : "");
-    return content ? `<div class="maj-dek">${content}</div>` : "";
+    return content ? `<div class="maj-dek fit-deck">${content}</div>` : "";
   })();
   const hlStyle = hlInlineStyle(b.style, 22);
   const inner = `
     <div class="block-inner">
-      <h2 class="maj-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
+      <h2 class="maj-hl fit-head"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
       ${subBannerHtml(b, displaySummary)}
       ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
       ${dekHtml}
@@ -573,15 +560,17 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
 function bodyParas(text: string | null | undefined, max = 8000): string {
   const t = (text || "").trim().slice(0, max);
   if (!t) return "";
-  let paras = t.split(/\n{2,}/).map((p) => p.replace(/\s+/g, " ").trim()).filter(Boolean);
-  if (paras.length <= 1) {
-    const flat = t.replace(/\s+/g, " ").trim();
-    const sentences = flat.split(/(?<=[.।?!])\s+/);
-    paras = [];
-    for (let i = 0; i < sentences.length; i += 3) paras.push(sentences.slice(i, i + 3).join(" "));
-  }
+  // Split ONLY on real paragraph breaks (\n\n). Text with no breaks stays as one
+  // continuous flowing paragraph - no artificial 3-sentence chunking - so the
+  // column reads as one running story instead of visually separate blocks.
+  const paras = t.split(/\n{2,}/).map((p) => p.replace(/\s+/g, " ").trim()).filter(Boolean);
   return paras.map((p) => `<p>${bodyEsc(p)}</p>`).join("");
 }
+
+// Body-fit runs client-side (see FIT_DECK_SCRIPT) - it MEASURES each block's
+// real box and clamps the body to the exact number of lines that fill it,
+// ending in "…". A server estimate can't be exact (headline may wrap 1-3 lines,
+// image may be hidden), which is why it left gaps.
 
 function continuationBlock(b: Block, a: ResolvedArticle): string {
   const from = b.continuesFromPage ?? 0;
@@ -595,7 +584,7 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
         <span class="cont-from">← ${from}వ పేజీ తరువాత</span>
         <span class="cont-hl">${esc(a.title)}</span>
       </div>
-      <p class="cont-body">${esc(slice)}</p>
+      <p class="cont-body fit-deck">${esc(slice)}</p>
     </div>`;
   return `<article class="continuation block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
@@ -604,13 +593,22 @@ function secondaryBlock(b: Block, a: ResolvedArticle): string {
   const displayTitle = b.overrideTitle?.trim() || a.title;
   const displaySummary = b.overrideDek?.trim() || a.summary || "";
   const hlStyle = hlInlineStyle(b.style, 17);
-  const body = b.style?.bulletBody
-    ? bulletListHtml(a.bodyText || displaySummary, b.style?.textColumns ?? 1)
-    : (bodyParas(a.bodyText) || (a.summary ? `<p>${bodyEsc(a.summary)}</p>` : ""));
-  const dek = body ? `<div class="sec-dek">${body}</div>` : "";
+  const dek = (() => {
+    // Continuation: when the story is wired to continue on another page, show
+    // only the head that fits + a "→ Page N" jump link (same as lead/major).
+    if (b.continuesToPage) {
+      const text = a.bodyText || a.summary || "";
+      const jump = `<p class="jump-p"><a class="jump-link" href="#page=${b.continuesToPage}">→పేజీ ${b.continuesToPage}</a></p>`;
+      return `<div class="sec-dek cont-src"><div class="cont-fill fit-deck">${bodyParas(text)}</div>${jump}</div>`;
+    }
+    const body = b.style?.bulletBody
+      ? bulletListHtml(a.bodyText || displaySummary, b.style?.textColumns ?? 1)
+      : (bodyParas(a.bodyText) || (a.summary ? `<p>${bodyEsc(a.summary)}</p>` : ""));
+    return body ? `<div class="sec-dek fit-deck">${body}</div>` : "";
+  })();
   const inner = `
     <div class="block-inner">
-      <h3 class="sec-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h3>
+      <h3 class="sec-hl fit-head"${hlStyle}>${headlineHtml(displayTitle, b)}</h3>
       ${subBannerHtml(b, displaySummary)}
       ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
       ${dek}
@@ -1132,31 +1130,38 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      without it the dek can't stretch and the story floats with a gap below. */
   .lead-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; min-height: 0; }
   .lead { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 12px; }
-  .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:46px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px}
+  .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px;max-height:3.4em;overflow:hidden;flex:0 0 auto}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
     font-size:15.5px;line-height:1.72;color:#34302a;text-align:justify;
-    column-count:2;column-gap:18px;column-rule:1px solid #d8d0bd;
+    column-count:2;column-gap:18px;column-rule:1px solid #d8d0bd;column-fill:auto;
     flex: 1 1 auto; overflow: hidden;
   }
-  .lead-dek p{ margin:0 0 8px; }
-  .lead-dek p:last-child{ margin-bottom:0; }
-  .jump-p{ margin:0; break-inside:avoid; }
+  /* Paragraphs flow continuously as one newspaper column: no vertical gap, a
+     first-line indent marks each new paragraph (first paragraph un-indented). */
+  .lead-dek p{ margin:0; text-indent:1.2em; }
+  .lead-dek p:first-child{ text-indent:0; }
+  .jump-p{ margin:0; text-indent:0; break-inside:avoid; }
 
   /* Major */
   .major { padding: 6px 0; border-bottom: 1px solid var(--rule); }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
-  .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:25px;line-height:1.1;color:var(--ink);margin-bottom:6px}
+  .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin-bottom:6px;max-height:2.35em;overflow:hidden;flex:0 0 auto}
   .maj-dek{font-size:13px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
-  .maj-dek p{ margin:0 0 6px; }
-  .maj-dek p:last-child{ margin-bottom:0; }
+  /* Continuation source: body fills, the "→ page" jump link stays pinned below. */
+  .cont-src{display:flex;flex-direction:column;overflow:hidden}
+  .cont-src>.cont-fill{flex:1 1 auto;min-height:0;overflow:hidden}
+  .cont-src>.jump-p{flex:0 0 auto;margin-top:2px}
+  .maj-dek p{ margin:0; text-indent:1.2em; }
+  .maj-dek p:first-child{ text-indent:0; }
 
   /* Secondary */
   .secondary { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
-  .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:19px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px}
+  .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px;max-height:2.4em;overflow:hidden}
   .sec-dek{font-size:12.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
-  .sec-dek p{ margin:0 0 5px; }
+  .sec-dek p{ margin:0; text-indent:1.2em; }
+  .sec-dek p:first-child{ text-indent:0; }
 
   /* Images */
   .ph{width:100%;overflow:hidden;background:#e9e3d4;border:1px solid #d3cab5;height:100%}
@@ -1168,9 +1173,11 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .continuation { padding: 6px 0; border-top: 2px solid #14110b; }
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
-  .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 20px; line-height: 1.12; color: var(--ink); }
+  .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 45px; line-height: 1.12; color: var(--ink); }
   .cont-body { font-size: 13px; line-height: 1.6; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
+  .cont-body p{ margin:0; text-indent:1.2em; }
+  .cont-body p:first-child{ text-indent:0; }
 
   /* Inline jump link inside lead / major dek */
   .jump-link { color: var(--accent-red); font-weight: 800; text-decoration: none; font-family: 'Noto Sans Telugu', sans-serif; font-size: 0.95em; white-space: nowrap; position: relative; z-index: 2; }
@@ -1241,8 +1248,84 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   </div>
   ${cmykColorBar()}
   ${withMargin ? cropMarks() : ""}
+  ${FIT_DECK_SCRIPT}
 </body></html>`;
 }
+
+// Client-side body-fit. Runs in BOTH the preview iframe and the Playwright PDF
+// render (which loads this same HTML and waits for fonts before page.pdf()).
+// Server estimates of "how much text fits" can't be exact (a headline may wrap
+// 1-3 lines, the image may be hidden), which left gaps. This MEASURES each
+// block's real box:
+//   • single-column bodies (.sec-dek/.maj-dek) → set -webkit-line-clamp to the
+//     exact number of lines that fill the measured height, so long copy runs to
+//     the bottom and ends in "…", and short copy isn't over-clamped.
+//   • multi-column bodies (.lead-dek/.cont-body) → scale the font so the text
+//     fills both columns (column-fill:auto) without spilling to a clipped 3rd.
+const FIT_DECK_SCRIPT = `<script>
+(function () {
+  // Zoom-proof: uses ONLY scrollHeight vs clientHeight (both scale identically
+  // under the editor's CSS zoom), so it fits correctly in the editor AND the
+  // 1:1 PDF render. Binary-searches the longest text that fills the box, then
+  // ends it with "…". Blocks whose copy already fits are left untouched.
+  // Overflows if the content exceeds the box in EITHER axis. scrollHeight
+  // catches single-column text; scrollWidth catches multi-column bodies (extra
+  // clipped column). Both scale with zoom, so this is zoom-proof.
+  function overflows(el) {
+    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
+  }
+  // Split text into COMPLETE Telugu letters (grapheme clusters) so a cut never
+  // lands inside a conjunct / vowel-matra (which breaks the glyph). Chromium has
+  // Intl.Segmenter; fall back to code units only if it's somehow missing.
+  var GSEG = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('te', { granularity: 'grapheme' }) : null;
+  function letters(s) {
+    if (!GSEG) return s.split('');
+    var out = [], it = GSEG.segment(s)[Symbol.iterator](), r;
+    while (!(r = it.next()).done) out.push(r.value.segment);
+    return out;
+  }
+  function fit(el) {
+    if (el.clientHeight < 6 || el.clientWidth < 6) return;
+    var full = el.getAttribute('data-full');
+    if (full === null) { full = el.textContent; el.setAttribute('data-full', full); }
+    el.textContent = full;
+    if (!overflows(el)) return;                  // fits already (short copy)
+    var units = letters(full);                   // array of whole letters
+    // Binary-search the most WHOLE LETTERS that fit alongside "...".
+    var lo = 0, hi = units.length, best = 0;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      el.textContent = units.slice(0, mid).join('') + '...';
+      if (!overflows(el)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    var cut = units.slice(0, best).join('');
+    // Prefer ending on a whole WORD: back up to the last space if it isn't too
+    // far back. (cut already ends on a complete letter, so this never breaks one.)
+    var sp = cut.lastIndexOf(' ');
+    if (sp > cut.length * 0.6) cut = cut.slice(0, sp);
+    el.textContent = cut.replace(/[\\s,;:।—-]+$/, '') + '...';
+  }
+  function run() {
+    var els = document.querySelectorAll('.fit-deck, .fit-head');
+    for (var i = 0; i < els.length; i++) { try { fit(els[i]); } catch (e) {} }
+  }
+  function go() {
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(run); }
+    run();
+  }
+  if (document.readyState !== 'loading') go();
+  else document.addEventListener('DOMContentLoaded', go);
+  window.addEventListener('load', run);
+  // Re-fit if the block is resized in the editor (drag/resize changes height).
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function (ents) { for (var i = 0; i < ents.length; i++) fit(ents[i].target); });
+    window.addEventListener('load', function () {
+      var els = document.querySelectorAll('.fit-deck, .fit-head');
+      for (var i = 0; i < els.length; i++) ro.observe(els[i]);
+    });
+  }
+})();
+</script>`;
 
 /** Convenience: load an EpaperPage by id and render its HTML. `withMargin` adds
  *  the newspaper page frame - on for the final published render, off for the

@@ -17,22 +17,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
     if (!page) return NextResponse.json({ error: "Page not found" }, { status: 404 });
 
     let html = await renderEpaperPageById(id);
-
-    // Optional baseline-grid overlay for the editor preview. Activated via
-    // ?grid=1 - never enabled in the print PDF render.
     const url = new URL(_.url);
-    if (url.searchParams.get("grid") === "1") {
-      const overlay = `<style>
-        body::before {
-          content: "";
-          position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-          background-image: repeating-linear-gradient(to bottom,
-            rgba(168,85,247,0.18) 0, rgba(168,85,247,0.18) 1px,
-            transparent 1px, transparent 23px);
-        }
-      </style>`;
-      html = html.replace("</head>", `${overlay}</head>`);
-    }
 
     // Editor underlay sharpness: render the page at a reduced size INSIDE the
     // iframe (CSS zoom on <html>) so text is rasterized crisp at that size. The

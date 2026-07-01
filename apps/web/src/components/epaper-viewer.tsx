@@ -547,8 +547,12 @@ export function EpaperViewer({
         .ev-stage-wrap { position: relative; }
         .ev-stage {
           background: #2a2a2a; padding: 28px 12px; overflow: auto;
-          display: flex; align-items: flex-start;
-          max-height: 78vh;
+          display: flex; align-items: flex-start; justify-content: center;
+          /* Fixed height (min == max) so the stage NEVER collapses while the
+             next page image is loading. The side arrows are anchored to this
+             box at top:50%; a collapsing stage made them jump/"bounce" on every
+             page change. A stable height keeps them dead still. */
+          height: 78vh; min-height: 78vh; max-height: 78vh;
           /* Allow native one-finger pan/scroll; two-finger pinch is handled in JS. */
           touch-action: pan-x pan-y;
         }
@@ -647,7 +651,7 @@ export function EpaperViewer({
 
         @media (max-width: 768px) {
           .ev-thumb { flex: 0 0 64px; }
-          .ev-stage { padding: 14px 6px; max-height: 70vh; }
+          .ev-stage { padding: 14px 6px; height: 70vh; min-height: 70vh; max-height: 70vh; }
           .ev-stage-arrow { width: 38px; height: 38px; font-size: 24px; }
           .ev-stage-arrow.left { left: 6px; }
           .ev-stage-arrow.right { right: 6px; }

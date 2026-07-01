@@ -37,14 +37,15 @@ interface PageBundle {
  * rows): subtract the headline + photo, then count lines × chars-per-line for
  * the body dek. Used both to decide WHEN to continue a story and to pick the
  * split point - so a continued story's head segment FILLS its block instead of
- * leaving white space. Headline-only blocks (secondary/brief) return 0.
+ * leaving white space. Headline-only brief blocks return 0; lead/major/
+ * secondary get a real capacity so an overflowing story can continue.
  */
 const EP_COL_GAP = 14, EP_ROW_GAP = 12;             // grid gutters (track render-layout)
 const EP_COL_W = (1782 - 11 * EP_COL_GAP) / 12;     // content width of ONE column
 const EP_ROW_H = 92;                                // content height of ONE row
 export function estimateCapacity(b: Block): number {
   if (!b.w || !b.h) return 0;
-  if (b.type === "secondary" || b.type === "brief") return 0;
+  if (b.type === "brief") return 0;
   // Block pixel size INCLUDING the gutters that fall INSIDE the span: a block
   // spanning h rows is h*92 + (h-1)*12 tall, not h*92. Omitting the internal
   // gaps under-counted tall blocks (~156px on an h14 lead) and split the body
@@ -57,7 +58,9 @@ export function estimateCapacity(b: Block): number {
   const imgPos = b.style?.imagePosition ?? "top";
   const hasTopImg = imgPos === "top";
   const imgH = !hasTopImg ? 0 : b.type === "lead" ? 380 : b.type === "major" ? 160 : 120;
-  const headlineH = b.type === "lead" ? 110 : b.type === "major" ? 62 : 50;
+  // Headlines are large (lead 50px, major/secondary 45px) and usually wrap ~2
+  // lines, so they eat a good chunk of vertical space before the body starts.
+  const headlineH = b.type === "lead" ? 130 : 110;
   const textH = Math.max(0, blockH - imgH - headlineH - 16);
   // Continuation tails run full-width single column unless overridden.
   const textCols = b.style?.textColumns ?? (b.type === "lead" ? 2 : 1);
@@ -126,7 +129,7 @@ export async function buildContinuations(editionId: string): Promise<number> {
   const articleIds = new Set<string>();
   for (const p of pages) {
     for (const b of p.blocks) {
-      if ((b.type === "lead" || b.type === "major") && b.articleId) {
+      if ((b.type === "lead" || b.type === "major" || b.type === "secondary") && b.articleId) {
         articleIds.add(b.articleId);
       }
     }
@@ -150,7 +153,7 @@ export async function buildContinuations(editionId: string): Promise<number> {
     const p = pages[pi];
     for (const b of p.blocks) {
       if (b.continuesToPage) continue; // already wired
-      if (b.type !== "lead" && b.type !== "major") continue;
+      if (b.type !== "lead" && b.type !== "major" && b.type !== "secondary") continue;
       if (!b.articleId) continue;
       const cap = estimateCapacity(b);
       const total = bodyLen.get(b.articleId) ?? 0;
