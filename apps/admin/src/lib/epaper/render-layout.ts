@@ -680,13 +680,20 @@ function secondaryBlock(b: Block, a: ResolvedArticle, bannerColor: string | null
 }
 
 function briefBlock(b: Block, articles: ResolvedArticle[]): string {
-  const items = articles
-    .map((a) => `<div class="brief-item">${articleLink(a, `<span class="dot"></span><span>${esc(a.title)}</span>`)}</div>`)
-    .join("");
-  return `<div class="briefs block" style="${blockStyle(b)}">
-    <div class="briefs-head">క్లుప్త వార్తలు</div>
-    <div class="briefs-cols">${items}</div>
-  </div>`;
+  const a = articles[0];
+  if (!a) return `<div class="briefs block empty" style="${blockStyle(b)}"></div>`;
+  const displayTitle = b.overrideTitle?.trim() || a.title;
+  // Fill the block: headline + body that the client fit-deck fills exactly and
+  // ends with "..." - so a 2-row brief slot no longer leaves a big empty gap
+  // under a single one-line headline.
+  const body = bodyParas(a.bodyText) || (a.summary ? `<p>${bodyEsc(a.summary)}</p>` : "");
+  const inner = `
+    <div class="block-inner">
+      <div class="briefs-head">క్లుప్త వార్తలు</div>
+      <h4 class="brief-hl fit-head">${headlineHtml(displayTitle, b)}</h4>
+      ${body ? `<div class="brief-dek fit-deck">${body}</div>` : ""}
+    </div>`;
+  return `<article class="briefs block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
 }
 
 function imageBlock(
@@ -1250,15 +1257,17 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Inline jump link inside lead / major dek */
   .jump-link { color: var(--accent-red); font-weight: 800; text-decoration: none; font-family: 'Noto Sans Telugu', sans-serif; font-size: 0.95em; white-space: nowrap; position: relative; z-index: 2; }
 
-  /* Briefs */
+  /* Briefs - a compact no-image story that fills its slot (headline + fitted
+     body), so a 2-row brief no longer leaves a gap under one headline. */
   .briefs{ display:flex; flex-direction:column; padding-top:8px; }
-  .briefs-head{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:16px;color:#fff;
-    background:var(--reel-orange);display:inline-block;padding:3px 12px;margin-bottom:8px;border-radius:2px}
-  .briefs-cols{column-count:1;column-gap:20px;column-rule:1px solid var(--rule-soft);flex:1 1 auto;overflow:hidden}
-  .brief-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule-soft);break-inside:avoid;
-    font-size:15.5px;font-weight:600;line-height:1.4}
-  .brief-item a{color:inherit;text-decoration:none}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-red);flex-shrink:0;margin-top:7px}
+  .briefs .block-inner{ display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
+  .briefs-head{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:14px;color:#fff;
+    background:var(--reel-orange);align-self:flex-start;padding:2px 10px;margin-bottom:6px;border-radius:2px;flex:0 0 auto}
+  .brief-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;
+    font-size:26px;line-height:1.12;color:var(--ink);margin:0 0 5px;max-height:2.3em;overflow:hidden;flex:0 0 auto}
+  .brief-dek{font-size:15.5px;line-height:1.4;color:#4a443c;text-align:justify;flex:1 1 auto;min-height:0;overflow:hidden}
+  .brief-dek p{ margin:0; text-indent:1.2em; }
+  .brief-dek p:first-child{ text-indent:0; }
 
   /* Ads */
   .adzone{width:100%;overflow:hidden;height:100%}
