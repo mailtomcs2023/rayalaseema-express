@@ -81,8 +81,9 @@ const HIDDEN_ANU = (basename: string) =>
   basename.startsWith("Telun-");
 
 // Self-hosted faces that are actually standard Unicode fonts (NOT byte-encoded
-// Anu) - their preview must use raw Unicode text, not the PUA encoding.
-const UNICODE_SELF_HOSTED = (basename: string) => basename.startsWith("Anek-Telugu-");
+// Anu) - their preview AND render must use raw Unicode text, not the PUA
+// encoding. Shared with render-layout.ts so the picker and the PDF agree.
+export const isUnicodeSelfHostedFont = (basename: string) => basename.startsWith("Anek-Telugu-");
 
 /**
  * Every heading font offered in the block-settings picker: the Google-hosted
@@ -93,5 +94,5 @@ export const ALL_HEADING_FONTS: TeluguFont[] = [
   ...TELUGU_FONTS,
   // value is the quoted family (e.g. "'Anek-Telugu-Bold'"); strip quotes to match.
   ...ANU_FONTS.filter((f) => !HIDDEN_ANU(f.value.replace(/'/g, "")))
-    .map((f) => (UNICODE_SELF_HOSTED(f.value.replace(/'/g, "")) ? { ...f, unicode: true } : f)),
+    .map((f) => (isUnicodeSelfHostedFont(f.value.replace(/'/g, "")) ? { ...f, unicode: true } : f)),
 ];
