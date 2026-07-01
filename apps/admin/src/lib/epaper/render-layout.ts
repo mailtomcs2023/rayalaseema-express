@@ -556,7 +556,7 @@ function majorBlock(b: Block, a: ResolvedArticle): string {
     <div class="block-inner">
       <h2 class="maj-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
       ${subBannerHtml(b, displaySummary)}
-      ${imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
+      ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
       ${dekHtml}
     </div>`;
   return `<article class="major block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
@@ -612,7 +612,7 @@ function secondaryBlock(b: Block, a: ResolvedArticle): string {
     <div class="block-inner">
       <h3 class="sec-hl"${hlStyle}>${headlineHtml(displayTitle, b)}</h3>
       ${subBannerHtml(b, displaySummary)}
-      ${imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
+      ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
       ${dek}
     </div>`;
   return `<article class="secondary block" style="${blockStyle(b)}">${articleOverlay(a, inner)}</article>`;
