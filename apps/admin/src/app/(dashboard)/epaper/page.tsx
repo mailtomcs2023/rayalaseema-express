@@ -950,66 +950,9 @@ function EpaperEditorPage() {
 
   // Add a new block to the currently-active page. Type picked from a tiny
   // inline menu; block stacks below existing content.
+  // Header "Draw block" menu open state. Picking a type arms draw mode
+  // (setDrawType); the user then drags on the canvas to place the block.
   const [addBlockOpen, setAddBlockOpen] = useState(false);
-  const addBlock = async (type: string) => {
-    if (!activePage) return;
-    // v1 (RGL grid): w in 12-col units, h in 30-row units.
-    // v2 (mm-coord): w in mm (8-col grid → multiples of 44.6mm), h in mm.
-    const V1_DEFAULTS: Record<string, { w: number; h: number }> = {
-      lead: { w: 8, h: 12 }, major: { w: 4, h: 6 }, secondary: { w: 3, h: 5 },
-      brief: { w: 6, h: 2 }, image: { w: 4, h: 4 }, ad: { w: 12, h: 3 },
-      text: { w: 6, h: 2 }, masthead: { w: 12, h: 3 }, "section-band": { w: 12, h: 2 },
-      "story-jump": { w: 4, h: 1 }, "pull-quote": { w: 6, h: 3 },
-    };
-    // v2 mm defaults: width in mm snapped to columns (40.6×N + 4×(N-1));
-    // height in mm. 8-col grid math: 1col=40.6, 2col=85.2, 3col=129.8,
-    // 4col=174.4, 5col=219, 6col=263.6, 7col=308.2, 8col=330. Live=520mm.
-    const V2_DEFAULTS: Record<string, { w: number; h: number }> = {
-      lead: { w: 219, h: 200 },        // 5 cols × 200mm
-      major: { w: 174.4, h: 90 },      // 4 cols × 90mm
-      secondary: { w: 129.8, h: 70 },  // 3 cols × 70mm
-      brief: { w: 263.6, h: 30 },      // 6 cols × 30mm
-      image: { w: 174.4, h: 80 },
-      ad: { w: 330, h: 50 },
-      text: { w: 263.6, h: 30 },
-      masthead: { w: 330, h: 85 },
-      "section-band": { w: 330, h: 18 },
-      "story-jump": { w: 174.4, h: 14 },
-      "pull-quote": { w: 263.6, h: 50 },
-    };
-
-    const isV2 = editorVersion === "v2";
-    const d = (isV2 ? V2_DEFAULTS : V1_DEFAULTS)[type] || (isV2 ? { w: 174.4, h: 80 } : { w: 4, h: 4 });
-
-    // v2 bounds check uses mm (live h = 520); v1 keeps the 30-row cap.
-    const maxBoundary = isV2 ? 520 : 30;
-    const sourceBlocks = isV2 ? (v2BlocksForActive as any[]) : activePage.layout.blocks;
-    const maxY = sourceBlocks.reduce((m, b) => Math.max(m, (b.y ?? 0) + (b.h ?? 0)), 0);
-    if (maxY + d.h > maxBoundary) {
-      toast("warn", `Page full (${maxY.toFixed(0)}/${maxBoundary}${isV2 ? "mm" : " rows"}). Move or shrink existing blocks first, or add a new page.`);
-      setAddBlockOpen(false);
-      return;
-    }
-    const newBlock: any = {
-      id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
-      type, x: 0, y: maxY, w: d.w, h: d.h,
-    };
-    const nextBlocks = isV2
-      ? [...(v2BlocksForActive as any[]), newBlock]
-      : [...activePage.layout.blocks, newBlock];
-    pushUndo(activePage.id, activePage.layout.blocks);
-    setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
-      p.id === activePage.id ? {
-        ...p,
-        layout: isV2
-          ? { coordSystem: "mm-v2", blocks: nextBlocks }
-          : { blocks: nextBlocks },
-      } : p) } : prev);
-    // Persist via PATCH - include coordSystem so server round-trips it.
-    await patchPage(isV2 ? { blocks: nextBlocks, coordSystem: "mm-v2" } : { blocks: nextBlocks });
-    setAddBlockOpen(false);
-    toast("success", `Added ${type} block - drag to reposition`);
-  };
 
   // Page CRUD state: modal for inserting a new page from a template.
   const [insertOpen, setInsertOpen] = useState(false);
@@ -2373,30 +2316,31 @@ function EpaperEditorPage() {
                         </button>
                       </WithTooltip>
                       <div style={{ position: "relative" }}>
-                        <WithTooltip text="Add a new block to this page">
+                        <WithTooltip text="Pick a block type, then drag on the page to draw it">
                           <button onClick={() => setAddBlockOpen((o) => !o)}
-                            style={{ padding: "8px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                            + Add Block ▾
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", background: drawType ? "#4338ca" : "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                            <Pencil size={14} /> {drawType ? `Drawing: ${drawType}` : "Draw block"} ▾
                           </button>
                         </WithTooltip>
                         {addBlockOpen && (
-                          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, minWidth: 220, padding: 6 }}>
+                          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, background: "#fff", border: "1px solid #d1d5db", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 100, minWidth: 230, padding: 6 }}>
+                            <div style={{ padding: "4px 10px 6px", fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Pick a type, then drag on the page</div>
                             {[
-                              { t: "lead", lbl: "Lead story", hint: "8×12 - big headline + image" },
-                              { t: "major", lbl: "Major", hint: "4×6 - secondary story" },
-                              { t: "secondary", lbl: "Secondary", hint: "3×5 - sidebar story" },
-                              { t: "brief", lbl: "Brief", hint: "6×2 - short item" },
-                              { t: "image", lbl: "Image only", hint: "4×4" },
-                              { t: "text", lbl: "Text only", hint: "6×2" },
-                              { t: "ad", lbl: "Ad slot", hint: "12×3 full-width" },
-                              { t: "section-band", lbl: "Section band", hint: "12×2 colored header" },
-                              { t: "story-jump", lbl: "Story jump", hint: "4×1 continuation pointer" },
-                              { t: "pull-quote", lbl: "Pull quote", hint: "6×3 emphasized excerpt" },
+                              { t: "lead", lbl: "Lead story", hint: "big headline + image" },
+                              { t: "major", lbl: "Major", hint: "secondary story" },
+                              { t: "secondary", lbl: "Secondary", hint: "sidebar story" },
+                              { t: "brief", lbl: "Brief", hint: "short item" },
+                              { t: "image", lbl: "Image only", hint: "photo / graphic" },
+                              { t: "text", lbl: "Text only", hint: "heading + text" },
+                              { t: "ad", lbl: "Ad slot", hint: "advertisement" },
+                              { t: "section-band", lbl: "Section band", hint: "colored header" },
+                              { t: "story-jump", lbl: "Story jump", hint: "continuation pointer" },
+                              { t: "pull-quote", lbl: "Pull quote", hint: "emphasized excerpt" },
                             ].map((it) => (
-                              <button key={it.t} onClick={() => addBlock(it.t)}
-                                style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: "transparent", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
+                              <button key={it.t} onClick={() => { setDrawType(it.t); setAddBlockOpen(false); }}
+                                style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", background: drawType === it.t ? "#eef2ff" : "transparent", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 13 }}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                                onMouseLeave={(e) => (e.currentTarget.style.background = drawType === it.t ? "#eef2ff" : "transparent")}>
                                 <div style={{ fontWeight: 700, color: "#111" }}>{it.lbl}</div>
                                 <div style={{ fontSize: 11, color: "#6b7280" }}>{it.hint}</div>
                               </button>
