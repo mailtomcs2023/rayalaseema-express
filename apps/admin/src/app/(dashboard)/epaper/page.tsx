@@ -2736,29 +2736,13 @@ function EpaperEditorPage() {
                         />
                       ) : (
                         <div style={{ position: "relative" }}>
-                          {/* Draw toolbar - Word/InDesign-style. Click a tool then
-                              drag on the canvas to create a block at any size. */}
-                          <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap", alignItems: "center", padding: "6px 8px", background: "#f9fafb", borderRadius: 6, border: "1px solid #e5e7eb" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "#374151" }}><Pencil size={12} /> Draw tool:</span>
-                            {(["lead","major","secondary","brief","image","text","ad","pull-quote"] as const).map((t) => (
-                              <button key={t} onClick={() => setDrawType(drawType === t ? null : t)}
-                                style={{ padding: "3px 8px", fontSize: 11, fontWeight: 700, borderRadius: 4,
-                                  border: drawType === t ? "2px solid #4f46e5" : "1px solid #d1d5db",
-                                  background: drawType === t ? "#4f46e5" : "#fff",
-                                  color: drawType === t ? "#fff" : "#374151", cursor: "pointer" }}>
-                                {t}
-                              </button>
-                            ))}
-                            {/* Column-count picker removed - the page is now fixed
-                                at a 6-column broadsheet grid (DEFAULT_COLUMNS).
-                                Block edges still snap to those 6 columns; hold Alt
-                                while dragging for free placement. */}
-                            {drawType && (
-                              <span style={{ width: "100%", fontSize: 11, color: "#16a34a", fontWeight: 700 }}>
-                                Drag on canvas to draw a {drawType} block. Esc cancels.
-                              </span>
-                            )}
-                          </div>
+                          {/* Block types are picked from the header "Draw block" menu
+                              (sets drawType); this slim hint + overlay handle the drag. */}
+                          {drawType && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "6px 10px", background: "#eef2ff", borderRadius: 6, border: "1px solid #c7d2fe", fontSize: 11, fontWeight: 700, color: "#4338ca" }}>
+                              <Pencil size={12} /> Drag on the page to draw a {drawType} block. Press Esc to cancel.
+                            </div>
+                          )}
                           {/* Draw overlay - appears only when a tool is selected. */}
                           {drawType && (
                             <div onMouseDown={handleCanvasMouseDown}
