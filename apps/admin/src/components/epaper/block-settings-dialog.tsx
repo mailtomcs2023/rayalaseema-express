@@ -351,6 +351,32 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
             </div>
           </div>
 
+          {/* Quick banner-colour swatches. Same palette as the auto colours in
+              render-layout; picking one sets the heading BG + white text so the
+              banner reads well. "reset" clears the override back to the auto colour. */}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Banner color</Label>
+            <div className="col-span-3 flex items-center gap-1.5">
+              {["#E8730C", "#C81E1E", "#4F8A2E", "#1B4E8F", "#7A2E8F", "#0E7C86", "#B8860B"].map((hex) => (
+                <button
+                  key={hex}
+                  type="button"
+                  title={hex}
+                  onClick={() => { handleChange("hlBgColor", hex); handleChange("hlColor", "#ffffff"); }}
+                  className="h-6 w-6 rounded-full border border-black/20"
+                  style={{ backgroundColor: hex, outline: settings.hlBgColor?.toLowerCase() === hex.toLowerCase() ? "2px solid #000" : "none", outlineOffset: "1px" }}
+                />
+              ))}
+              <button
+                type="button"
+                className="ml-1 text-xs text-muted-foreground underline"
+                onClick={() => { handleChange("hlBgColor", ""); handleChange("hlColor", ""); }}
+              >
+                reset
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="blockBgColor" className="text-right">
               Block BG
