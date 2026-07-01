@@ -1264,7 +1264,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .briefs-head{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:14px;color:#fff;
     background:var(--reel-orange);align-self:flex-start;padding:2px 10px;margin-bottom:6px;border-radius:2px;flex:0 0 auto}
   .brief-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;
-    font-size:26px;line-height:1.12;color:var(--ink);margin:0 0 5px;max-height:2.3em;overflow:hidden;flex:0 0 auto}
+    font-size:33px;line-height:1.12;color:var(--ink);margin:0 0 5px;max-height:2.3em;overflow:hidden;flex:0 0 auto}
   .brief-dek{font-size:15.5px;line-height:1.4;color:#4a443c;text-align:justify;flex:1 1 auto;min-height:0;overflow:hidden}
   .brief-dek p{ margin:0; text-indent:1.2em; }
   .brief-dek p:first-child{ text-indent:0; }
