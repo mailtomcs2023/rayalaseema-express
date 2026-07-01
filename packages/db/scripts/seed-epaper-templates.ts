@@ -83,8 +83,11 @@ const frontPage: TemplateSpec = {
       // + briefs 4 = 26 rows used (rows 26-30 spare).
       { id: "mh", type: "masthead", x: 0, y: 0, w: 12, h: 3 },
       { id: "ad-top", type: "ad", x: 0, y: 3, w: 12, h: 2 },
-      // Lead (left) + two right-column majors
-      { id: "lead", type: "lead", x: 0, y: 5, w: 8, h: 9, slotFilter: { minImages: 1 } },
+      // Lead (left, 6 cols) + a narrow middle column (small major over small
+      // secondary) + two right-column majors.
+      { id: "lead", type: "lead", x: 0, y: 5, w: 6, h: 9, slotFilter: { minImages: 1 } },
+      { id: "maj-mid", type: "major", x: 6, y: 5, w: 2, h: 4 },
+      { id: "sec-mid", type: "secondary", x: 6, y: 9, w: 2, h: 5 },
       { id: "maj-1", type: "major", x: 8, y: 5, w: 4, h: 4, slotFilter: { minImages: 1 } },
       { id: "maj-2", type: "major", x: 8, y: 9, w: 4, h: 5, slotFilter: { minImages: 1 } },
       // Headline-only secondary strip (no image)
