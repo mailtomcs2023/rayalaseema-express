@@ -1201,7 +1201,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px;max-height:3.4em;overflow:hidden;flex:0 0 auto}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
-    font-size:18.5px;line-height:1.7;color:#34302a;text-align:justify;
+    font-size:20px;line-height:1.65;color:#34302a;text-align:justify;
     column-count:2;column-gap:18px;column-rule:1px solid #d8d0bd;column-fill:auto;
     flex: 1 1 auto; overflow: hidden;
   }
@@ -1215,7 +1215,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .major { padding: 6px 0; border-bottom: 1px solid var(--rule); }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
   .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin-bottom:6px;max-height:2.35em;overflow:hidden;flex:0 0 auto}
-  .maj-dek{font-size:16.5px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
+  .maj-dek{font-size:18px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   /* Continuation source: body fills, the "→ page" jump link stays pinned below. */
   .cont-src{display:flex;flex-direction:column;overflow:hidden}
   .cont-src>.cont-fill{flex:1 1 auto;min-height:0;overflow:hidden}
@@ -1227,7 +1227,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .secondary { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
   .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px;max-height:2.4em;overflow:hidden}
-  .sec-dek{font-size:16px;line-height:1.5;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
+  .sec-dek{font-size:17.5px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0; text-indent:1.2em; }
   .sec-dek p:first-child{ text-indent:0; }
 
@@ -1242,7 +1242,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
   .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 45px; line-height: 1.12; color: var(--ink); }
-  .cont-body { font-size: 16.5px; line-height: 1.6; color: #34302a; text-align: justify;
+  .cont-body { font-size: 18px; line-height: 1.55; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
   .cont-body p{ margin:0; text-indent:1.2em; }
   .cont-body p:first-child{ text-indent:0; }
