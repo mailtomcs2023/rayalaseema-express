@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, ChevronsUp, Sparkles } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, Calendar as CalendarIcon } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -218,7 +218,12 @@ function EpaperEditorPage() {
   type EditionVariant = { id: string; edition: string; status: string; workflowState: string; pdfUrl: string | null; pageCount: number };
   const [variants, setVariants] = useState<EditionVariant[]>([]);
   const [edition, setEdition] = useState<Edition | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  // Start in "loading" when the URL already targets an edition (has a valid
+  // date), so a refresh renders the editor layout immediately instead of
+  // flashing the editions-list card before the load effect runs.
+  const [busy, setBusy] = useState<string | null>(
+    queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate) ? "loading" : null,
+  );
   const [error, setError] = useState("");
 
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -257,9 +262,6 @@ function EpaperEditorPage() {
   type QWarning = { pageNumber: number; blockId: string; blockType: string; kind: string; detail: string };
   const [warnings, setWarnings] = useState<QWarning[]>([]);
 
-  // Baseline-grid overlay toggle for the preview iframe - helps editors verify
-  // text aligns horizontally across columns on a real print baseline.
-  const [showBaseline, setShowBaseline] = useState(false);
 
   // Preflight panel (#139) - open/close + reload key bumped on render/save
   // so the chip + panel reflect fresh state.
@@ -1215,13 +1217,12 @@ function EpaperEditorPage() {
     }
   }, []);
 
-  // View mode: edit canvas / split (canvas + preview iframe) / preview-only.
-  // Live preview hits /api/epaper/page/[id]/preview which reuses
-  // renderLayoutToHtml - no Playwright in the hot path so it's near-instant.
-  // Default Edit because the canvas itself is now WYSIWYG (renders the
-  // real Eenadu-style preview behind the editable blocks). Split + Preview
-  // pills still available for full-bleed preview mode.
-  const [viewMode, setViewMode] = useState<"edit" | "split" | "preview">("edit");
+  // View mode: edit canvas / preview-only. Live preview hits
+  // /api/epaper/page/[id]/preview which reuses renderLayoutToHtml - no
+  // Playwright in the hot path so it's near-instant. Default Edit because the
+  // canvas itself is now WYSIWYG (renders the real Eenadu-style preview behind
+  // the editable blocks); the Preview pill gives a full-bleed preview.
+  const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
 
   // Save-status indicator: tracks every PATCH so the operator can see whether
   // their last action persisted. Three states: saving | saved | failed.
@@ -1529,25 +1530,6 @@ function EpaperEditorPage() {
   // on-demand version of the auto-fill that runs on delete - use it to clean up
   // a hole left by an earlier delete (e.g. a removed ad). Single undoable step;
   // growing up keeps each block's bottom fixed, so nothing shifts off-page.
-  const fillGaps = async () => {
-    if (!activePage) return;
-    const blocks = activePage.layout.blocks.map((b) => ({ ...b }));
-    let changed = false;
-    for (const nb of [...blocks].sort((a, b) => a.y - b.y)) {
-      if (nb.type === "masthead" || nb.type === "section-band" || nb.locked) continue;
-      let newY = 0;
-      for (const other of blocks) {
-        if (other === nb) continue;
-        const xOverlap = other.x < nb.x + nb.w && other.x + other.w > nb.x;
-        if (xOverlap && other.y + other.h <= nb.y) newY = Math.max(newY, other.y + other.h);
-      }
-      if (newY < nb.y) { nb.h += nb.y - newY; nb.y = newY; changed = true; }
-    }
-    if (!changed) { toast("info", "No gaps to fill on this page"); return; }
-    await saveLayout(blocks);
-    toast("success", "Gaps filled - blocks expanded to close the empty rows");
-  };
-
   const undo = useCallback(async () => {
     if (!activePage) return;
     const stack = undoStacks[activePage.id];
@@ -1842,6 +1824,11 @@ function EpaperEditorPage() {
     }
     return Object.fromEntries(map);
   }, [warnings, activePage?.pageNumber]);
+
+  // Use the editor's flush layout both when an edition is open AND while one is
+  // loading (URL has a date) - so a refresh doesn't flash the list-page card
+  // before the editor appears.
+  const inEditorLayout = !!edition || busy === "loading";
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#f3f4f6" }}>
@@ -2329,145 +2316,41 @@ function EpaperEditorPage() {
           </div>
         </div>
       )}
-      <main style={{ marginLeft: 240, flex: 1, padding: 24, display: "flex", flexDirection: "column", gap: 16, height: "100vh", overflow: "hidden", minHeight: 0 }}>
-        {/* Top bar - split into two rows for cleaner UX */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-          {/* Row 1: Edition Context & Publishing */}
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ marginRight: 6 }}>
-                <h1 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.15 }}>ePaper Editor</h1>
-                <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>Design &amp; render the daily edition</div>
-              </div>
-              {edition && (
-                <WithTooltip text="Back to edition list">
-                  <button
-                    onClick={() => {
-                      setEdition(null);
-                      router.push(pathname);
-                    }}
-                    style={{ padding: "7px 14px", background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
-                  >
-                    ← Back
-                  </button>
-                </WithTooltip>
+      <main style={{ marginLeft: 240, flex: 1, padding: inEditorLayout ? "0 0 12px 0" : 24, display: "flex", flexDirection: "column", gap: inEditorLayout ? 12 : 16, height: "100vh", overflow: "hidden", minHeight: 0 }}>
+        {/* Top bar. In the editor (edition open) it's a flush full-width single
+            sticky row; on the editions-list page it keeps the old rounded card. */}
+        <div style={inEditorLayout
+          ? { position: "sticky", top: 0, zIndex: 20, display: "flex", flexDirection: "column", background: "#fff", borderBottom: "1px solid #e5e7eb", padding: "8px 12px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }
+          : { display: "flex", flexDirection: "column", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }
+        }>
+          {/* Single row: back · date · edit/split/preview · tools · publishing */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: inEditorLayout ? "nowrap" : "wrap", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: inEditorLayout ? "nowrap" : "wrap", flexShrink: 0 }}>
+              {!inEditorLayout && (
+                <div>
+                  <h1 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.15 }}>ePaper Editor</h1>
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 2 }}>Design &amp; render the daily edition</div>
+                </div>
               )}
               {edition && (
                 <>
-                  <div className="shadcn-scope" style={{ minWidth: 170 }}>
-                    <DatePicker
-                      value={date}
-                      onChange={(v) => {
-                        setDate(v);
-                        setVariant("main");
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.set("date", v);
-                        params.set("variant", "main");
-                        router.push(`${pathname}?${params.toString()}`);
-                      }}
-                      placeholder="Pick edition date"
-                      max={today}
-                    />
-                  </div>
-                  {/* User requested to hide these buttons: variants dropdown, clone variant, and editions browser.
-                  {variants.length > 0 && (
-                    <WithTooltip text="Edition variant - main + per-district splits">
-                      <select value={variant} onChange={(e) => {
-                        const v = e.target.value;
-                        setVariant(v);
-                        const params = new URLSearchParams(searchParams.toString());
-                        params.set("variant", v);
-                        router.push(`${pathname}?${params.toString()}`);
-                      }}
-                        style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, fontSize: 13, fontWeight: 700, background: variant !== "main" ? "#fef3c7" : "#fff" }}>
-                        {variants.map((v) => (
-                          <option key={v.id} value={v.edition}>
-                            {v.edition === "main" ? "Main edition" : `📰 ${v.edition}`} ({v.pageCount}p · {v.status})
-                          </option>
-                        ))}
-                      </select>
-                    </WithTooltip>
-                  )}
-                  {variant === "main" && (
-                    <WithTooltip text="Clone the main edition into a district variant">
-                      <button onClick={cloneVariant} disabled={busy === "cloning"}
-                        style={{ padding: "6px 12px", background: "#fff", color: "#0891b2", border: "1px dashed #0891b2", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                        {busy === "cloning" ? "Cloning…" : "+ Clone variant"}
-                      </button>
-                    </WithTooltip>
-                  )}
-                  <WithTooltip text="Browse all existing editions">
-                    <button onClick={() => { setEditionsPanelOpen((o) => !o); loadRecentEditions(); }}
-                      style={{ padding: "8px 14px", background: editionsPanelOpen ? "#eef2ff" : "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                      🗂 Editions{recentEditions.length ? ` (${recentEditions.length})` : ""}
+                  {/* Back (icon) */}
+                  <WithTooltip text="Back to edition list">
+                    <button onClick={() => { setEdition(null); router.push(pathname); }} aria-label="Back to edition list"
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "#f1f5f9", color: "#374151", border: "1px solid #e2e8f0", borderRadius: 8, cursor: "pointer", flexShrink: 0 }}>
+                      <ChevronLeft size={18} />
                     </button>
                   </WithTooltip>
-                  */}
-                </>
-              )}
-            </div>
-
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              {edition && (
-                <>
-                  <button onClick={generate} disabled={busy === "generating"}
-                    style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    {busy === "generating" ? "Generating…" : "Regenerate"}
-                  </button>
-                  <WithTooltip text="AI re-ranks each page so the strongest story leads, and rewrites Telugu headlines to fit their slots. Review the pages, then Render.">
-                    <Button onClick={aiDraft} disabled={!!busy} size="sm"
-                      style={{ height: 36, background: "#7c3aed", color: "#fff", fontWeight: 700, fontSize: 13 }}>
-                      <Sparkles size={15} className="mr-1" />
-                      {busy === "drafting" ? "AI drafting…" : "AI Draft"}
-                    </Button>
-                  </WithTooltip>
-                  <button onClick={renderEdition} disabled={busy === "rendering"}
-                    style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    {busy === "rendering" ? "Rendering…" : "Render PDF"}
-                  </button>
-                  {edition.pdfUrl ? (
-                    <WithTooltip text="Open the most recently rendered PDF in a new tab">
-                      <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                        <FileText size={15} /> Preview PDF ↗
-                      </a>
-                    </WithTooltip>
-                  ) : (
-                    <WithTooltip text="No PDF yet - click to render now">
-                      <button onClick={renderEdition} disabled={busy === "rendering"}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                        <FileText size={15} /> Preview PDF (renders now)
-                      </button>
-                    </WithTooltip>
-                  )}
-                  <WithTooltip text={edition.workflowNote ? `Last note: ${edition.workflowNote}` : null}>
-                    <span style={{ fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 6, background: WORKFLOW_COLOR[edition.workflowState] + "22", color: WORKFLOW_COLOR[edition.workflowState] }}>
-                      {WORKFLOW_LABEL[edition.workflowState]}
+                  {/* Selected edition date - read only (fixed at generation) */}
+                  <WithTooltip text="Edition date - set when this edition was generated (not editable here)">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", background: "#f8fafc", color: "#0f172a", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      <CalendarIcon size={15} /> {(() => { try { return new Date(date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); } catch { return date; } })()}
                     </span>
                   </WithTooltip>
-                  {(NEXT_STATES[edition.workflowState] || []).map((opt) => (
-                    <button key={opt.to} onClick={() => transitionTo(opt.to, opt.label, !!opt.needNote)}
-                      style={{ padding: "6px 12px", background: opt.danger ? "#fee2e2" : "#ede9fe", color: opt.danger ? "#991b1b" : "#5b21b6", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                      {opt.label}
-                    </button>
-                  ))}
-                  <span style={{ fontSize: 12, color: "#888" }}>Render: <b>{edition?.status || "-"}</b></span>
-                  <SaveBadge state={saveState} lastSavedAt={lastSavedAt} tick={saveTick} />
-                  {error && <span style={{ color: "#dc2626", fontSize: 12 }}>{error}</span>}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Row 2: Page Editor Tools & Diagnostics */}
-          {edition && (
-            <>
-              <div style={{ height: 1, background: "#e2e8f0", width: "100%" }} />
-              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  {/* Edit / Preview */}
                   {activePage && (
                     <div style={{ display: "inline-flex", border: "1px solid #d1d5db", borderRadius: 8, overflow: "hidden" }}>
-                      {(["edit", "split", "preview"] as const).map((m) => (
+                      {(["edit", "preview"] as const).map((m) => (
                         <button key={m} onClick={() => setViewMode(m)}
                           style={{ padding: "6px 12px", background: viewMode === m ? "#4f46e5" : "#fff", color: viewMode === m ? "#fff" : "#374151", border: "none", borderRight: m !== "preview" ? "1px solid #d1d5db" : "none", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "capitalize" }}>
                           {m}
@@ -2533,24 +2416,59 @@ function EpaperEditorPage() {
                           <RotateCcw size={15} /> Reset styles
                         </Button>
                       </WithTooltip>
-                      <WithTooltip text="Close empty bands (e.g. a deleted ad): grow the blocks below up to fill them">
-                        <Button variant="outline" size="sm" onClick={fillGaps}
-                          className="gap-1.5 h-9 rounded-lg border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-bold">
-                          <ChevronsUp size={15} /> Fill gaps
-                        </Button>
-                      </WithTooltip>
                     </>
                   )}
-                </div>
+                </>
+              )}
+            </div>
 
-                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", flexShrink: 0 }}>
+              {edition && (
+                <>
+                  <button onClick={generate} disabled={busy === "generating"}
+                    style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {busy === "generating" ? "Generating…" : "Regenerate"}
+                  </button>
+                  <WithTooltip text="AI re-ranks each page so the strongest story leads, and rewrites Telugu headlines to fit their slots. Review the pages, then Render.">
+                    <Button onClick={aiDraft} disabled={!!busy} size="sm"
+                      style={{ height: 36, background: "#7c3aed", color: "#fff", fontWeight: 700, fontSize: 13 }}>
+                      <Sparkles size={15} className="mr-1" />
+                      {busy === "drafting" ? "AI drafting…" : "AI Draft"}
+                    </Button>
+                  </WithTooltip>
+                  <button onClick={renderEdition} disabled={busy === "rendering"}
+                    style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {busy === "rendering" ? "Rendering…" : "Render PDF"}
+                  </button>
+                  {edition.pdfUrl ? (
+                    <WithTooltip text="Open the most recently rendered PDF in a new tab">
+                      <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+                        <FileText size={15} /> Preview PDF ↗
+                      </a>
+                    </WithTooltip>
+                  ) : (
+                    <WithTooltip text="No PDF yet - click to render now">
+                      <button onClick={renderEdition} disabled={busy === "rendering"}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                        <FileText size={15} /> Preview PDF (renders now)
+                      </button>
+                    </WithTooltip>
+                  )}
+                  {(NEXT_STATES[edition.workflowState] || []).map((opt) => (
+                    <button key={opt.to} onClick={() => transitionTo(opt.to, opt.label, !!opt.needNote)}
+                      style={{ padding: "6px 12px", background: opt.danger ? "#fee2e2" : "#ede9fe", color: opt.danger ? "#991b1b" : "#5b21b6", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      {opt.label}
+                    </button>
+                  ))}
+                  <SaveBadge state={saveState} lastSavedAt={lastSavedAt} tick={saveTick} />
                   <button onClick={() => { setHistoryOpen(true); loadSnapshots(); }}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     <History size={15} /> History
                   </button>
                   <PreflightChip editionId={edition.id} onClick={() => setPreflightOpen(true)} reloadKey={preflightReload} />
                   <button onClick={() => setCommentsOpen(true)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     <MessageSquare size={15} /> Comments {comments.filter((c) => !c.resolved).length > 0 ? `(${comments.filter((c) => !c.resolved).length})` : ""}
                   </button>
                   {peers.length > 1 && (
@@ -2560,10 +2478,13 @@ function EpaperEditorPage() {
                       </span>
                     </WithTooltip>
                   )}
-                </div>
-              </div>
-            </>
-          )}
+                  {error && <span style={{ color: "#dc2626", fontSize: 12 }}>{error}</span>}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* (Editor tools + diagnostics merged into the single sticky row above.) */}
         </div>
 
         {/* Recent editions panel (toggled from the toolbar) - works even while
@@ -2779,7 +2700,7 @@ function EpaperEditorPage() {
                 /* Preview mode lets the whole page flow at natural height so the
                    SECTION's scrollbar (outside the page) handles scrolling. */
                 <div style={{ display: "flex", gap: 12, flex: viewMode === "preview" ? "0 0 auto" : 1, minHeight: 0 }}>
-                  {(viewMode === "edit" || viewMode === "split") && (
+                  {viewMode === "edit" && (
                     <div ref={canvasPaneRef} style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
                       {selectedBlockIds.size > 1 && (
                         <div style={{ background: "#eef2ff", padding: 8, borderRadius: 6, marginBottom: 8, display: "flex", gap: 6, alignItems: "center", fontSize: 12 }}>
@@ -2931,21 +2852,13 @@ function EpaperEditorPage() {
                       )}
                     </div>
                   )}
-                  {(viewMode === "split" || viewMode === "preview") && (
-                    <div style={{ flex: 1, minWidth: 0, border: viewMode === "preview" ? "none" : "1px solid #e5e7eb", borderRadius: viewMode === "preview" ? 0 : 6, background: "#FFFFFF", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                      {viewMode !== "preview" && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderBottom: "1px solid #e5e7eb", fontSize: 11, flex: "0 0 auto" }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", color: "#6b7280", fontWeight: 700 }}>
-                            <input type="checkbox" checked={showBaseline} onChange={(e) => setShowBaseline(e.target.checked)} />
-                            Show baseline grid
-                          </label>
-                        </div>
-                      )}
+                  {viewMode === "preview" && (
+                    <div style={{ flex: 1, minWidth: 0, background: "#FFFFFF", overflow: "hidden", display: "flex", flexDirection: "column" }}>
                       {/* Fit-to-width preview: the page is a fixed EP_IFRAME_W×
                           EP_IFRAME_H render, so we scale the native-size iframe by
                           (paneWidth / pageWidth) - the page fills the width with no
                           horizontal scroll, and only this box scrolls vertically. */}
-                      <div ref={previewPaneRef} style={{ flex: viewMode === "preview" ? "0 0 auto" : 1, minHeight: 0, overflowX: "hidden", overflowY: viewMode === "preview" ? "visible" : "auto", background: "#f3f4f6" }}>
+                      <div ref={previewPaneRef} style={{ flex: "0 0 auto", minHeight: 0, overflowX: "hidden", overflowY: "visible", background: "#f3f4f6" }}>
                         {(() => {
                           const scale = previewW > 0 ? previewW / EP_IFRAME_W : 1;
                           return (
@@ -2953,7 +2866,7 @@ function EpaperEditorPage() {
                               <iframe
                                 title="Live preview"
                                 // &zoom shrinks the page INSIDE the iframe (crisp re-render); shown 1:1 here.
-                                src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${showBaseline ? "&grid=1" : ""}${scale < 1 ? `&zoom=${scale}` : ""}`}
+                                src={`/api/epaper/page/${activePage.id}/preview?v=${activePage.version}${scale < 1 ? `&zoom=${scale}` : ""}`}
                                 style={{ border: "none", background: "#FFFFFF", display: "block", width: previewW || EP_IFRAME_W, height: EP_IFRAME_H * scale }}
                               />
                             </div>
