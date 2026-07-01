@@ -1197,7 +1197,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .lead-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; min-height: 0; }
   /* Right column-rule: 2px so it survives the editor's CSS zoom (a 1px rule
      rasterises to sub-pixel at <1 zoom and vanishes). */
-  .lead { padding: 6px 0; border-right: 2px solid var(--rule); padding-right: 12px; }
+  .lead { padding: 6px 0; border-right: 2px solid var(--rule-soft); padding-right: 12px; }
   .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px;max-height:3.4em;overflow:hidden;flex:0 0 auto}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
@@ -1212,7 +1212,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .jump-p{ margin:0; text-indent:0; break-inside:avoid; }
 
   /* Major */
-  .major { padding: 6px 0; border-bottom: 1px solid var(--rule); }
+  .major { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
   .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin-bottom:6px;max-height:2.35em;overflow:hidden;flex:0 0 auto}
   .maj-dek{font-size:18px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
@@ -1224,7 +1224,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .maj-dek p:first-child{ text-indent:0; }
 
   /* Secondary */
-  .secondary { padding: 6px 0; border-right: 1px solid var(--rule); padding-right: 10px;}
+  .secondary { padding: 6px 0; border-right: 1px solid var(--rule-soft); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
   .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px;max-height:2.4em;overflow:hidden}
   .sec-dek{font-size:17.5px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
