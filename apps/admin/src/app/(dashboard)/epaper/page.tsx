@@ -1435,6 +1435,39 @@ function EpaperEditorPage() {
     if (ok) toast("success", `Block changed to ${newType}`);
   };
 
+  // Duplicate a block onto EVERY other page of the edition (same type, size,
+  // position and style). The copy carries no article/continuation - it's a
+  // fresh empty slot per page (e.g. a recurring ad or fixed block). Each target
+  // page is patched with its own version, then the edition is reloaded to sync.
+  const duplicateBlockToAllPages = async (blockId: string) => {
+    if (!edition || !activePage) return;
+    const src = activePage.layout.blocks.find((b) => b.id === blockId);
+    if (!src) return;
+    const targets = edition.pages.filter((p) => p.id !== activePage.id);
+    if (targets.length === 0) { toast("info", "No other pages to copy this block to."); return; }
+    setSaveState("saving");
+    let done = 0;
+    for (const p of targets) {
+      const copy: Block = {
+        ...src,
+        id: `${src.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        articleId: undefined,
+        overrideTitle: undefined,
+        overrideDek: undefined,
+      };
+      const res = await fetch(`/api/epaper/page/${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocks: [...p.layout.blocks, copy], expectedVersion: p.version }),
+      }).catch(() => null);
+      if (res && res.ok) done++;
+    }
+    setSaveState(done === targets.length ? "saved" : "failed");
+    toast(done === targets.length ? "success" : "error",
+      `Copied block to ${done} of ${targets.length} other page${targets.length !== 1 ? "s" : ""}.`);
+    await loadEdition(date);
+  };
+
   // Persists the full block-layout when react-grid-layout finishes a drag/resize.
   const saveLayout = async (newBlocks: Block[]) => {
     if (!activePage) return;
@@ -1772,7 +1805,7 @@ function EpaperEditorPage() {
 
   const gridHandlersRef = useRef<Record<string, (...args: any[]) => any>>({});
   gridHandlersRef.current = {
-    onBlockDragOver, onBlockDragLeave, onBlockDrop, removeBlock, clearOffPageBlocks, toggleLock, saveLayout,
+    onBlockDragOver, onBlockDragLeave, onBlockDrop, removeBlock, clearOffPageBlocks, toggleLock, saveLayout, duplicateBlockToAllPages,
     onInlineEdit: async (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => {
       if (!activePage) return;
       const existing = activePage.layout.blocks.find((b) => b.id === blockId);
@@ -1795,6 +1828,7 @@ function EpaperEditorPage() {
   const sToggleLock = useCallback((id: string) => gridHandlersRef.current.toggleLock(id), []);
   const sSaveLayout = useCallback((b: Block[]) => gridHandlersRef.current.saveLayout(b), []);
   const sInlineEdit = useCallback((id: string, patch: { overrideTitle?: string; overrideDek?: string }) => gridHandlersRef.current.onInlineEdit(id, patch), []);
+  const sDuplicate = useCallback((id: string) => gridHandlersRef.current.duplicateBlockToAllPages(id), []);
 
   // Per-page block warnings, memoised so the grid doesn't get a fresh object
   // (and re-render) on every parent render.
@@ -2823,6 +2857,7 @@ function EpaperEditorPage() {
                           onSelect={gridSelect}
                           onToggleLock={sToggleLock}
                           onLayoutChange={sSaveLayout}
+                          onDuplicate={sDuplicate}
                         />
                         </div>
                       )}
@@ -3143,6 +3178,7 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
   onSelect, onToggleLock, onLayoutChange, onRemoveBlock, onClearOffPage,
   pageId, pageVersion,
   onInlineEdit,
+  onDuplicate,
   gridWidth,
   columns,
 }: {
@@ -3170,6 +3206,8 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
   /** Inline TipTap edits: { id, overrideTitle?, overrideDek? } - parent
    *  patches the matching block in the layout. */
   onInlineEdit?: (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => void;
+  /** Duplicate this block onto every other page of the edition. */
+  onDuplicate?: (blockId: string) => void;
 }) {
   const [settingsBlockId, setSettingsBlockId] = useState<string | null>(null);
   const activeSettingsBlock = layout.blocks.find(b => b.id === settingsBlockId);
@@ -3456,6 +3494,19 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
                         onClick={(e) => { e.stopPropagation(); onToggleLock(b.id); }}
                         aria-label={b.locked ? "Unlock block" : "Lock block"}>
                         {b.locked ? <Lock /> : <Unlock />}
+                      </button>
+                    </WithTooltip>
+                  )}
+                  {onDuplicate && (
+                    <WithTooltip text="Duplicate this block onto every other page">
+                      <button
+                        className="epb-btn"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (await confirm({ title: `Copy this ${b.type} block to all other pages?`, confirmText: "Copy to all pages" })) onDuplicate(b.id);
+                        }}
+                        aria-label="Duplicate block to all pages">
+                        <Copy />
                       </button>
                     </WithTooltip>
                   )}
