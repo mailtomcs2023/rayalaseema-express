@@ -4,7 +4,12 @@ import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
 import { logAudit } from "@/lib/audit";
 import { canTransition, transitionMeta } from "@/lib/epaper/workflow";
 import { collectIssues, blockingCount } from "@/lib/epaper/preflight";
+import { renderEdition } from "@/lib/epaper/render-edition";
 import type { EpaperWorkflowState } from "@prisma/client";
+
+// Publishing auto-renders, which runs Playwright over every page - can take a
+// couple of minutes on a large edition. Give the request room to finish.
+export const maxDuration = 300;
 
 // POST /api/epaper/edition/[id]/transition
 // Body: { to: EpaperWorkflowState, note?: string }
@@ -47,6 +52,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
+    // Auto-render on publish: generate every page's image + the vector PDF and
+    // set status "ready" so the edition is actually visible on the public site
+    // (the web viewer gates on status:"ready" + page images). Without this a
+    // "Published" edition whose pages were edited stays invisible. Runs the same
+    // pipeline as the manual Render PDF button. If it fails we abort the publish
+    // so the operator sees the error instead of a silently-broken release.
+    if (to === "PUBLISHED") {
+      await renderEdition(id, session.user.id);
+    }
+
     // Stamp kill metadata when transitioning into KILLED. Reverse stamps on
     // any other transition (e.g. KILLED → DRAFT if we ever allow undo).
     const killPatch =
@@ -58,7 +73,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const updated = await prisma.epaperEdition.update({
       where: { id },
-      data: { workflowState: to, workflowNote: note, ...killPatch },
+      // Publishing also flips `active` on so the web query surfaces it.
+      data: { workflowState: to, workflowNote: note, ...killPatch, ...(to === "PUBLISHED" ? { active: true } : {}) },
     });
 
     await logAudit({

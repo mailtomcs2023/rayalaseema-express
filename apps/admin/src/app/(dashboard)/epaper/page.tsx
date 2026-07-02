@@ -849,12 +849,21 @@ function EpaperEditorPage() {
         })
       : null;
     if (needNote && !note) return;
-    const r = await fetch(`/api/epaper/edition/${edition.id}/transition`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to, note }),
-    });
-    if (!r.ok) { const d = await r.json().catch(() => ({})); setError(d.error || "Transition failed"); return; }
-    await loadEdition(date);
+    // Publishing auto-renders on the server (can take a minute or two) - show
+    // the rendering state so the operator knows it's working, not hung.
+    const publishing = to === "PUBLISHED";
+    if (publishing) setBusy("rendering");
+    try {
+      const r = await fetch(`/api/epaper/edition/${edition.id}/transition`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, note }),
+      });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); setError(d.error || "Transition failed"); return; }
+      if (publishing) toast("success", "Published - rendered and live on the site");
+      await loadEdition(date);
+    } finally {
+      if (publishing) setBusy(null);
+    }
   };
 
   // List-view (act-by-id) variants so the Recent editions row menu can run
@@ -879,13 +888,20 @@ function EpaperEditorPage() {
       ? await prompt({ title: label, description: "Reason note (required)", required: true, multiline: true, confirmText: "Submit" })
       : null;
     if (needNote && !note) return;
-    const r = await fetch(`/api/epaper/edition/${id}/transition`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to, note }),
-    });
-    if (!r.ok) { const d = await r.json().catch(() => ({})); toast("error", d.error || "Transition failed"); return; }
-    toast("success", label);
-    await loadRecentEditions();
+    // Publishing auto-renders server-side (can take a minute or two).
+    const publishing = to === "PUBLISHED";
+    if (publishing) setBusy("rendering");
+    try {
+      const r = await fetch(`/api/epaper/edition/${id}/transition`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, note }),
+      });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); toast("error", d.error || "Transition failed"); return; }
+      toast("success", publishing ? "Published - rendered and live on the site" : label);
+      await loadRecentEditions();
+    } finally {
+      if (publishing) setBusy(null);
+    }
   };
 
   // Delete a single block from the active page.
