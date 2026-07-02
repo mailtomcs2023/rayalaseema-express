@@ -442,9 +442,17 @@ function masthead(b: Block, opts: { dateLabel: string; totalPages: number; meta?
 
 
 function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNumber: number }): string {
+  // Inner-page header band: brand (logo + masthead name) on the left, the
+  // section name centered, date + page on the right. Mirrors the front-page
+  // identity so every page reads as the same paper.
+  const logoSrc = `${SITE_URL}/logo-icon.png`;
   return `<div class="secbar" style="${blockStyle(b)}">
+    <div class="secbar-brand">
+      <img class="secbar-logo" src="${esc(logoSrc)}" alt="రాయలసీమ న్యూస్" onerror="this.style.display='none'"/>
+      <span class="secbar-paper">రాయలసీమ న్యూస్</span>
+    </div>
     <span class="secbar-name">${esc(label)}</span>
-    <span class="secbar-meta">రాయలసీమ న్యూస్ · ${esc(opts.dateLabel)} · పేజీ ${opts.pageNumber}</span>
+    <span class="secbar-meta">${esc(opts.dateLabel)} · పేజీ ${opts.pageNumber}</span>
   </div>`;
 }
 
@@ -1183,11 +1191,15 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
 
   /* Section band */
   .secbar{
-    display:flex;justify-content:space-between;align-items:center;
-    background:var(--maroon);color:#fff;padding:8px 18px;height:100%;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;
+    background:var(--maroon);color:#fff;padding:6px 20px;height:100%;
+    border-bottom:3px solid var(--jump-yellow);
   }
-  .secbar-name{font-family:'Ramabhadra',serif;font-size:38px}
-  .secbar-meta{font-family:'Noto Sans Telugu',sans-serif;font-size:13px}
+  .secbar-brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+  .secbar-logo{height:48px;width:auto;display:block;filter:brightness(0) invert(1)}
+  .secbar-paper{font-family:'Ramabhadra',serif;font-size:28px;line-height:1;white-space:nowrap}
+  .secbar-name{flex:1 1 auto;text-align:center;font-family:'Ramabhadra',serif;font-size:36px;line-height:1.05;letter-spacing:.5px}
+  .secbar-meta{flex:0 0 auto;font-family:'Noto Sans Telugu',sans-serif;font-size:14px;text-align:right;opacity:.9;white-space:nowrap}
 
   .kicker{font-family:'Noto Sans Telugu',sans-serif;font-size:14px;font-weight:800;color:var(--accent-red);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .kicker.sm{font-size:11px;margin:5px 0 3px}
