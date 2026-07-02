@@ -441,7 +441,7 @@ function masthead(b: Block, opts: { dateLabel: string; totalPages: number; meta?
 }
 
 
-function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNumber: number }): string {
+function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNumber: number; day?: string }): string {
   // Inner-page header (Andhra-Prabha style): page number + section/city on the
   // left, the masthead logo CENTERED, date on the right - white band, rule
   // below. 3-column grid so the logo stays optically centered on the page.
@@ -455,7 +455,7 @@ function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNum
       <img class="secbar-logo" src="${esc(logoSrc)}" alt="రాయలసీమ న్యూస్"
         onerror="this.outerHTML='<span class=\\'secbar-logo-txt\\'>రాయలసీమ న్యూస్</span>'"/>
     </div>
-    <span class="secbar-right">${esc(opts.dateLabel)}</span>
+    <span class="secbar-right">${opts.day ? `<b class="secbar-day">${esc(opts.day)}</b> · ` : ""}${esc(opts.dateLabel)}</span>
   </div>`;
 }
 
@@ -966,7 +966,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
         blockHtml.push(masthead(b, { dateLabel: input.dateLabel, totalPages: input.totalPages, meta: input.mastheadInfo }));
         break;
       case "section-band":
-        blockHtml.push(sectionBand(b, input.label, { dateLabel: input.dateLabel, pageNumber: input.pageNumber }));
+        blockHtml.push(sectionBand(b, input.label, { dateLabel: input.dateLabel, pageNumber: input.pageNumber, day: input.mastheadInfo?.dayLabel }));
         break;
       case "lead":
         if (b.articleId && articles.has(b.articleId)) {
@@ -1193,19 +1193,27 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .mast-side.r { text-align: right; }
 
   /* Section band */
+  /* Left + date sit in normal flow at the edges; the logo is absolutely
+     centered to the band midpoint so it stays on the TRUE page center no
+     matter how wide the section label or date get. */
   .secbar{
-    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;
+    position:relative;
+    /* vertical-center so the left text, centered logo and right date all sit
+       on one line (the logo is an image, so center beats text-baseline here) */
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
     background:#fff;color:#111;padding:0 24px;height:70px;box-sizing:border-box;
     border-bottom:2px solid #111;
   }
-  .secbar-left{display:flex;align-items:center;gap:14px;justify-self:start;min-width:0}
+  .secbar-left{display:flex;align-items:baseline;gap:14px;min-width:0}
   .secbar-pageno{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:36px;line-height:1;
     border-right:2px solid #111;padding-right:14px}
   .secbar-place{font-family:'Ramabhadra',serif;font-size:32px;line-height:1;white-space:nowrap}
-  .secbar-center{justify-self:center;display:flex;align-items:center;justify-content:center}
+  .secbar-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    display:flex;align-items:center;justify-content:center}
   .secbar-logo{height:60px;width:auto;display:block}
   .secbar-logo-txt{font-family:'Ramabhadra',serif;font-size:40px;color:var(--maroon)}
-  .secbar-right{justify-self:end;font-family:'Noto Sans Telugu',sans-serif;font-size:20px;font-weight:600;text-align:right;white-space:nowrap}
+  .secbar-right{font-family:'Noto Sans Telugu',sans-serif;font-size:26px;font-weight:600;line-height:1;text-align:right;white-space:nowrap}
+  .secbar-day{font-weight:800}
 
   .kicker{font-family:'Noto Sans Telugu',sans-serif;font-size:14px;font-weight:800;color:var(--accent-red);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .kicker.sm{font-size:11px;margin:5px 0 3px}
