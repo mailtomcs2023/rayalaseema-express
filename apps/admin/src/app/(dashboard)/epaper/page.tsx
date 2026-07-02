@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, Calendar as CalendarIcon } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Undo2, Redo2 } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -1182,6 +1182,10 @@ function EpaperEditorPage() {
   // canvas itself is now WYSIWYG (renders the real Eenadu-style preview behind
   // the editable blocks); the Preview pill gives a full-bleed preview.
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
+  // Collapse toggles for the two editor side panels (Pages / Article picker) so
+  // the operator can give the canvas more room.
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   // Save-status indicator: tracks every PATCH so the operator can see whether
   // their last action persisted. Three states: saving | saved | failed.
@@ -2283,8 +2287,8 @@ function EpaperEditorPage() {
           : { display: "flex", flexDirection: "column", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 16px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }
         }>
           {/* Single row: back · date · edit/split/preview · tools · publishing */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: inEditorLayout ? "nowrap" : "wrap", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: inEditorLayout ? "nowrap" : "wrap", flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "space-between", rowGap: 8 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
               {!inEditorLayout && (
                 <div>
                   <h1 style={{ fontSize: 19, fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.15 }}>ePaper Editor</h1>
@@ -2319,16 +2323,16 @@ function EpaperEditorPage() {
                   )}
                   {activePage && (
                     <>
-                      <WithTooltip text="Undo (Ctrl+Z)">
-                        <button onClick={undo} disabled={!undoStacks[activePage.id]?.length}
-                          style={{ padding: "8px 12px", background: undoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: undoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: undoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
-                          ↶ Undo {undoStacks[activePage.id]?.length ? `(${undoStacks[activePage.id].length})` : ""}
+                      <WithTooltip text={`Undo (Ctrl+Z)${undoStacks[activePage.id]?.length ? ` - ${undoStacks[activePage.id].length}` : ""}`}>
+                        <button onClick={undo} disabled={!undoStacks[activePage.id]?.length} aria-label="Undo"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: undoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: undoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, cursor: undoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
+                          <Undo2 size={16} />
                         </button>
                       </WithTooltip>
-                      <WithTooltip text="Redo (Ctrl+Shift+Z)">
-                        <button onClick={redo} disabled={!redoStacks[activePage.id]?.length}
-                          style={{ padding: "8px 12px", background: redoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: redoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: redoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
-                          ↷ Redo {redoStacks[activePage.id]?.length ? `(${redoStacks[activePage.id].length})` : ""}
+                      <WithTooltip text={`Redo (Ctrl+Shift+Z)${redoStacks[activePage.id]?.length ? ` - ${redoStacks[activePage.id].length}` : ""}`}>
+                        <button onClick={redo} disabled={!redoStacks[activePage.id]?.length} aria-label="Redo"
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: redoStacks[activePage.id]?.length ? "#fff" : "#f3f4f6", color: redoStacks[activePage.id]?.length ? "#111" : "#9ca3af", border: "1px solid #d1d5db", borderRadius: 8, cursor: redoStacks[activePage.id]?.length ? "pointer" : "not-allowed" }}>
+                          <Redo2 size={16} />
                         </button>
                       </WithTooltip>
                       <div style={{ position: "relative" }}>
@@ -2364,10 +2368,10 @@ function EpaperEditorPage() {
                           </div>
                         )}
                       </div>
-                      <WithTooltip text="Re-save this page (changes already auto-save)">
-                        <Button variant="outline" size="sm" onClick={saveChanges}
-                          className="gap-1.5 h-9 rounded-lg border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-bold">
-                          <Save size={15} /> Save changes
+                      <WithTooltip text="Save changes (changes already auto-save)">
+                        <Button variant="outline" size="icon" onClick={saveChanges} aria-label="Save changes"
+                          className="h-9 w-9 rounded-lg border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
+                          <Save size={16} />
                         </Button>
                       </WithTooltip>
                       <WithTooltip text="Clear custom fonts/colours on every block - layout & articles stay">
@@ -2382,7 +2386,7 @@ function EpaperEditorPage() {
               )}
             </div>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "nowrap", flexShrink: 0 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
               {edition && (
                 <>
                   <button onClick={generate} disabled={busy === "generating"}
@@ -2427,10 +2431,17 @@ function EpaperEditorPage() {
                     <History size={15} /> History
                   </button>
                   <PreflightChip editionId={edition.id} onClick={() => setPreflightOpen(true)} reloadKey={preflightReload} />
-                  <button onClick={() => setCommentsOpen(true)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    <MessageSquare size={15} /> Comments {comments.filter((c) => !c.resolved).length > 0 ? `(${comments.filter((c) => !c.resolved).length})` : ""}
-                  </button>
+                  <WithTooltip text="Comments">
+                    <button onClick={() => setCommentsOpen(true)} aria-label="Comments"
+                      style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, cursor: "pointer" }}>
+                      <MessageSquare size={16} />
+                      {comments.filter((c) => !c.resolved).length > 0 && (
+                        <span style={{ position: "absolute", top: -6, right: -6, minWidth: 16, height: 16, padding: "0 4px", background: "#0891b2", color: "#fff", borderRadius: 999, fontSize: 10, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                          {comments.filter((c) => !c.resolved).length}
+                        </span>
+                      )}
+                    </button>
+                  </WithTooltip>
                   {peers.length > 1 && (
                     <WithTooltip text={peers.map((p) => `${p.userName}${p.pageId ? ` (page ${edition?.pages.find((x) => x.id === p.pageId)?.pageNumber ?? "?"})` : ""}`).join("\n")}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534" }}>
@@ -2506,10 +2517,23 @@ function EpaperEditorPage() {
             {/* Page tabs - flex-shrink:0 so the picker on the right keeps its width;
                 overflowY:auto + minHeight:0 so this list scrolls independently
                 of the canvas (no full-page scroll bleed). */}
-            <aside className="epp-aside" style={{ width: 248, flexShrink: 0, background: "#fff", borderRadius: 10, padding: 12, overflowY: "auto", minHeight: 0, border: "1px solid #eef0f3" }}>
+            {!leftPanelOpen && (
+              <button onClick={() => setLeftPanelOpen(true)} title="Show pages" aria-label="Show pages"
+                style={{ width: 34, flexShrink: 0, alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "10px 4px", background: "#fff", border: "1px solid #eef0f3", borderRadius: 10, color: "#475569", cursor: "pointer" }}>
+                <ChevronRight size={16} />
+                <span style={{ writingMode: "vertical-rl", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>Pages</span>
+              </button>
+            )}
+            <aside className="epp-aside" style={{ width: 248, flexShrink: 0, background: "#fff", borderRadius: 10, padding: 12, overflowY: "auto", minHeight: 0, border: "1px solid #eef0f3", display: leftPanelOpen ? undefined : "none" }}>
               <div className="epp-head">
                 <span className="epp-head-title">Pages</span>
-                <span className="epp-head-count">{edition.pages.length}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span className="epp-head-count">{edition.pages.length}</span>
+                  <button onClick={() => setLeftPanelOpen(false)} title="Collapse pages" aria-label="Collapse pages"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: "#fff", color: "#64748b", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer" }}>
+                    <ChevronLeft size={15} />
+                  </button>
+                </span>
               </div>
               <div className="epp-list">
               {edition.pages.map((p, i) => {
@@ -2825,8 +2849,21 @@ function EpaperEditorPage() {
 
             {/* Article picker - chip-based filters so the operator can SEE every
                 rule the slot has + untick to widen the search. */}
-            <aside style={{ width: 320, background: "#fff", borderRadius: 8, padding: 12, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 800, color: "#555" }}>ARTICLE PICKER</h3>
+            {!rightPanelOpen && (
+              <button onClick={() => setRightPanelOpen(true)} title="Show article picker" aria-label="Show article picker"
+                style={{ width: 34, flexShrink: 0, alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "10px 4px", background: "#fff", border: "1px solid #eef0f3", borderRadius: 8, color: "#475569", cursor: "pointer" }}>
+                <ChevronLeft size={16} />
+                <span style={{ writingMode: "vertical-rl", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>Articles</span>
+              </button>
+            )}
+            <aside style={{ width: 320, flexShrink: 0, background: "#fff", borderRadius: 8, padding: 12, overflowY: "auto", display: rightPanelOpen ? "flex" : "none", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: "#555", margin: 0 }}>ARTICLE PICKER</h3>
+                <button onClick={() => setRightPanelOpen(false)} title="Collapse article picker" aria-label="Collapse article picker"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: "#fff", color: "#64748b", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer" }}>
+                  <ChevronRight size={15} />
+                </button>
+              </div>
               {!selectedBlockId && <p style={{ fontSize: 12, color: "#888" }}>Click a story block on the page to pick an article.</p>}
               {selectedBlockId && activePage && (() => {
                 const b = activePage.layout.blocks.find((x) => x.id === selectedBlockId);
