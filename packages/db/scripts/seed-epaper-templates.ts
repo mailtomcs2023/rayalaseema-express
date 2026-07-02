@@ -346,6 +346,23 @@ async function main() {
     classifiedsPage,
   ];
 
+  // Inner-page header height: the section-band is a slim 1-row (~90px) header
+  // (matching the front-page treatment request). Templates author their band as
+  // 2 rows for readability; here we collapse it to 1 row and shift the rest of
+  // the layout up by the freed row so there's no gap under the header. The
+  // front page (masthead, no section-band) is untouched.
+  for (const t of all) {
+    const band = t.layout.blocks.find((b) => b.type === "section-band");
+    if (!band || band.h <= 1) continue;
+    const origBottom = band.y + band.h;
+    const shift = band.h - 1;
+    band.h = 1;
+    for (const b of t.layout.blocks) {
+      if (b === band) continue;
+      if (b.y >= origBottom) b.y -= shift;
+    }
+  }
+
   // Deactivate any standalone-utility templates from the prior structure so the
   // combined Utility page replaces them.
   await prisma.epaperTemplate.updateMany({

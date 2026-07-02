@@ -1195,17 +1195,17 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Section band */
   .secbar{
     display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;
-    background:#fff;color:#111;padding:6px 20px;height:100%;
+    background:#fff;color:#111;padding:0 24px;height:70px;box-sizing:border-box;
     border-bottom:2px solid #111;
   }
-  .secbar-left{display:flex;align-items:center;gap:12px;justify-self:start;min-width:0}
-  .secbar-pageno{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:30px;line-height:1;
-    border-right:2px solid #111;padding-right:12px}
-  .secbar-place{font-family:'Ramabhadra',serif;font-size:26px;line-height:1;white-space:nowrap}
+  .secbar-left{display:flex;align-items:center;gap:14px;justify-self:start;min-width:0}
+  .secbar-pageno{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:36px;line-height:1;
+    border-right:2px solid #111;padding-right:14px}
+  .secbar-place{font-family:'Ramabhadra',serif;font-size:32px;line-height:1;white-space:nowrap}
   .secbar-center{justify-self:center;display:flex;align-items:center;justify-content:center}
-  .secbar-logo{height:56px;width:auto;display:block}
-  .secbar-logo-txt{font-family:'Ramabhadra',serif;font-size:32px;color:var(--maroon)}
-  .secbar-right{justify-self:end;font-family:'Noto Sans Telugu',sans-serif;font-size:16px;text-align:right;white-space:nowrap}
+  .secbar-logo{height:60px;width:auto;display:block}
+  .secbar-logo-txt{font-family:'Ramabhadra',serif;font-size:40px;color:var(--maroon)}
+  .secbar-right{justify-self:end;font-family:'Noto Sans Telugu',sans-serif;font-size:20px;font-weight:600;text-align:right;white-space:nowrap}
 
   .kicker{font-family:'Noto Sans Telugu',sans-serif;font-size:14px;font-weight:800;color:var(--accent-red);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
   .kicker.sm{font-size:11px;margin:5px 0 3px}
