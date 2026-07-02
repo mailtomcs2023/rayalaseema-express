@@ -78,18 +78,19 @@ const frontPage: TemplateSpec = {
   sortOrder: 1,
   layout: {
     blocks: [
-      // FINAL front-page grid (operator-approved 2026-07). 12 cols × 30 rows.
-      // masthead 3 + ad 2 + lead/majors 9 + headline-strip 3 + secondary band 5
-      // + briefs 4 = 26 rows used (rows 26-30 spare).
+      // FINAL front-page grid (operator-approved 2026-07, captured from the live
+      // front page). 12 cols × 30 rows. No top ad band - lead starts at row 3;
+      // a full-width ad sits mid-page (row 12); a bottom band mixes briefs + ads.
       { id: "mh", type: "masthead", x: 0, y: 0, w: 12, h: 3 },
-      { id: "ad-top", type: "ad", x: 0, y: 3, w: 12, h: 2 },
       // Lead (left, 6 cols) + a narrow middle column (small major over small
       // secondary) + two right-column majors.
-      { id: "lead", type: "lead", x: 0, y: 5, w: 6, h: 9, slotFilter: { minImages: 1 } },
-      { id: "maj-mid", type: "major", x: 6, y: 5, w: 2, h: 4 },
-      { id: "sec-mid", type: "secondary", x: 6, y: 9, w: 2, h: 5 },
-      { id: "maj-1", type: "major", x: 8, y: 5, w: 4, h: 4, slotFilter: { minImages: 1 } },
-      { id: "maj-2", type: "major", x: 8, y: 9, w: 4, h: 5, slotFilter: { minImages: 1 } },
+      { id: "lead", type: "lead", x: 0, y: 3, w: 6, h: 9, slotFilter: { minImages: 1 } },
+      { id: "maj-mid", type: "major", x: 6, y: 3, w: 2, h: 4 },
+      { id: "maj-1", type: "major", x: 8, y: 3, w: 4, h: 4, slotFilter: { minImages: 1 } },
+      { id: "sec-mid", type: "secondary", x: 6, y: 7, w: 2, h: 5 },
+      { id: "maj-2", type: "major", x: 8, y: 7, w: 4, h: 5, slotFilter: { minImages: 1 } },
+      // Mid-page full-width ad band
+      { id: "ad-mid", type: "ad", x: 0, y: 12, w: 12, h: 2 },
       // Headline-only secondary strip (no image)
       { id: "sec-h1", type: "secondary", x: 0, y: 14, w: 4, h: 3, style: { imagePosition: "none" } },
       { id: "sec-h2", type: "secondary", x: 4, y: 14, w: 4, h: 3, style: { imagePosition: "none" } },
@@ -99,11 +100,13 @@ const frontPage: TemplateSpec = {
       { id: "sec-2", type: "secondary", x: 3, y: 17, w: 3, h: 5 },
       { id: "sec-3", type: "secondary", x: 6, y: 17, w: 3, h: 5 },
       { id: "sec-4", type: "secondary", x: 9, y: 17, w: 3, h: 5 },
-      // Briefs - 2 cols × 2 rows
-      { id: "br-1", type: "brief", x: 0, y: 22, w: 6, h: 2 },
-      { id: "br-3", type: "brief", x: 6, y: 22, w: 6, h: 2 },
-      { id: "br-2", type: "brief", x: 0, y: 24, w: 6, h: 2 },
-      { id: "br-4", type: "brief", x: 6, y: 24, w: 6, h: 2 },
+      // Bottom band: briefs + ads (rows 22-26)
+      { id: "br-1", type: "brief", x: 0, y: 22, w: 4, h: 2 },
+      { id: "br-3", type: "brief", x: 4, y: 22, w: 4, h: 2 },
+      { id: "br-4", type: "brief", x: 8, y: 22, w: 2, h: 4 },
+      { id: "ad-r", type: "ad", x: 10, y: 22, w: 2, h: 4 },
+      { id: "ad-bl", type: "ad", x: 0, y: 24, w: 4, h: 2 },
+      { id: "br-2", type: "brief", x: 4, y: 24, w: 4, h: 2 },
     ],
   },
 };

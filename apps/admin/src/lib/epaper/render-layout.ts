@@ -752,10 +752,26 @@ function adBlock(b: Block, ads: RenderInput["ads"]): string {
   //      via `ads[b.id]`. The caller maps both into the same shape.
   const ad = ads?.[b.id];
   if (!ad) {
-    const style = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;` +
+    // Size the "ADVERTISEMENT" placeholder to the slot: a fixed 24px/6px-tracked
+    // label overflowed narrow/tall ad slots (the label spilled past the block).
+    // Approximate the slot's pixel box from its grid span (mirrors the
+    // continuation.ts grid metrics) and scale the font, letter-spacing and
+    // padding so the label always fits on one line.
+    const EP_COL_W = (1782 - 11 * 14) / 12; // px per column (12-col, 14px gap)
+    const wpx = (b.w || 1) * EP_COL_W + ((b.w || 1) - 1) * 14;
+    const hpx = (b.h || 1) * 92 + ((b.h || 1) - 1) * 12;
+    const CHARS = 13; // "ADVERTISEMENT"
+    let fontPx = Math.floor((wpx - 24) / (CHARS * 0.92)); // fit width incl. tracking
+    fontPx = Math.min(24, fontPx, Math.floor(hpx * 0.45)); // cap + never taller than the slot
+    fontPx = Math.max(8, fontPx);
+    const ls = Math.max(1, Math.round(fontPx * 0.2));
+    const padY = Math.max(2, Math.round(fontPx * 0.2));
+    const padX = Math.max(6, Math.round(fontPx * 0.5));
+    const style = `width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;` +
       `background:repeating-linear-gradient(45deg,#f8f9fa,#f8f9fa 12px,#f1f5f9 12px,#f1f5f9 24px);` +
       `border:2px solid #e2e8f0;border-radius:8px;`;
-    const textStyle = `color:#94a3b8;font-family:sans-serif;font-size:24px;font-weight:800;letter-spacing:6px;background:#fff;padding:4px 16px;border-radius:6px;`;
+    const textStyle = `color:#94a3b8;font-family:sans-serif;font-size:${fontPx}px;font-weight:800;letter-spacing:${ls}px;` +
+      `white-space:nowrap;background:#fff;padding:${padY}px ${padX}px;border-radius:6px;max-width:100%;`;
     return `<div class="adzone block empty" style="${blockStyle(b)}"><div style="${style}"><span style="${textStyle}">ADVERTISEMENT</span></div></div>`;
   }
   const link = ad.href ? `<a href="${esc(ad.href)}">${imageOrFallback(ad.imageUrl, "ad-img")}</a>` : imageOrFallback(ad.imageUrl, "ad-img");
