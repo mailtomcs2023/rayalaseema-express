@@ -19,7 +19,7 @@ import "react-grid-layout/css/styles.css";
 import { EditorV2 } from "@/components/epaper/editor-v2";
 import { migrateLegacyLayout } from "@/lib/epaper/migrate-layout";
 import { confirm, prompt } from "@/components/confirm-dialog";
-import { PreflightPanel, PreflightChip } from "@/components/epaper/preflight-panel";
+import { PreflightPanel } from "@/components/epaper/preflight-panel";
 import { InlineTextEditor } from "@/components/epaper/inline-text-editor";
 import { BlockSettingsDialog } from "@/components/epaper/block-settings-dialog";
 import { TELUGU_FONTS_HREF } from "@/lib/epaper/telugu-fonts";
@@ -29,12 +29,14 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useKycGate } from "@/components/kyc-gated-link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 interface Block {
   id: string;
@@ -713,11 +715,11 @@ function EpaperEditorPage() {
   }, []);
   // 24px buffer = the canvas wrapper's 8px padding on each side + a little
   // slack so a stray sub-pixel never re-triggers a horizontal scrollbar.
-  // Fill the available pane width (grows when the side panels are collapsed),
-  // capped at the page's NATIVE width so we zoom-to-fit up to 100% but never
-  // upscale past native (which would soften the render). The actual page size
-  // is unchanged - only the on-screen scale (GRID_SCALE) grows.
-  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, EP_IFRAME_W));
+  // Capped at the 980px design width: letting it grow to native (1782) made
+  // GRID_WIDTH track the scrolling pane, which destabilised react-grid-layout's
+  // click/drag hit-testing (blocks stopped selecting). The panels can still be
+  // collapsed for more room; the page just won't upscale past 980.
+  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, DESIGN_GRID_WIDTH));
   const GRID_SCALE = GRID_WIDTH / EP_IFRAME_W;
   const ROW_H = EP_ROW_PX * GRID_SCALE;
   const GRID_MARGIN_X = EP_COL_GAP * GRID_SCALE;
@@ -1416,6 +1418,21 @@ function EpaperEditorPage() {
         ...p, layout: { blocks: p.layout.blocks.map((b) => b.id === blockId ? { ...b, locked: newLocked } : b) },
       } : p) };
     });
+  };
+
+  // Change a selected block's type in place (e.g. secondary -> major). Keeps its
+  // position, size and any assigned article; the renderer just draws it as the
+  // new type on the next preview/render.
+  const changeBlockType = async (blockId: string, newType: string) => {
+    if (!activePage) return;
+    const existing = activePage.layout.blocks.find((b) => b.id === blockId);
+    if (!existing || existing.type === newType) return;
+    const blocks = activePage.layout.blocks.map((b) => b.id === blockId ? { ...b, type: newType } : b);
+    pushUndo(activePage.id, activePage.layout.blocks);
+    setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
+      p.id === activePage.id ? { ...p, layout: { ...p.layout, blocks } } : p) } : prev);
+    const ok = await patchPage({ blocks });
+    if (ok) toast("success", `Block changed to ${newType}`);
   };
 
   // Persists the full block-layout when react-grid-layout finishes a drag/resize.
@@ -2126,35 +2143,30 @@ function EpaperEditorPage() {
           touched this page). Reload reloads the whole edition (loses local
           unsaved changes); Cancel just dismisses (next save will 409 again). */}
       {/* Insert new page modal */}
-      {insertOpen && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={() => setInsertOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()}
-            style={{ background: "#fff", borderRadius: 10, padding: 22, maxWidth: 480, width: "100%" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 800, marginBottom: 12 }}>Insert new page</h2>
-            <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>
+      <Dialog open={insertOpen} onOpenChange={setInsertOpen}>
+        <DialogContent className="sm:max-w-md shadcn-scope">
+          <DialogHeader>
+            <DialogTitle>Insert new page</DialogTitle>
+            <DialogDescription>
               Will be inserted after page {activePage?.pageNumber ?? "(end)"}.
-            </p>
-            <select value={insertTemplate} onChange={(e) => setInsertTemplate(e.target.value)}
-              style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: "border-box" }}>
-              <option value="">Pick a template…</option>
-              {templateOptions.map((t) => (
-                <option key={t.slug} value={t.slug}>{t.type} - {t.name}</option>
-              ))}
-            </select>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={() => setInsertOpen(false)}
-                style={{ padding: "8px 16px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                Cancel
-              </button>
-              <button onClick={insertPage} disabled={!insertTemplate}
-                style={{ padding: "8px 16px", background: insertTemplate ? "#4f46e5" : "#c7d2fe", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: insertTemplate ? "pointer" : "not-allowed" }}>
-                Insert
-              </button>
-            </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <SearchableSelect
+              value={insertTemplate}
+              onValueChange={setInsertTemplate}
+              options={templateOptions.map((t) => ({ value: t.slug, label: t.name, sublabel: t.type }))}
+              placeholder="Pick a template…"
+              searchPlaceholder="Search templates…"
+              noResultsLabel="No templates match"
+            />
           </div>
-        </div>
-      )}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setInsertOpen(false)}>Cancel</Button>
+            <Button onClick={insertPage} disabled={!insertTemplate}>Insert</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Comments drawer */}
       {commentsOpen && edition && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 999 }}
@@ -2340,10 +2352,10 @@ function EpaperEditorPage() {
                         </button>
                       </WithTooltip>
                       <div style={{ position: "relative" }}>
-                        <WithTooltip text="Pick a block type, then drag on the page to draw it">
-                          <button onClick={() => setAddBlockOpen((o) => !o)}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", background: drawType ? "#4338ca" : "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                            <Pencil size={14} /> {drawType ? `Drawing: ${drawType}` : "Draw block"} ▾
+                        <WithTooltip text={drawType ? `Drawing ${drawType} - click to cancel (Esc)` : "Pick a block type, then drag on the page to draw it"}>
+                          <button onClick={() => { if (drawType) { setDrawType(null); setAddBlockOpen(false); } else { setAddBlockOpen((o) => !o); } }}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", background: drawType ? "#dc2626" : "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                            {drawType ? (<><X size={14} /> Cancel: {drawType}</>) : (<><Pencil size={14} /> Draw ▾</>)}
                           </button>
                         </WithTooltip>
                         {addBlockOpen && (
@@ -2372,18 +2384,6 @@ function EpaperEditorPage() {
                           </div>
                         )}
                       </div>
-                      <WithTooltip text="Save changes (changes already auto-save)">
-                        <Button variant="outline" size="icon" onClick={saveChanges} aria-label="Save changes"
-                          className="h-9 w-9 rounded-lg border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
-                          <Save size={16} />
-                        </Button>
-                      </WithTooltip>
-                      <WithTooltip text="Clear custom fonts/colours on every block - layout & articles stay">
-                        <Button variant="outline" size="sm" onClick={resetStyles}
-                          className="gap-1.5 h-9 rounded-lg border-slate-300 text-slate-600 hover:bg-slate-50 font-bold">
-                          <RotateCcw size={15} /> Reset styles
-                        </Button>
-                      </WithTooltip>
                     </>
                   )}
                 </>
@@ -2393,34 +2393,22 @@ function EpaperEditorPage() {
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", rowGap: 8, minWidth: 0 }}>
               {edition && (
                 <>
-                  <button onClick={generate} disabled={busy === "generating"}
-                    style={{ padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    {busy === "generating" ? "Generating…" : "Regenerate"}
-                  </button>
-                  <WithTooltip text="AI re-ranks each page so the strongest story leads, and rewrites Telugu headlines to fit their slots. Review the pages, then Render.">
-                    <Button onClick={aiDraft} disabled={!!busy} size="sm"
-                      style={{ height: 36, background: "#7c3aed", color: "#fff", fontWeight: 700, fontSize: 13 }}>
-                      <Sparkles size={15} className="mr-1" />
-                      {busy === "drafting" ? "AI drafting…" : "AI Draft"}
+                  <WithTooltip text={busy === "drafting" ? "AI drafting…" : "AI Draft - re-ranks each page so the strongest story leads and fits Telugu headlines to their slots"}>
+                    <Button onClick={aiDraft} disabled={!!busy} size="icon" aria-label="AI Draft"
+                      style={{ height: 36, width: 36, background: "#7c3aed", color: "#fff" }}>
+                      <Sparkles size={16} className={busy === "drafting" ? "animate-pulse" : ""} />
                     </Button>
                   </WithTooltip>
                   <button onClick={renderEdition} disabled={busy === "rendering"}
                     style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     {busy === "rendering" ? "Rendering…" : "Render PDF"}
                   </button>
-                  {edition.pdfUrl ? (
-                    <WithTooltip text="Open the most recently rendered PDF in a new tab">
-                      <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
-                        <FileText size={15} /> Preview PDF ↗
+                  {edition.pdfUrl && (
+                    <WithTooltip text="Preview PDF - open the last rendered PDF in a new tab">
+                      <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer" aria-label="Preview PDF"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "#fff", color: "#4f46e5", border: "1px solid #4f46e5", borderRadius: 8, textDecoration: "none" }}>
+                        <FileText size={16} />
                       </a>
-                    </WithTooltip>
-                  ) : (
-                    <WithTooltip text="No PDF yet - click to render now">
-                      <button onClick={renderEdition} disabled={busy === "rendering"}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#fff", color: "#4f46e5", border: "1px dashed #4f46e5", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                        <FileText size={15} /> Preview PDF (renders now)
-                      </button>
                     </WithTooltip>
                   )}
                   {(NEXT_STATES[edition.workflowState] || []).map((opt) => (
@@ -2430,22 +2418,38 @@ function EpaperEditorPage() {
                     </button>
                   ))}
                   <SaveBadge state={saveState} lastSavedAt={lastSavedAt} tick={saveTick} />
-                  <button onClick={() => { setHistoryOpen(true); loadSnapshots(); }}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "#fff", color: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    <History size={15} /> History
-                  </button>
-                  <PreflightChip editionId={edition.id} onClick={() => setPreflightOpen(true)} reloadKey={preflightReload} />
-                  <WithTooltip text="Comments">
-                    <button onClick={() => setCommentsOpen(true)} aria-label="Comments"
-                      style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "#fff", color: "#0891b2", border: "1px solid #0891b2", borderRadius: 8, cursor: "pointer" }}>
-                      <MessageSquare size={16} />
-                      {comments.filter((c) => !c.resolved).length > 0 && (
-                        <span style={{ position: "absolute", top: -6, right: -6, minWidth: 16, height: 16, padding: "0 4px", background: "#0891b2", color: "#fff", borderRadius: 999, fontSize: 10, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
-                          {comments.filter((c) => !c.resolved).length}
-                        </span>
-                      )}
-                    </button>
+                  <WithTooltip text="Save changes (changes already auto-save)">
+                    <Button variant="outline" size="icon" onClick={saveChanges} aria-label="Save changes"
+                      className="h-9 w-9 rounded-lg border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
+                      <Save size={16} />
+                    </Button>
                   </WithTooltip>
+                  {/* Overflow: less-frequent actions tucked into a More menu so the toolbar stays one row. */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button aria-label="More actions" title="More"
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 8, cursor: "pointer" }}>
+                        <MoreVertical size={16} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuItem onClick={generate} disabled={busy === "generating"}>
+                        <RefreshCw size={15} className="mr-2" /> {busy === "generating" ? "Generating…" : "Regenerate"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setPreflightOpen(true)}>
+                        <AlertTriangle size={15} className="mr-2" /> Issues
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setCommentsOpen(true)}>
+                        <MessageSquare size={15} className="mr-2" /> Comments{comments.filter((c) => !c.resolved).length > 0 ? ` (${comments.filter((c) => !c.resolved).length})` : ""}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={resetStyles}>
+                        <RotateCcw size={15} className="mr-2" /> Reset styles
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setHistoryOpen(true); loadSnapshots(); }}>
+                        <History size={15} className="mr-2" /> History
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {peers.length > 1 && (
                     <WithTooltip text={peers.map((p) => `${p.userName}${p.pageId ? ` (page ${edition?.pages.find((x) => x.id === p.pageId)?.pageNumber ?? "?"})` : ""}`).join("\n")}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534" }}>
@@ -2878,6 +2882,29 @@ function EpaperEditorPage() {
                     <div style={{ color: "#3730a3", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Selected: {b.type}</div>
                     <div style={{ color: t ? "#111" : "#9ca3af", fontWeight: 600, marginTop: 2, lineHeight: 1.3 }}>
                       {t?.title || "(no article assigned yet)"}
+                    </div>
+                    {/* Change the block's type in place (keeps position/size/article). */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+                      <span style={{ color: "#3730a3", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Type</span>
+                      <Select value={b.type} onValueChange={(v) => changeBlockType(b.id, v)}>
+                        <SelectTrigger className="h-7 flex-1 text-xs bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            { t: "lead", lbl: "Lead story" },
+                            { t: "major", lbl: "Major" },
+                            { t: "secondary", lbl: "Secondary" },
+                            { t: "brief", lbl: "Brief" },
+                            { t: "image", lbl: "Image only" },
+                            { t: "text", lbl: "Text only" },
+                            { t: "ad", lbl: "Ad slot" },
+                            { t: "pull-quote", lbl: "Pull quote" },
+                          ].map((o) => (
+                            <SelectItem key={o.t} value={o.t} className="text-xs">{o.lbl}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 );
@@ -3350,6 +3377,16 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
         margin={[GRID_MARGIN_X, GRID_MARGIN_Y]}
         containerPadding={[0, 0]}
         compactType="vertical"
+        // Selection via the grid's OWN drag lifecycle: react-grid-layout wraps
+        // every tile in a draggable, which makes a plain onClick on the tile
+        // unreliable (the drag layer consumes the mouse interaction, so clicks
+        // silently fail to select). onDragStart fires on mouse-press of any tile
+        // - even a zero-distance "drag" (a click) - so selecting here is robust
+        // for both a click AND the start of a real drag.
+        onDragStart={(_l, item) => {
+          const blk = layout.blocks.find((x) => x.id === item.i);
+          if (blk && STORY_TYPES.has(blk.type)) onSelect(item.i);
+        }}
         onDragStop={(l, o, n) => onChange(l, o, n, "drag")}
         onResizeStop={(l, o, n) => onChange(l, o, n, "resize")}
         draggableCancel=".lock-btn"
