@@ -1435,37 +1435,33 @@ function EpaperEditorPage() {
     if (ok) toast("success", `Block changed to ${newType}`);
   };
 
-  // Duplicate a block onto EVERY other page of the edition (same type, size,
-  // position and style). The copy carries no article/continuation - it's a
-  // fresh empty slot per page (e.g. a recurring ad or fixed block). Each target
-  // page is patched with its own version, then the edition is reloaded to sync.
-  const duplicateBlockToAllPages = async (blockId: string) => {
-    if (!edition || !activePage) return;
+  // Duplicate a block right BESIDE it on the same page (a full copy - same type,
+  // size, style AND article). Placed to the right if it fits, otherwise below.
+  // The new copy becomes the selected block.
+  const duplicateBlock = async (blockId: string) => {
+    if (!activePage) return;
     const src = activePage.layout.blocks.find((b) => b.id === blockId);
     if (!src) return;
-    const targets = edition.pages.filter((p) => p.id !== activePage.id);
-    if (targets.length === 0) { toast("info", "No other pages to copy this block to."); return; }
-    setSaveState("saving");
-    let done = 0;
-    for (const p of targets) {
-      const copy: Block = {
-        ...src,
-        id: `${src.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        articleId: undefined,
-        overrideTitle: undefined,
-        overrideDek: undefined,
-      };
-      const res = await fetch(`/api/epaper/page/${p.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blocks: [...p.layout.blocks, copy], expectedVersion: p.version }),
-      }).catch(() => null);
-      if (res && res.ok) done++;
+    const EP_COLS = 12;
+    let nx = src.x + src.w;
+    let ny = src.y;
+    if (nx + src.w > EP_COLS) { nx = src.x; ny = src.y + src.h; } // no room right -> go below
+    const copy: Block = {
+      ...src,
+      id: `${src.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      x: nx,
+      y: ny,
+    };
+    const blocks = [...activePage.layout.blocks, copy];
+    pushUndo(activePage.id, activePage.layout.blocks);
+    setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
+      p.id === activePage.id ? { ...p, layout: { ...p.layout, blocks } } : p) } : prev);
+    const ok = await patchPage({ blocks });
+    if (ok) {
+      setSelectedBlockId(copy.id);
+      setSelectedBlockIds(new Set([copy.id]));
+      toast("success", `Duplicated ${src.type} block`);
     }
-    setSaveState(done === targets.length ? "saved" : "failed");
-    toast(done === targets.length ? "success" : "error",
-      `Copied block to ${done} of ${targets.length} other page${targets.length !== 1 ? "s" : ""}.`);
-    await loadEdition(date);
   };
 
   // Persists the full block-layout when react-grid-layout finishes a drag/resize.
@@ -1805,7 +1801,7 @@ function EpaperEditorPage() {
 
   const gridHandlersRef = useRef<Record<string, (...args: any[]) => any>>({});
   gridHandlersRef.current = {
-    onBlockDragOver, onBlockDragLeave, onBlockDrop, removeBlock, clearOffPageBlocks, toggleLock, saveLayout, duplicateBlockToAllPages,
+    onBlockDragOver, onBlockDragLeave, onBlockDrop, removeBlock, clearOffPageBlocks, toggleLock, saveLayout, duplicateBlock,
     onInlineEdit: async (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => {
       if (!activePage) return;
       const existing = activePage.layout.blocks.find((b) => b.id === blockId);
@@ -1828,7 +1824,7 @@ function EpaperEditorPage() {
   const sToggleLock = useCallback((id: string) => gridHandlersRef.current.toggleLock(id), []);
   const sSaveLayout = useCallback((b: Block[]) => gridHandlersRef.current.saveLayout(b), []);
   const sInlineEdit = useCallback((id: string, patch: { overrideTitle?: string; overrideDek?: string }) => gridHandlersRef.current.onInlineEdit(id, patch), []);
-  const sDuplicate = useCallback((id: string) => gridHandlersRef.current.duplicateBlockToAllPages(id), []);
+  const sDuplicate = useCallback((id: string) => gridHandlersRef.current.duplicateBlock(id), []);
 
   // Per-page block warnings, memoised so the grid doesn't get a fresh object
   // (and re-render) on every parent render.
@@ -3498,14 +3494,11 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
                     </WithTooltip>
                   )}
                   {onDuplicate && (
-                    <WithTooltip text="Duplicate this block onto every other page">
+                    <WithTooltip text="Duplicate this block">
                       <button
                         className="epb-btn"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (await confirm({ title: `Copy this ${b.type} block to all other pages?`, confirmText: "Copy to all pages" })) onDuplicate(b.id);
-                        }}
-                        aria-label="Duplicate block to all pages">
+                        onClick={(e) => { e.stopPropagation(); onDuplicate(b.id); }}
+                        aria-label="Duplicate block">
                         <Copy />
                       </button>
                     </WithTooltip>
