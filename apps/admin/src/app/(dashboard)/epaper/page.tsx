@@ -713,7 +713,11 @@ function EpaperEditorPage() {
   }, []);
   // 24px buffer = the canvas wrapper's 8px padding on each side + a little
   // slack so a stray sub-pixel never re-triggers a horizontal scrollbar.
-  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, DESIGN_GRID_WIDTH));
+  // Fill the available pane width (grows when the side panels are collapsed),
+  // capped at the page's NATIVE width so we zoom-to-fit up to 100% but never
+  // upscale past native (which would soften the render). The actual page size
+  // is unchanged - only the on-screen scale (GRID_SCALE) grows.
+  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, EP_IFRAME_W));
   const GRID_SCALE = GRID_WIDTH / EP_IFRAME_W;
   const ROW_H = EP_ROW_PX * GRID_SCALE;
   const GRID_MARGIN_X = EP_COL_GAP * GRID_SCALE;
