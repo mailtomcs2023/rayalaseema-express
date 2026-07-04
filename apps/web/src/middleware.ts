@@ -37,6 +37,17 @@ export async function middleware(req: NextRequest) {
   // hard-cache the redirect while you're wiring the subdomain up locally.
   const perma = process.env.NODE_ENV === "production";
 
+  // ---- www -> apex: one canonical host -------------------------------------
+  // GSC showed www.rayalaseemanews.com indexed alongside the apex (nginx serves
+  // both without redirecting), splitting ranking signals across two hosts.
+  if (host.startsWith("www.")) {
+    const proto = req.headers.get("x-forwarded-proto") || url.protocol.replace(":", "");
+    return NextResponse.redirect(
+      `${proto}://${host.slice(4)}${pathname}${url.search}`,
+      perma ? 308 : 307,
+    );
+  }
+
   // ---- epaper.* subdomain: serve the /epaper subtree at the root ----------
   if (isEpaperHost) {
     // Links that still point at /epaper(/...) -> normalise to the clean root.
