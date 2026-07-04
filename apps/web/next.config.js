@@ -143,6 +143,12 @@ const nextConfig = {
       // single-segment, so article permalinks /[district]/[constituency]/...
       // (multi-segment) are unaffected.
       { source: "/district/:slug", destination: "/:slug", permanent: true },
+      // Common alias spellings for the trust pages. Directories, AdSense
+      // reviewers, and Google News quality raters probe these exact paths;
+      // /privacy-policy 404ing reads as "no privacy policy".
+      { source: "/privacy-policy", destination: "/privacy", permanent: true },
+      { source: "/about-us", destination: "/about", permanent: true },
+      { source: "/contact-us", destination: "/contact", permanent: true },
     ];
   },
 };

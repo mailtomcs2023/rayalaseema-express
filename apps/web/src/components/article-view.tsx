@@ -179,12 +179,24 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 </div>
                 <p style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
                   {(() => {
+                    // Google News wants a clearly visible date/time between the
+                    // headline and the body, plus a machine-readable <time>
+                    // element. Show the absolute IST timestamp alongside the
+                    // relative Telugu phrasing instead of the relative-only text.
                     const pub = article.publishedAt ? new Date(article.publishedAt) : null;
                     const upd = article.updatedAt ? new Date(article.updatedAt) : null;
                     const edited = pub && upd && upd.getTime() - pub.getTime() > 5 * 60_000;
-                    if (edited && upd) return `Updated · ${formatRelativeTelugu(upd)}`;
-                    if (pub) return `Published · ${formatRelativeTelugu(pub)}`;
-                    return "";
+                    const shown = edited && upd ? upd : pub;
+                    if (!shown) return null;
+                    const abs = shown.toLocaleString("te-IN", {
+                      day: "numeric", month: "long", year: "numeric",
+                      hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata",
+                    });
+                    return (
+                      <time dateTime={shown.toISOString()}>
+                        {edited ? "Updated" : "Published"} · {abs} IST · {formatRelativeTelugu(shown)}
+                      </time>
+                    );
                   })()}
                 </p>
               </div>

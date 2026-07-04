@@ -87,6 +87,26 @@ describe("NewsArticle generator", () => {
     expect(ld.publisher).toMatchObject({ "@type": "NewsMediaOrganization" });
   });
 
+  test("publication-named system author emits Organization, not a fake Person", () => {
+    // Wire/auto-imported copy is attributed to a system user named after the
+    // publication; that must surface as the org itself, never a Person with
+    // a synthetic /author/ profile URL.
+    for (const name of ["Rayalaseema News", "రాయలసీమ న్యూస్", "  rayalaseema news "]) {
+      const orgLd = buildNewsArticleSchema({
+        article: { id: "x", slug: "x", title: "t" },
+        author: { ...AUTHOR, name },
+        publisher: PUBLISHER,
+        canonicalUrl: "https://rayalaseemanews.com/news/x",
+      });
+      expect(orgLd.author).toMatchObject({
+        "@type": "NewsMediaOrganization",
+        name: "Rayalaseema News",
+        url: "https://rayalaseemanews.com",
+      });
+      expect((orgLd.author as any).url).not.toContain("/author/");
+    }
+  });
+
   test("contentLocation + spatialCoverage use most-specific location", () => {
     // Constituency wins over District (no mandal in this chain).
     expect((ld.contentLocation as any).name).toBe("Chandragiri");

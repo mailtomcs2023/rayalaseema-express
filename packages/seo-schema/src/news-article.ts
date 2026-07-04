@@ -72,6 +72,20 @@ function buildPlace(loc: LocationRef): Record<string, unknown> {
 }
 
 function buildAuthor(author: AuthorRef, siteUrl: string, publisher: PublisherConfig): Record<string, unknown> {
+  // Auto-imported wire/desk copy is attributed to a system user named after
+  // the publication itself. Emitting that as a Person with a synthetic
+  // /author/ URL reads as spoofed authorship to Google News; the correct
+  // markup for organization-authored content is the org itself as author.
+  const orgNames = [publisher.publicationName, publisher.publicationNameTe]
+    .filter((n): n is string => Boolean(n))
+    .map((n) => n.trim().toLowerCase());
+  if (orgNames.includes(author.name.trim().toLowerCase())) {
+    return {
+      "@type": "NewsMediaOrganization",
+      name: publisher.publicationName,
+      url: publisher.siteUrl,
+    };
+  }
   const sameAs = [
     author.twitterHandle ? `https://twitter.com/${author.twitterHandle.replace(/^@/, "")}` : null,
     author.linkedinUrl ?? null,

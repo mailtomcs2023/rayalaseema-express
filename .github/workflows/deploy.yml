@@ -229,14 +229,30 @@ jobs:
             JINA_API_KEY="${{ secrets.JINA_API_KEY }}"
             ENV
 
-            echo "=== Build apps ==="
-            export NODE_OPTIONS="--max-old-space-size=3072"
+            echo "=== Build web ==="
+            # 2560MB heap (was 3072): the VM has 3.8GB RAM (+4GB swap added
+            # 2026-07-04). The old value left nothing for the running apps and
+            # the 2026-07-04 deploy hung the admin build for 26min until the
+            # 30m timeout killed the script BEFORE any PM2 restart ran - site
+            # down with half-built artifacts on disk.
+            export NODE_OPTIONS="--max-old-space-size=2560"
             # Clear any stale .next first - a killed/timed-out build leaves a
             # Turbopack lock ("previous build didn't exit cleanly") that fails
             # every subsequent build. .next is gitignored so reset --hard won't
             # clear it; do it explicitly for a clean, reliable build.
-            rm -rf apps/web/.next apps/admin/.next
+            rm -rf apps/web/.next
             cd apps/web && bun run build && cd ../..
+
+            echo "=== Restart web immediately after its build ==="
+            # The public site picks up the new build even if the admin build
+            # below hangs or the script times out. Never `pm2 delete all` here -
+            # the delete-then-build-then-start window is exactly what left
+            # production dead on 2026-07-04.
+            pm2 restart web 2>/dev/null || pm2 start "bun run start" --name "web" --cwd /home/azureuser/app/apps/web -- -p 3000
+            pm2 save
+
+            echo "=== Build admin ==="
+            rm -rf apps/admin/.next
             cd apps/admin && bun run build && cd ../..
 
             echo "=== Seed database (first deploy only) ==="
@@ -244,11 +260,8 @@ jobs:
             bunx tsx prisma/seed.ts 2>/dev/null || echo "Seed skipped (already seeded)"
             cd ../..
 
-            echo "=== Restart with PM2 ==="
-            pm2 delete all 2>/dev/null || true
-
-            pm2 start "bun run start" --name "web" --cwd /home/azureuser/app/apps/web -- -p 3000
-            pm2 start "bun run start" --name "admin" --cwd /home/azureuser/app/apps/admin -- -p 3001
+            echo "=== Restart admin ==="
+            pm2 restart admin 2>/dev/null || pm2 start "bun run start" --name "admin" --cwd /home/azureuser/app/apps/admin -- -p 3001
 
             pm2 save
 
