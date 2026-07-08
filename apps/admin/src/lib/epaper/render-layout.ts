@@ -1297,7 +1297,8 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
     font-family:'Ramabhadra',serif;color:#bdb39c;font-size:18px}
 
   /* Continuation (article tail on later page) */
-  .continuation { padding: 6px 0; border-top: 2px solid #14110b; }
+  /* Same right gutter as the other story blocks so columns breathe evenly. */
+  .continuation { padding: 6px 0; border-top: 2px solid #14110b; border-right: 1px solid var(--rule-soft); padding-right: 10px; }
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
   .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 45px; line-height: 1.12; color: var(--ink); }
