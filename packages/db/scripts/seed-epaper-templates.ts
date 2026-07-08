@@ -363,6 +363,14 @@ async function main() {
     }
   }
 
+  // Inner pages carry NO ad band - ads live on the front page only (operator
+  // decision 2026-07, to free inner pages for redesign). The classifieds page
+  // is exempt: its ad slots ARE the page content.
+  for (const t of all) {
+    if (t.slug === "front" || t.slug === "section-classifieds") continue;
+    t.layout.blocks = t.layout.blocks.filter((b) => b.type !== "ad");
+  }
+
   // Deactivate any standalone-utility templates from the prior structure so the
   // combined Utility page replaces them.
   await prisma.epaperTemplate.updateMany({
