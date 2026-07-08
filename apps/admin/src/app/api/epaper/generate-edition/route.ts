@@ -3,6 +3,7 @@ import { prisma } from "@rayalaseema/db";
 import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
 import { requireKyc } from "@/lib/kyc-guard";
 import { autofillTemplate, type BlockSlot } from "@/lib/epaper/autofill";
+import { autoAdjustEditionPages } from "@/lib/epaper/auto-adjust";
 import { buildContinuations } from "@/lib/epaper/continuation";
 import { createSnapshot } from "@/lib/epaper/snapshots";
 
@@ -151,7 +152,17 @@ export async function POST(req: NextRequest) {
 
     // Post-process: scan the freshly autofilled pages, wire continuation
     // blocks on later pages for lead/major articles that overflow their slots.
+    // Runs BEFORE the reflow so empty slots can still become continuation
+    // targets - the reflow then drops whatever empties remain.
     const continuationsCreated = await buildContinuations(edition.id);
+
+    // Content-aware reflow for inner pages: drop unfilled slots, size blocks
+    // to their article's copy, re-tile the grid so no gaps remain. The front
+    // page always fills and is operator-tuned, so it's skipped.
+    const pagesAdjusted = await autoAdjustEditionPages(edition.id, { skipTemplateSlugs: ["front"] });
+    // Blocks were resized - re-sync each continuation's split point with its
+    // source block's new capacity (buildContinuations's refresh pass).
+    if (pagesAdjusted > 0) await buildContinuations(edition.id);
 
     return NextResponse.json({
       editionId: edition.id,
@@ -161,6 +172,7 @@ export async function POST(req: NextRequest) {
       skipped,
       usedArticles: usedArticles.size,
       continuationsCreated,
+      pagesAdjusted,
       pages: summary,
     });
   } catch (e) {
