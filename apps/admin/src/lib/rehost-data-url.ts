@@ -47,3 +47,32 @@ export async function rehostDataUrlFields<T extends Record<string, unknown>>(
   }
   return out as T;
 }
+
+// Inline data: images INSIDE an HTML body (e.g. <img src="data:image/png;base64,…">).
+// A single pasted photo can be hundreds of thousands of chars, blowing the body
+// length cap ("Invalid request body"). Extract each unique data URL, EXIF-strip
+// + rehost it on Azure Blob, and swap the hosted URL back into the HTML so the
+// stored body only holds short links. No-op when blob isn't configured (the
+// schema then rejects the oversized body exactly as before).
+const BODY_DATA_URL_RE = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
+
+export async function rehostBodyImages(html: string): Promise<string> {
+  if (typeof html !== "string" || !html.includes("data:image/") || !blobConfigured()) return html;
+  const matches = [...new Set(html.match(BODY_DATA_URL_RE) ?? [])];
+  if (matches.length === 0) return html;
+  let out = html;
+  for (const dataUrl of matches) {
+    try {
+      const raw = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+      if (raw.length === 0 || raw.length > MAX_BYTES) continue;
+      const processed = await processImageBuffer(raw);
+      const hosted = await uploadBuffer(processed.buffer, processed.ext, processed.contentType);
+      out = out.split(dataUrl).join(hosted); // replace every occurrence of this exact data URL
+    } catch (e) {
+      // Best-effort: leave the un-rehosted image in place so the schema surfaces
+      // the size error rather than 500-ing the whole save.
+      console.warn(`[rehostBodyImages] couldn't rehost an inline image:`, (e as Error)?.message);
+    }
+  }
+  return out;
+}

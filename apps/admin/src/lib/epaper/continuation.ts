@@ -151,6 +151,11 @@ export async function buildContinuations(editionId: string): Promise<number> {
 
   for (let pi = 0; pi < pages.length; pi++) {
     const p = pages[pi];
+    // ONLY front-page stories continue onto later pages (newspaper convention).
+    // Stories on pages 2+ never spawn their own continuation - their blocks
+    // either host a page-1 continuation or show the article as it fits (the
+    // client fit script ends clipped copy with "...").
+    if (p.pageNumber !== 1) continue;
     for (const b of p.blocks) {
       if (b.continuesToPage) continue; // already wired
       if (b.type !== "lead" && b.type !== "major" && b.type !== "secondary") continue;

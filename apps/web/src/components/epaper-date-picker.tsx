@@ -98,6 +98,10 @@ export function EpaperDatePicker({
     const ds = toIso(d);
     setOpen(false);
     router.push(epHref("/epaper", `date=${ds}&edition=${editionKey}`));
+    // Bypass the client router cache so the server re-fetches the selected
+    // date's edition instead of replaying a stale payload - picking a date
+    // must always load that date's epaper completely fresh.
+    router.refresh();
   }
 
   if (toolbarMode) {

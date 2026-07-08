@@ -484,7 +484,12 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   // fit-deck (client-side fill+ellipsis) only when the image is NOT wrapped
   // inside the body - truncating text-content would drop the inline wrap image.
   const dekClass = `lead-dek${isWrap ? " has-wrap-image" : " fit-deck"}${dropCap ? " drop-cap" : ""}`;
-  const dekStyle = ` style="column-count:${cols}${b.style?.textColor ? `;color:${b.style.textColor}` : ""}"`;
+  // column-fill:auto is CRITICAL here: the continuation branch puts this style
+  // on an inner div that lacks the .lead-dek class rule, and the CSS default
+  // (column-fill: balance) pairs the two columns' line counts - the fitter then
+  // can't add a line without growing BOTH columns, leaving a full-width one-line
+  // gap above the jump link. auto = fill column 1 to the bottom first.
+  const dekStyle = ` style="column-count:${cols};column-fill:auto${b.style?.textColor ? `;color:${b.style.textColor}` : ""}"`;
   // If a continuation block exists on a later page, render the dek as plain
   // body-text truncated at `bodyStart` (set by the continuation post-process)
   // and append a goto-page jump link. Otherwise fall back to the summary.
@@ -1146,7 +1151,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      the grid-v1 path collapses lead/major to invisible content when a
      percentage-height chain hangs off the grid item, but a flex chain off the
      same definite-height item fills + clips without that trap. */
-  .lead.block, .major.block, .secondary.block, .continuation.block { display: flex; flex-direction: column; position: relative; }
+  .lead.block, .major.block, .secondary.block, .continuation.block, .briefs.block { display: flex; flex-direction: column; position: relative; }
   .block a.story-link { color: inherit; text-decoration: none; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   /* Story-link as a transparent full-bleed overlay (see articleOverlay): keeps
      the article hotspot/PDF-link over the whole block while leaving the content
@@ -1181,7 +1186,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
     color: #c2185b; font-style: italic; font-weight: 700; text-transform: uppercase; }
   .mast-bib { display: flex; justify-content: space-between; align-items: center;
     font-family: 'Noto Sans Telugu', sans-serif; font-size: 12px; color: #14110b;
-    padding: 4px 2px; border-top: 1px solid #d8d0bd; }
+    padding: 4px 14px; border-top: 1px solid #d8d0bd; }
   .mast-bib-left, .mast-bib-right { font-weight: 700; }
   .mast-cities { background: var(--maroon); color: #fff;
     font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700;
@@ -1261,7 +1266,8 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .jump-p{ margin:0; text-indent:0; break-inside:avoid; }
 
   /* Major */
-  .major { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); }
+  /* Same right-side gutter as .secondary so all story columns breathe evenly. */
+  .major { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); border-right: 1px solid var(--rule-soft); padding-right: 10px; }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
   .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin-bottom:6px;max-height:2.35em;overflow:hidden;flex:0 0 auto}
   .maj-dek{font-size:18px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
@@ -1301,7 +1307,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
 
   /* Briefs - a compact no-image story that fills its slot (headline + fitted
      body), so a 2-row brief no longer leaves a gap under one headline. */
-  .briefs{ display:flex; flex-direction:column; padding-top:8px; }
+  .briefs{ display:flex; flex-direction:column; padding-top:8px; border-right:1px solid var(--rule-soft); padding-right:10px; }
   .briefs .block-inner{ display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
   .briefs-head{font-family:'Noto Sans Telugu',sans-serif;font-weight:800;font-size:14px;color:#fff;
     background:var(--reel-orange);align-self:flex-start;padding:2px 10px;margin-bottom:6px;border-radius:2px;flex:0 0 auto}
@@ -1391,7 +1397,12 @@ const FIT_DECK_SCRIPT = `<script>
   // catches single-column text; scrollWidth catches multi-column bodies (extra
   // clipped column). Both scale with zoom, so this is zoom-proof.
   function overflows(el) {
-    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1;
+    // Width epsilon is 12px (not 1): CSS multicol can report scrollWidth a few
+    // px over clientWidth from column rounding WITHOUT a real overflow column,
+    // which made the fitter back off a whole line early on 2-column leads. A
+    // genuine 3rd column shifts scrollWidth by a full column width (hundreds of
+    // px), so 12px cannot mask real overflow.
+    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 12;
   }
   // Split text into COMPLETE Telugu letters (grapheme clusters) so a cut never
   // lands inside a conjunct / vowel-matra (which breaks the glyph). Chromium has
@@ -1403,8 +1414,19 @@ const FIT_DECK_SCRIPT = `<script>
     while (!(r = it.next()).done) out.push(r.value.segment);
     return out;
   }
+  // Vertical justification ("feathering"): stretch line-height a hair so the
+  // fitted whole lines span the block EXACTLY - kills the partial-line gap at
+  // the bottom that no amount of extra text can fill.
+  function feather(el) {
+    var cs = getComputedStyle(el);
+    var lh = parseFloat(cs.lineHeight);
+    if (!lh || lh <= 0) lh = (parseFloat(cs.fontSize) || 16) * 1.5;
+    var lines = Math.floor(el.clientHeight / lh);
+    if (lines >= 3) el.style.lineHeight = (el.clientHeight / lines).toFixed(3) + 'px';
+  }
   function fit(el) {
     if (el.clientHeight < 6 || el.clientWidth < 6) return;
+    el.style.lineHeight = '';                    // reset feathering before re-measuring
     var full = el.getAttribute('data-full');
     if (full === null) { full = el.textContent; el.setAttribute('data-full', full); }
     el.textContent = full;
@@ -1418,6 +1440,27 @@ const FIT_DECK_SCRIPT = `<script>
       if (!overflows(el)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
     }
     var cut = units.slice(0, best).join('');
+    // BODY text ends like a newspaper: cut back to the last COMPLETE sentence
+    // that fits, so the story reads as finished - no "..." trailing off. The
+    // "..." is reserved for headings (and the rare block too small for even a
+    // single sentence, where a word-cut fragment is the only option).
+    if (el.classList.contains('fit-deck')) {
+      var isCont = !!(el.closest && el.closest('.cont-src'));
+      if (isCont) {
+        // CONTINUING story (front page -> later page): fill the block to the
+        // very last line - even mid-sentence - and end with ".."; the sentence
+        // finishes in the continuation block. No white gap above the jump link.
+        var spc = cut.lastIndexOf(' ');
+        if (spc > cut.length * 0.85) cut = cut.slice(0, spc); // word boundary, minimal give-back
+        el.textContent = cut.replace(/[\\s,;:।—-]+$/, '') + '..';
+        feather(el);                             // absorb the partial-line leftover
+        return;
+      }
+      // SELF-CONTAINED block (inner pages / fully-fitting stories): end on the
+      // last complete sentence so the article reads as finished - no dots.
+      var se = Math.max(cut.lastIndexOf('।'), cut.lastIndexOf('.'), cut.lastIndexOf('?'), cut.lastIndexOf('!'));
+      if (se > cut.length * 0.4) { el.textContent = cut.slice(0, se + 1); return; }
+    }
     // Prefer ending on a whole WORD: back up to the last space if it isn't too
     // far back. (cut already ends on a complete letter, so this never breaks one.)
     var sp = cut.lastIndexOf(' ');

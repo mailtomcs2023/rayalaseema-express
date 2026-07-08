@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { prisma } from "@rayalaseema/db";
 import { SiteHeader } from "@/components/site-header";
+import { Newspaper } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { EpaperViewer } from "@/components/epaper-viewer";
 import { EpaperSearchInline } from "@/components/epaper-search-inline";
 import { EpaperDatePicker } from "@/components/epaper-date-picker";
@@ -115,6 +117,10 @@ export default async function EpaperPage({
         {/* E-paper viewer */}
         {selected && selected.pages.length > 0 ? (
           <EpaperViewer
+            // Remount per edition: picking another date must swap the WHOLE
+            // viewer (pages, PDF link, back to page 1) instead of reusing the
+            // previous edition's client state.
+            key={selected.id}
             pages={selected.pages.map((p) => ({
               pageNumber: p.pageNumber,
               label: p.label,
@@ -142,12 +148,32 @@ export default async function EpaperPage({
         ) : (
           <div
             style={{
-              background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 8,
-              padding: 60, textAlign: "center", marginTop: 16,
-              fontFamily: "var(--font-telugu-body), sans-serif", color: "#6b7280",
+              background: "#fff", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 14,
+              padding: "72px 24px", textAlign: "center", marginTop: 16,
+              fontFamily: "var(--font-telugu-body), sans-serif",
+              display: "flex", flexDirection: "column", alignItems: "center",
             }}
           >
-            ఈ ఎడిషన్ త్వరలో అందుబాటులోకి వస్తుంది.
+            <div style={{
+              width: 84, height: 84, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "#FEF2F2", color: "var(--brand, #B91414)", marginBottom: 20,
+            }}>
+              <Newspaper size={38} />
+            </div>
+            <h2 style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 24, fontWeight: 800, color: "#111", margin: 0 }}>
+              ఈ ఎడిషన్ త్వరలో అందుబాటులోకి వస్తుంది
+            </h2>
+            <p style={{ fontSize: 15, color: "#6b7280", margin: "12px 0 0", maxWidth: 460, lineHeight: 1.8 }}>
+              {teluguDate(new Date(selDate))} ఈ-పేపర్ ఇంకా ప్రచురించబడలేదు.
+              ప్రచురించిన వెంటనే ఇక్కడే కనిపిస్తుంది.
+            </p>
+            {dates[0] && dates[0] !== selDate && (
+              <Button asChild size="lg" style={{ marginTop: 26, background: "var(--brand, #B91414)", color: "#fff", fontWeight: 700, fontFamily: "var(--font-telugu-body), sans-serif" }}>
+                <a href={onSub ? `/?date=${dates[0]}&edition=${editionKey}` : `/epaper?date=${dates[0]}&edition=${editionKey}`}>
+                  తాజా ఎడిషన్ చదవండి ({teluguDate(new Date(dates[0]))})
+                </a>
+              </Button>
+            )}
           </div>
         )}
       </main>

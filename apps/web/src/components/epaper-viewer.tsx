@@ -76,7 +76,12 @@ export function EpaperViewer({
   const [sel, setSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [clipBusy, setClipBusy] = useState(false);
-  const [showThumbs, setShowThumbs] = useState(true); // all-pages thumbnail strip
+  // Instant local download URL for the current clip + a decoded-image cache so
+  // box adjustments don't re-download the page (see doClip).
+  const [clipLocalUrl, setClipLocalUrl] = useState<string | null>(null);
+  const clipLocalUrlRef = useRef<string | null>(null);
+  const clipImgCache = useRef<{ src: string; img: HTMLImageElement } | null>(null);
+  const [showThumbs, setShowThumbs] = useState(false); // all-pages thumbnail strip - hidden until the reader asks (పేజీలు button)
   const imgRef = useRef<HTMLImageElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -220,10 +225,16 @@ export function EpaperViewer({
     const imgEl = imgRef.current; if (!imgEl) return;
     setClipBusy(true);
     try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = cur.imageUrl;
-      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+      // Decode the page image ONCE per page and reuse it - re-downloading the
+      // full page on every box move/resize was the main clip slowness.
+      let img = clipImgCache.current?.src === cur.imageUrl ? clipImgCache.current.img : null;
+      if (!img) {
+        img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = cur.imageUrl;
+        await new Promise((res, rej) => { img!.onload = res; img!.onerror = rej; });
+        clipImgCache.current = { src: cur.imageUrl, img };
+      }
 
       const scale = img.naturalWidth / imgEl.clientWidth;
       const sx = s.x * scale, sy = s.y * scale, sw = s.w * scale, sh = s.h * scale;
@@ -233,9 +244,17 @@ export function EpaperViewer({
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-      const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/png"));
+      // JPEG q0.92 instead of lossless PNG: ~5-10x smaller for newspaper crops,
+      // so both the encode and the upload finish much faster with no visible
+      // quality loss at share sizes.
+      const blob: Blob = await new Promise((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.92));
+      // Local download link is ready INSTANTLY - only the social share buttons
+      // need to wait for the hosted URL from the upload.
+      if (clipLocalUrlRef.current) URL.revokeObjectURL(clipLocalUrlRef.current);
+      clipLocalUrlRef.current = URL.createObjectURL(blob);
+      setClipLocalUrl(clipLocalUrlRef.current);
       const fd = new FormData();
-      fd.append("clip", blob, "clip.png");
+      fd.append("clip", blob, "clip.jpg");
       const r = await fetch("/api/epaper/clip", { method: "POST", body: fd }).then((x) => x.json());
       if (r.url) setClipUrl(r.url);
     } catch {
@@ -382,7 +401,7 @@ export function EpaperViewer({
       <div className="ev-stage-wrap">
         <Button
           variant="secondary" size="icon"
-          className="ev-stage-arrow left absolute top-1/2 -translate-y-1/2 left-4 z-10 rounded-full text-[#B91414] shadow-lg hover:scale-105 disabled:opacity-30"
+          className="ev-stage-arrow left absolute top-1/2 left-4 z-10 rounded-full text-[#B91414] shadow-lg disabled:opacity-30"
           onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous"
         >
           <ChevronLeft className="size-6" />
@@ -391,7 +410,9 @@ export function EpaperViewer({
         <div className="ev-stage" ref={stageRef}>
           <div
             className="ev-pagewrap"
-            style={{ width: `min(${zoom * 100}%, ${zoom * 1000}px)`, cursor: clipMode ? "crosshair" : "default" }}
+            // Base cap 1400px (was 1000) so the page fills the stage on desktop
+            // instead of floating in wide dark gutters; zoom scales from there.
+            style={{ width: `min(${zoom * 100}%, ${zoom * 1400}px)`, cursor: clipMode ? "crosshair" : "default" }}
             onMouseDown={onDown}
             onMouseMove={onMove}
             onMouseUp={onUp}
@@ -456,10 +477,11 @@ export function EpaperViewer({
                   <button className={`ev-ct ev-ct-copy${clipUrl ? "" : " is-disabled"}`} onClick={() => clipUrl && navigator.clipboard.writeText(clipUrl)} title="లింక్ కాపీ" aria-label="Copy link">
                     <Copy />
                   </button>
-                  <a className={`ev-ct ev-ct-dl${clipUrl ? "" : " is-disabled"}`} href={clipUrl || undefined} download="clip.png" title="డౌన్‌లోడ్" aria-label="Download">
+                  {/* Download works instantly off the local crop; the hosted URL is only needed for the share links above. */}
+                  <a className={`ev-ct ev-ct-dl${clipLocalUrl || clipUrl ? "" : " is-disabled"}`} href={clipLocalUrl || clipUrl || undefined} download="clip.jpg" title="డౌన్‌లోడ్" aria-label="Download">
                     <Download />
                   </a>
-                  <button className="ev-ct ev-ct-close" onClick={() => { setSel(null); setClipUrl(null); }} title="మూసివేయి" aria-label="Close">
+                  <button className="ev-ct ev-ct-close" onClick={() => { setSel(null); setClipUrl(null); setClipLocalUrl(null); }} title="మూసివేయి" aria-label="Close">
                     <X />
                   </button>
                   {clipBusy && <span className="ev-ct-spin" aria-label="తయారవుతోంది" />}
@@ -472,7 +494,7 @@ export function EpaperViewer({
 
         <Button
           variant="secondary" size="icon"
-          className="ev-stage-arrow right absolute top-1/2 -translate-y-1/2 right-4 z-10 rounded-full text-[#B91414] shadow-lg hover:scale-105 disabled:opacity-30"
+          className="ev-stage-arrow right absolute top-1/2 right-4 z-10 rounded-full text-[#B91414] shadow-lg disabled:opacity-30"
           onClick={() => go(idx + 1)} disabled={idx === pages.length - 1} aria-label="Next"
         >
           <ChevronRight className="size-6" />
@@ -546,7 +568,7 @@ export function EpaperViewer({
         /* STAGE */
         .ev-stage-wrap { position: relative; }
         .ev-stage {
-          background: #2a2a2a; padding: 28px 12px; overflow: auto;
+          background: #2a2a2a; padding: 10px 8px; overflow: auto;
           display: flex; align-items: flex-start; justify-content: center;
           /* Fixed height (min == max) so the stage NEVER collapses while the
              next page image is loading. The side arrows are anchored to this
@@ -637,15 +659,26 @@ export function EpaperViewer({
         }
         @keyframes ev-spin { to { transform: rotate(360deg); } }
 
-        /* SIDE NAV ARROWS - position/size only; visual style handled by shadcn Button */
+        /* SIDE NAV ARROWS - professional & dead-still: the transform is pinned
+           so NOTHING moves on hover/click; feedback is a colour change only.
+           Brand red at rest, dark red on hover. */
         .ev-stage-arrow {
           position: absolute !important;
           top: 50% !important;
+          /* Pin BOTH transform and the separate CSS translate property: the
+             shadcn Button base has active:translate-y-px (a press-down effect)
+             which uses the translate property - pinning transform alone could
+             not stop the button moving down on click. */
           transform: translateY(-50%) !important;
+          translate: none !important;
           width: 48px !important;
           height: 48px !important;
+          background: #B91414 !important;
+          color: #fff !important;
+          transition: background-color .15s ease !important;
         }
-        .ev-stage-arrow:hover:not(:disabled) { transform: translateY(-50%) scale(1.08) !important; }
+        .ev-stage-arrow:hover:not(:disabled) { background: #7F0D0D !important; }
+        .ev-stage-arrow:active:not(:disabled) { background: #6B0B0B !important; transform: translateY(-50%) !important; translate: none !important; }
         .ev-stage-arrow.left { left: 16px; }
         .ev-stage-arrow.right { right: 16px; }
 

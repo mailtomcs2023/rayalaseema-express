@@ -19,11 +19,15 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const name = `clip-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.png`;
+    // Respect the uploaded format - the viewer sends JPEG (much smaller/faster
+    // than PNG for newspaper crops); older clients may still send PNG.
+    const type = file.type === "image/jpeg" ? "image/jpeg" : file.type === "image/webp" ? "image/webp" : "image/png";
+    const ext = type === "image/jpeg" ? "jpg" : type === "image/webp" ? "webp" : "png";
+    const name = `clip-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
     const container = BlobServiceClient.fromConnectionString(CONN).getContainerClient(CONTAINER);
     const blob = container.getBlockBlobClient(name);
     await blob.uploadData(buffer, {
-      blobHTTPHeaders: { blobContentType: "image/png", blobCacheControl: "public, max-age=31536000" },
+      blobHTTPHeaders: { blobContentType: type, blobCacheControl: "public, max-age=31536000" },
     });
 
     return NextResponse.json({ url: blob.url });

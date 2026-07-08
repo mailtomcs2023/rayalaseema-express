@@ -58,8 +58,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // "Published" edition whose pages were edited stays invisible. Runs the same
     // pipeline as the manual Render PDF button. If it fails we abort the publish
     // so the operator sees the error instead of a silently-broken release.
+    //
+    // PERF: skip the render when the edition is ALREADY rendered and current -
+    // i.e. status "ready" and no page edited since the last successful render.
+    // The common flow is Render PDF → review → Publish; re-rendering there
+    // doubled the publish time for no change in output.
     if (to === "PUBLISHED") {
-      await renderEdition(id, session.user.id);
+      const [lastRender, newestPage] = await Promise.all([
+        prisma.epaperRenderJob.findFirst({
+          where: { editionId: id, status: "succeeded" },
+          orderBy: { completedAt: "desc" },
+          select: { completedAt: true },
+        }),
+        prisma.epaperPage.findFirst({
+          where: { editionId: id },
+          orderBy: { updatedAt: "desc" },
+          select: { updatedAt: true },
+        }),
+      ]);
+      const upToDate =
+        edition.status === "ready" &&
+        !!lastRender?.completedAt &&
+        (!newestPage || newestPage.updatedAt <= lastRender.completedAt);
+      if (!upToDate) {
+        await renderEdition(id, session.user.id);
+      }
     }
 
     // Stamp kill metadata when transitioning into KILLED. Reverse stamps on

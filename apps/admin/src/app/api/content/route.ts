@@ -14,7 +14,7 @@ import {
   contentCreateSchema,
 } from "@rayalaseema/db";
 import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
-import { rehostDataUrlFields } from "@/lib/rehost-data-url";
+import { rehostDataUrlFields, rehostBodyImages } from "@/lib/rehost-data-url";
 import { ensureBlobHosted } from "@/lib/blob";
 import { requireKyc } from "@/lib/kyc-guard";
 import { logAudit } from "@/lib/audit";
@@ -218,7 +218,12 @@ export async function POST(req: NextRequest) {
     const authorId = session.user.id;
     // Rehost any base64 data: image fields to a hosted URL before validation
     // so a pasted/auto-fetched data URL doesn't trip the 2048-char URL cap.
-    const rawBody = await rehostDataUrlFields(await req.json());
+    let rawBody = await rehostDataUrlFields(await req.json());
+    // Also rehost images pasted INLINE into the article body - otherwise a
+    // single base64 photo blows the 200k body cap ("Invalid request body").
+    if (rawBody && typeof rawBody === "object" && typeof (rawBody as any).body === "string") {
+      rawBody = { ...rawBody, body: await rehostBodyImages((rawBody as any).body) };
+    }
 
     // Zod validation at the boundary - every field is shape-checked +
     // length-capped before we run any DB queries. Failures surface as

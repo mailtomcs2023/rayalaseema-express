@@ -39,6 +39,21 @@ export async function GET(req: NextRequest) {
     // state via `if (!data.id) setEdition(null)`. Return 200 with a flag.
     if (!edition) return NextResponse.json({ exists: false, date: dateStr });
 
+    // Render freshness for the editor's Render button: a render is "current"
+    // when it succeeded AND no page was edited afterwards. Also expose the
+    // last render's duration so the UI can show an expected render time.
+    const lastRender = await prisma.epaperRenderJob.findFirst({
+      where: { editionId: edition.id, status: "succeeded" },
+      orderBy: { completedAt: "desc" },
+      select: { completedAt: true, durationMs: true },
+    });
+    const newestPageEdit = edition.pages.reduce<Date | null>(
+      (max, p) => (!max || p.updatedAt > max ? p.updatedAt : max), null);
+    const renderUpToDate =
+      edition.status === "ready" &&
+      !!lastRender?.completedAt &&
+      (!newestPageEdit || newestPageEdit <= lastRender.completedAt);
+
     return NextResponse.json({
       id: edition.id,
       date: dateStr,
@@ -49,6 +64,8 @@ export async function GET(req: NextRequest) {
       pdfUrl: edition.pdfUrl,
       pageCount: edition.pageCount,
       pages: edition.pages,
+      renderUpToDate,
+      lastRenderMs: lastRender?.durationMs ?? null,
     });
   } catch (e) {
     return apiError(e);

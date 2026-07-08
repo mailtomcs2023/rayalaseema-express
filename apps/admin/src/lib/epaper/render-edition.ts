@@ -105,17 +105,24 @@ async function renderEditionAttempt(
   const browser = await chromium.launch();
   const masterPdf = await PDFDocument.create();
 
-  try {
-    for (const ep of edition.pages) {
-      // Same render path as the preview iframe so the PDF matches the editor.
-      const html = await renderEpaperPageById(ep.id, { withMargin: true });
-      const coordSystem: "grid-v1" | "mm-v2" =
-        (ep.layout as any)?.coordSystem === "mm-v2" ? "mm-v2" : "grid-v1";
-      const sheet = epaperSheet(coordSystem, true);
-      const viewport = sheet.viewport;
-      const pdfDims = sheet.pdf;
+  // Render pages CONCURRENTLY (small pool) instead of one-by-one. Each page
+  // costs seconds in image/font waits, which parallelise well; a pool of 3
+  // roughly cuts wall-clock render time to a third without exhausting CPU.
+  // PDF merge order is preserved by collecting bytes per page index.
+  const CONCURRENCY = 3;
+  const pdfByIndex: Uint8Array[] = new Array(edition.pages.length);
 
-      const page = await browser.newPage({ viewport, deviceScaleFactor: 2 });
+  const renderOnePage = async (ep: (typeof edition.pages)[number], index: number) => {
+    // Same render path as the preview iframe so the PDF matches the editor.
+    const html = await renderEpaperPageById(ep.id, { withMargin: true });
+    const coordSystem: "grid-v1" | "mm-v2" =
+      (ep.layout as any)?.coordSystem === "mm-v2" ? "mm-v2" : "grid-v1";
+    const sheet = epaperSheet(coordSystem, true);
+    const viewport = sheet.viewport;
+    const pdfDims = sheet.pdf;
+
+    const page = await browser.newPage({ viewport, deviceScaleFactor: 2 });
+    try {
       await page.setContent(html, { waitUntil: "domcontentloaded" });
       // Wait until every <img> has decoded, then for fonts. Each wait is capped
       // so a single slow/broken asset can't stall the render.
@@ -173,16 +180,36 @@ async function renderEditionAttempt(
 
       // Capture the on-screen page image for the web viewer (PNG -> WebP q90).
       const pngBytes = await page.screenshot({ type: "png", fullPage: false });
-      await page.close();
       const webpBytes = await sharp(pngBytes).webp({ quality: 90 }).toBuffer();
 
-      const pageUrl = await uploadBuffer(Buffer.from(pdfBytes), "pdf", "application/pdf");
-      const imageUrl = await uploadBuffer(Buffer.from(webpBytes), "webp", "image/webp");
+      const [pageUrl, imageUrl] = await Promise.all([
+        uploadBuffer(Buffer.from(pdfBytes), "pdf", "application/pdf"),
+        uploadBuffer(Buffer.from(webpBytes), "webp", "image/webp"),
+      ]);
       await prisma.epaperPage.update({
         where: { id: ep.id },
         data: { pdfUrl: pageUrl, imageUrl, hotspots },
       });
 
+      pdfByIndex[index] = pdfBytes;
+    } finally {
+      await page.close().catch(() => {});
+    }
+  };
+
+  try {
+    // Simple worker pool: N workers pull the next un-rendered page index.
+    let next = 0;
+    const workers = Array.from({ length: Math.min(CONCURRENCY, edition.pages.length) }, async () => {
+      while (next < edition.pages.length) {
+        const index = next++;
+        await renderOnePage(edition.pages[index], index);
+      }
+    });
+    await Promise.all(workers);
+
+    // Merge in page order once all pages are rendered.
+    for (const pdfBytes of pdfByIndex) {
       const merged = await PDFDocument.load(pdfBytes);
       const copied = await masterPdf.copyPages(merged, merged.getPageIndices());
       for (const p of copied) masterPdf.addPage(p);

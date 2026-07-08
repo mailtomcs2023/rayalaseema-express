@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Undo2, Redo2 } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Undo2, Redo2, LayoutGrid } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -90,6 +90,10 @@ interface Edition {
   workflowNote: string | null;
   pdfUrl: string | null;
   pages: PageRow[];
+  /** Server-computed: last render succeeded and no page edited since. */
+  renderUpToDate?: boolean;
+  /** Duration of the last successful render (ms) - drives the expected-time hint. */
+  lastRenderMs?: number | null;
 }
 interface ArticleSummary {
   id: string;
@@ -124,6 +128,14 @@ const DEFAULT_FILTERS: PickerFilters = {
 };
 
 const STORY_TYPES = new Set(["lead", "major", "secondary", "brief"]);
+
+/** "2m 05s" / "48s" from milliseconds - render duration display. */
+function fmtMs(ms?: number | null): string {
+  if (!ms || ms <= 0) return "?";
+  const s = Math.round(ms / 1000);
+  const m = Math.floor(s / 60);
+  return m > 0 ? `${m}m ${String(s % 60).padStart(2, "0")}s` : `${s}s`;
+}
 
 // Editor grid geometry mirrors the PDF renderer's page (see render-layout.ts):
 // a 1782×2760 live area = 12 cols × 30 rows, each row 92px tall, with 14px column
@@ -323,7 +335,56 @@ function EpaperEditorPage() {
 
   const renderEditionsTable = () => {
     if (recentEditions.length === 0) {
-      return <div style={{ fontSize: 13, color: "#94a3b8", padding: "8px 2px" }}>No editions yet. Generate one to see it here.</div>;
+      // First-run empty state: sell the one action that matters (Generate) and
+      // preview the workflow so a new operator knows what comes after.
+      return (
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
+          padding: "56px 24px", marginTop: 4,
+          border: "1.5px dashed #e2e8f0", borderRadius: 14, background: "#fafbfc",
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center",
+            background: "linear-gradient(135deg, #eef2ff, #e0e7ff)", color: "#4f46e5", marginBottom: 18,
+          }}>
+            <FilePlus2 size={32} />
+          </div>
+          <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0f172a", margin: 0 }}>Start your first edition</h3>
+          <p style={{ fontSize: 13.5, color: "#64748b", margin: "8px 0 0", maxWidth: 440, lineHeight: 1.6 }}>
+            Pick a date and generate - the auto-fill engine lays out the day&apos;s
+            top stories across the front page, district pages and sections using
+            your saved templates. You can rearrange everything afterwards.
+          </p>
+          <div className="shadcn-scope" style={{ marginTop: 22 }}>
+            <Button size="lg" onClick={() => { setGenerateDate(date); setGenerateDialogOpen(true); }}
+              disabled={busy === "generating"}
+              style={{ background: "#4f46e5", color: "#fff", fontWeight: 700, paddingLeft: 22, paddingRight: 22 }}>
+              <FilePlus2 size={16} className="mr-1.5" />
+              {busy === "generating" ? "Generating…" : `Generate edition for ${date}`}
+            </Button>
+          </div>
+          {/* Workflow preview: what happens after Generate */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 26, flexWrap: "wrap", justifyContent: "center" }}>
+            {[
+              { icon: <FilePlus2 size={13} />, label: "Generate" },
+              { icon: <Pencil size={13} />, label: "Edit pages" },
+              { icon: <FileText size={13} />, label: "Render PDF" },
+              { icon: <Check size={13} />, label: "Publish to web" },
+            ].map((s, i, arr) => (
+              <span key={s.label} style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  fontSize: 12, fontWeight: 700, color: "#475569",
+                  background: "#fff", border: "1px solid #e2e8f0", borderRadius: 999, padding: "5px 12px",
+                }}>
+                  <span style={{ color: "#4f46e5", display: "inline-flex" }}>{s.icon}</span> {s.label}
+                </span>
+                {i < arr.length - 1 && <span style={{ color: "#cbd5e1", fontSize: 12 }}>→</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
     }
     const ids = recentEditions.map((e) => e.id);
     const selected = ids.filter((id) => selEditions.has(id));
@@ -581,11 +642,19 @@ function EpaperEditorPage() {
 
   const renderEdition = async () => {
     if (!edition) return;
+    // Duplicate-render guard: the server says the last render is still current
+    // (no page edited since). Skip instead of burning 1-3 min for zero change.
+    if (edition.renderUpToDate) {
+      toast("info", "Already rendered - no changes since the last render. Edit a page to enable re-rendering.");
+      return;
+    }
     setBusy("rendering"); setError("");
+    setRenderStartedAt(Date.now());
     // The render is a long, headless-Chromium job (renders every page to vector
-    // PDF, merges, uploads) - ~1-3 min for a full edition. Tell the operator so
-    // the silent "Rendering…" button doesn't read as "nothing happened".
-    toast("info", `Rendering ${edition.pages.length} pages to PDF… this can take 1-3 minutes. You can keep editing other pages.`);
+    // PDF, merges, uploads). Show the expected duration from the LAST render so
+    // the operator knows what "long" actually means for this edition.
+    const expected = edition.lastRenderMs ? ` Last time this took ${fmtMs(edition.lastRenderMs)}.` : " This can take 1-3 minutes.";
+    toast("info", `Rendering ${edition.pages.length} pages to PDF…${expected} You can keep editing other pages.`);
     try {
       const res = await fetch("/api/epaper/render-v2", {
         method: "POST",
@@ -598,7 +667,7 @@ function EpaperEditorPage() {
       }
       const data = await res.json();
       await loadEdition(date);
-      toast("success", `PDF rendered - ${data.pageCount} pages`);
+      toast("success", `PDF rendered - ${data.pageCount} pages in ${fmtMs(data.job?.durationMs)}`);
       // Continuity gate: warn if any article appears on more than one page.
       if (Array.isArray(data.duplicates) && data.duplicates.length > 0) {
         for (const d of data.duplicates.slice(0, 3)) {
@@ -628,7 +697,7 @@ function EpaperEditorPage() {
       // the operator (and we) can see WHY the PDF didn't refresh.
       toast("error", `Render failed: ${e.message || "unknown error"}`);
     }
-    finally { setBusy(null); }
+    finally { setBusy(null); setRenderStartedAt(null); }
   };
 
   // AI draft pass: re-rank each page's stories so the strongest leads, and fit
@@ -715,11 +784,12 @@ function EpaperEditorPage() {
   }, []);
   // 24px buffer = the canvas wrapper's 8px padding on each side + a little
   // slack so a stray sub-pixel never re-triggers a horizontal scrollbar.
-  // Capped at the 980px design width: letting it grow to native (1782) made
-  // GRID_WIDTH track the scrolling pane, which destabilised react-grid-layout's
-  // click/drag hit-testing (blocks stopped selecting). The panels can still be
-  // collapsed for more room; the page just won't upscale past 980.
-  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, DESIGN_GRID_WIDTH));
+  // Fill the available pane width (grows when the side panels collapse), capped
+  // at the page's NATIVE width so it never upscales past 100%. Safe now that
+  // block selection runs through react-grid-layout's own onDragStart (the old
+  // "blocks stopped selecting" bug was RGL swallowing tile onClick, not the
+  // grid width - so collapsing a panel simply zooms the page up to fit).
+  const GRID_WIDTH = Math.max(280, Math.min(canvasW - 24, EP_IFRAME_W));
   const GRID_SCALE = GRID_WIDTH / EP_IFRAME_W;
   const ROW_H = EP_ROW_PX * GRID_SCALE;
   const GRID_MARGIN_X = EP_COL_GAP * GRID_SCALE;
@@ -839,12 +909,20 @@ function EpaperEditorPage() {
       { to: "APPROVED", label: "Approve" },
       { to: "REJECTED", label: "Reject", needNote: true, danger: true },
     ],
-    APPROVED: [{ to: "PUBLISHED", label: "Publish to web + WhatsApp + push" }],
+    APPROVED: [{ to: "PUBLISHED", label: "Publish to web" }],
     PUBLISHED: [{ to: "DRAFT", label: "Unpublish", danger: true }],
     REJECTED: [{ to: "DRAFT", label: "Reopen as draft" }],
   };
+  // Review steps need a rendered PDF to review. Publish is NOT gated - it
+  // auto-renders server-side; backward steps (reject/unpublish/reopen) never
+  // need a render.
+  const RENDER_GATED = new Set(["SUB_REVIEW", "CHIEF_REVIEW", "APPROVED"]);
   const transitionTo = async (to: string, label: string, needNote: boolean) => {
     if (!edition) return;
+    if (RENDER_GATED.has(to) && edition.status !== "ready") {
+      toast("error", "Render the PDF first - click Render PDF, then submit for review.");
+      return;
+    }
     const note = needNote
       ? await prompt({
           title: label,
@@ -890,6 +968,11 @@ function EpaperEditorPage() {
     finally { setBusy(null); }
   };
   const transitionEditionById = async (id: string, to: string, label: string, needNote: boolean) => {
+    const row = recentEditions.find((e) => e.id === id);
+    if (RENDER_GATED.has(to) && row && row.status !== "ready") {
+      toast("error", "Render the PDF first - open the edition and click Render PDF, then submit.");
+      return;
+    }
     const note = needNote
       ? await prompt({ title: label, description: "Reason note (required)", required: true, multiline: true, confirmText: "Submit" })
       : null;
@@ -1134,26 +1217,46 @@ function EpaperEditorPage() {
   // Real-time presence: tracks other editors on this edition via SSE.
   interface Peer { userId: string; userName: string; pageId: string | null }
   const [peers, setPeers] = useState<Peer[]>([]);
+  const editionIdForPresence = edition?.id ?? null;
+  const activePageIdForPresence = activePage?.id ?? null;
   useEffect(() => {
-    if (!edition) return;
-    // Open SSE stream for live peer updates
-    const es = new EventSource(`/api/epaper/edition/${edition.id}/presence`);
+    if (!editionIdForPresence) return;
+    // Open SSE stream for live peer updates.
+    // PERF: this effect keys on the IDs, NOT the edition/activePage objects -
+    // those are replaced on every drag/keystroke/autosave, which used to tear
+    // down + reopen the SSE connection and fire a heartbeat on every edit,
+    // making the whole editor laggy.
+    const es = new EventSource(`/api/epaper/edition/${editionIdForPresence}/presence`);
     es.onmessage = (e) => {
       try { setPeers(JSON.parse(e.data)); } catch {}
     };
-    // Send heartbeat every 10 s + whenever active page changes
+    // If the endpoint is unavailable (404/500), EventSource auto-reconnects
+    // forever (~every 3s) - an endless request loop that hammers the dev server
+    // and floods the console. Give up after a few consecutive errors; presence
+    // is a nice-to-have, not worth degrading the editor.
+    let sseErrors = 0;
+    es.onerror = () => { if (++sseErrors >= 3) es.close(); };
+    es.onopen = () => { sseErrors = 0; };
+    // Send heartbeat every 10 s + whenever the active page changes.
+    let beatFails = 0;
+    let interval: ReturnType<typeof setInterval> | null = null;
     const beat = () => {
-      fetch(`/api/epaper/edition/${edition.id}/presence`, {
+      fetch(`/api/epaper/edition/${editionIdForPresence}/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageId: activePage?.id ?? null }),
+        body: JSON.stringify({ pageId: activePageIdForPresence }),
         keepalive: true,
-      }).catch(() => {});
+      }).then((r) => {
+        if (r.ok) { beatFails = 0; return; }
+        if (++beatFails >= 3 && interval) { clearInterval(interval); interval = null; }
+      }).catch(() => {
+        if (++beatFails >= 3 && interval) { clearInterval(interval); interval = null; }
+      });
     };
     beat();
-    const interval = setInterval(beat, 10_000);
-    return () => { clearInterval(interval); es.close(); };
-  }, [edition, activePage]);
+    interval = setInterval(beat, 10_000);
+    return () => { if (interval) clearInterval(interval); es.close(); };
+  }, [editionIdForPresence, activePageIdForPresence]);
 
   // First-time walkthrough tour - fires once per browser, persists dismissal.
   const TOUR_STEPS = [
@@ -1192,6 +1295,15 @@ function EpaperEditorPage() {
   // the operator can give the canvas more room.
   const [leftPanelOpen, setLeftPanelOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  // Live render progress: when the render started + a 1s tick so the button
+  // can show "Rendering… 45s / ~2m 10s" instead of a silent spinner.
+  const [renderStartedAt, setRenderStartedAt] = useState<number | null>(null);
+  const [renderElapsed, setRenderElapsed] = useState(0);
+  useEffect(() => {
+    if (!renderStartedAt) { setRenderElapsed(0); return; }
+    const t = setInterval(() => setRenderElapsed(Math.floor((Date.now() - renderStartedAt) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [renderStartedAt]);
 
   // Save-status indicator: tracks every PATCH so the operator can see whether
   // their last action persisted. Three states: saving | saved | failed.
@@ -1317,7 +1429,9 @@ function EpaperEditorPage() {
     if (typeof updated?.version === "number") {
       setEdition((prev) => {
         if (!prev) return prev;
-        return { ...prev, pages: prev.pages.map((p) =>
+        // Any saved edit makes the last render stale - re-enables Render PDF
+        // (the server recomputes this flag from page timestamps on next load).
+        return { ...prev, renderUpToDate: false, pages: prev.pages.map((p) =>
           p.id === activePage.id ? { ...p, version: updated.version } : p) };
       });
     }
@@ -1536,6 +1650,29 @@ function EpaperEditorPage() {
     });
     await saveLayout(next);
     toast("success", "Styles reset to default");
+  };
+
+  // Auto-adjust the active page: the server computes a content-aware reflow
+  // (drops empty story slots, sizes each block to how much copy its article
+  // has, re-tiles the 12x30 grid with no gaps) and returns the blocks; we
+  // apply them through patchPage so undo + versioning work like any edit.
+  const autoAdjustLayout = async () => {
+    if (!activePage) return;
+    try {
+      const r = await fetch(`/api/epaper/page/${activePage.id}/auto-adjust`, { method: "POST" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { toast("error", d.error || "Auto-adjust failed"); return; }
+      if (!d.changed) { toast("info", "Page already fills the grid - nothing to adjust"); return; }
+      pushUndo(activePage.id, activePage.layout.blocks);
+      setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) =>
+        p.id === activePage.id ? { ...p, layout: { ...p.layout, blocks: d.blocks } } : p) } : prev);
+      await patchPage({ blocks: d.blocks });
+      toast("success", d.removed > 0
+        ? `Layout adjusted - ${d.removed} empty slot${d.removed > 1 ? "s" : ""} removed, page re-tiled`
+        : "Layout adjusted to fill the page");
+    } catch (e: any) {
+      toast("error", e.message || "Auto-adjust failed");
+    }
   };
 
   // Close every vertical gap on the page: each non-static block grows UP until
@@ -2429,10 +2566,25 @@ function EpaperEditorPage() {
                       <Sparkles size={16} className={busy === "drafting" ? "animate-pulse" : ""} />
                     </Button>
                   </WithTooltip>
-                  <button onClick={renderEdition} disabled={busy === "rendering"}
-                    style={{ padding: "8px 16px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    {busy === "rendering" ? "Rendering…" : "Render PDF"}
-                  </button>
+                  <WithTooltip text={
+                    busy === "rendering" ? "Rendering in progress"
+                      : edition.renderUpToDate ? "Already rendered - edit a page to enable re-rendering"
+                      : edition.lastRenderMs ? `Render all pages to PDF (last render took ${fmtMs(edition.lastRenderMs)})`
+                      : "Render all pages to PDF"
+                  }>
+                    <button onClick={renderEdition} disabled={busy === "rendering"}
+                      style={{
+                        padding: "8px 16px",
+                        background: edition.renderUpToDate && busy !== "rendering" ? "#e2e8f0" : "#16a34a",
+                        color: edition.renderUpToDate && busy !== "rendering" ? "#94a3b8" : "#fff",
+                        border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                        cursor: edition.renderUpToDate && busy !== "rendering" ? "not-allowed" : "pointer",
+                      }}>
+                      {busy === "rendering"
+                        ? `Rendering… ${renderElapsed}s${edition.lastRenderMs ? ` / ~${fmtMs(edition.lastRenderMs)}` : ""}`
+                        : "Render PDF"}
+                    </button>
+                  </WithTooltip>
                   {edition.pdfUrl && (
                     <WithTooltip text="Preview PDF - open the last rendered PDF in a new tab">
                       <a href={edition.pdfUrl} target="_blank" rel="noopener noreferrer" aria-label="Preview PDF"
@@ -2441,12 +2593,25 @@ function EpaperEditorPage() {
                       </a>
                     </WithTooltip>
                   )}
-                  {(NEXT_STATES[edition.workflowState] || []).map((opt) => (
-                    <button key={opt.to} onClick={() => transitionTo(opt.to, opt.label, !!opt.needNote)}
-                      style={{ padding: "6px 12px", background: opt.danger ? "#fee2e2" : "#ede9fe", color: opt.danger ? "#991b1b" : "#5b21b6", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                      {opt.label}
-                    </button>
-                  ))}
+                  {(NEXT_STATES[edition.workflowState] || []).map((opt) => {
+                    // Greyed (but still clickable) when a render is required and
+                    // missing - the click shows a toast explaining what to do.
+                    const gated = RENDER_GATED.has(opt.to) && edition.status !== "ready";
+                    return (
+                      <WithTooltip key={opt.to} text={gated ? "Render the PDF first, then submit" : opt.label}>
+                        <button onClick={() => transitionTo(opt.to, opt.label, !!opt.needNote)}
+                          style={{
+                            padding: "6px 12px",
+                            background: gated ? "#f1f5f9" : opt.danger ? "#fee2e2" : "#ede9fe",
+                            color: gated ? "#94a3b8" : opt.danger ? "#991b1b" : "#5b21b6",
+                            border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700,
+                            cursor: gated ? "not-allowed" : "pointer",
+                          }}>
+                          {opt.label}
+                        </button>
+                      </WithTooltip>
+                    );
+                  })}
                   <SaveBadge state={saveState} lastSavedAt={lastSavedAt} tick={saveTick} />
                   <WithTooltip text="Save changes (changes already auto-save)">
                     <Button variant="outline" size="icon" onClick={saveChanges} aria-label="Save changes"
@@ -2471,6 +2636,9 @@ function EpaperEditorPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setCommentsOpen(true)}>
                         <MessageSquare size={15} className="mr-2" /> Comments{comments.filter((c) => !c.resolved).length > 0 ? ` (${comments.filter((c) => !c.resolved).length})` : ""}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={autoAdjustLayout}>
+                        <LayoutGrid size={15} className="mr-2" /> Auto-adjust layout
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={resetStyles}>
                         <RotateCcw size={15} className="mr-2" /> Reset styles
@@ -2557,7 +2725,7 @@ function EpaperEditorPage() {
                 of the canvas (no full-page scroll bleed). */}
             {!leftPanelOpen && (
               <button onClick={() => setLeftPanelOpen(true)} title="Show pages" aria-label="Show pages"
-                style={{ width: 34, flexShrink: 0, alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "10px 4px", background: "#fff", border: "1px solid #eef0f3", borderRadius: 10, color: "#475569", cursor: "pointer" }}>
+                style={{ width: 34, flexShrink: 0, alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "10px 4px", background: "#dc2626", border: "none", borderRadius: 10, color: "#fff", cursor: "pointer" }}>
                 <ChevronRight size={16} />
                 <span style={{ writingMode: "vertical-rl", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>Pages</span>
               </button>
@@ -2568,7 +2736,7 @@ function EpaperEditorPage() {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                   <span className="epp-head-count">{edition.pages.length}</span>
                   <button onClick={() => setLeftPanelOpen(false)} title="Collapse pages" aria-label="Collapse pages"
-                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: "#fff", color: "#64748b", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer" }}>
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
                     <ChevronLeft size={15} />
                   </button>
                 </span>
@@ -2890,7 +3058,7 @@ function EpaperEditorPage() {
                 rule the slot has + untick to widen the search. */}
             {!rightPanelOpen && (
               <button onClick={() => setRightPanelOpen(true)} title="Show article picker" aria-label="Show article picker"
-                style={{ width: 34, flexShrink: 0, alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "10px 4px", background: "#fff", border: "1px solid #eef0f3", borderRadius: 8, color: "#475569", cursor: "pointer" }}>
+                style={{ width: 34, flexShrink: 0, alignSelf: "flex-start", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "10px 4px", background: "#dc2626", border: "none", borderRadius: 8, color: "#fff", cursor: "pointer" }}>
                 <ChevronLeft size={16} />
                 <span style={{ writingMode: "vertical-rl", fontSize: 12, fontWeight: 700, letterSpacing: 1 }}>Articles</span>
               </button>
@@ -2899,7 +3067,7 @@ function EpaperEditorPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <h3 style={{ fontSize: 13, fontWeight: 800, color: "#555", margin: 0 }}>ARTICLE PICKER</h3>
                 <button onClick={() => setRightPanelOpen(false)} title="Collapse article picker" aria-label="Collapse article picker"
-                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: "#fff", color: "#64748b", border: "1px solid #d1d5db", borderRadius: 6, cursor: "pointer" }}>
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 24, height: 24, background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
                   <ChevronRight size={15} />
                 </button>
               </div>
