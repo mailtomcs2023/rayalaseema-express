@@ -594,6 +594,10 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
   const tail = a.bodyText.slice(start).trim();
   // Cap at a generous slice - anything longer gets clipped by CSS overflow.
   const slice = tail.slice(0, 3000);
+  // Stale/empty tail (source now holds the whole story): render an empty slot,
+  // not a blank "continued from page N" husk. buildContinuations unwires these
+  // on its next run; this guard covers data it hasn't touched yet.
+  if (!slice) return `<div class="secondary block empty" style="${blockStyle(b)}"></div>`;
   const inner = `
     <div class="block-inner">
       <div class="cont-header">

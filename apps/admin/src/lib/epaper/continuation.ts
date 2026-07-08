@@ -199,17 +199,39 @@ export async function buildContinuations(editionId: string): Promise<number> {
 
   // Refresh pass: re-sync every already-wired continuation's bodyStart with the
   // current source-block capacity (the split formula was recalibrated and blocks
-  // can be resized). Keeps the source head and the page-2 tail meeting at the
-  // same point instead of repeating or dropping lines.
+  // can be resized, e.g. by the auto-adjust reflow). Keeps the source head and
+  // the page-2 tail meeting at the same point instead of repeating or dropping
+  // lines. When nothing meaningful remains (the story now fully fits its source
+  // block), UNWIRE the pair - a blank continuation husk on the page is worse
+  // than an empty slot.
   const blockById = new Map<string, Block>();
-  for (const p of pages) for (const b of p.blocks) blockById.set(b.id, b);
+  const pageByBlockId = new Map<string, PageBundle>();
+  for (const p of pages) for (const b of p.blocks) { blockById.set(b.id, b); pageByBlockId.set(b.id, p); }
+  const MIN_TAIL_CHARS = 60; // a tail shorter than ~a line isn't worth a block
   for (const p of pages) {
     for (const cb of p.blocks) {
       if (cb.type !== "continuation" || !cb.continuesFromBlockId || !cb.articleId) continue;
       const src = blockById.get(cb.continuesFromBlockId);
-      if (!src) continue;
       const text = stripHtml((bodies.find((x) => x.id === cb.articleId)?.body) || "");
-      const fresh = findSplit(text, estimateCapacity(src));
+      const fresh = src ? findSplit(text, estimateCapacity(src)) : text.length;
+      // Source gone, source no longer overflows, or the remainder is a stub ->
+      // unwire: source loses its jump, the tail reverts to an empty secondary
+      // slot the autofill/operator can use.
+      if (!src || text.length - fresh < MIN_TAIL_CHARS) {
+        if (src) {
+          delete src.continuesToPage;
+          delete src.continuesToBlockId;
+          const srcPage = pageByBlockId.get(src.id);
+          if (srcPage) dirtyPages.add(srcPage.id);
+        }
+        cb.type = "secondary";
+        cb.articleId = null;
+        delete cb.continuesFromPage;
+        delete cb.continuesFromBlockId;
+        delete cb.bodyStart;
+        dirtyPages.add(p.id);
+        continue;
+      }
       if (cb.bodyStart !== fresh) { cb.bodyStart = fresh; dirtyPages.add(p.id); }
     }
   }
