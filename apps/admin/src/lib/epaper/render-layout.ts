@@ -1397,12 +1397,18 @@ const FIT_DECK_SCRIPT = `<script>
   // catches single-column text; scrollWidth catches multi-column bodies (extra
   // clipped column). Both scale with zoom, so this is zoom-proof.
   function overflows(el) {
-    // Width epsilon is 12px (not 1): CSS multicol can report scrollWidth a few
-    // px over clientWidth from column rounding WITHOUT a real overflow column,
-    // which made the fitter back off a whole line early on 2-column leads. A
-    // genuine 3rd column shifts scrollWidth by a full column width (hundreds of
-    // px), so 12px cannot mask real overflow.
-    return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 12;
+    // Measure with RECT geometry, not scrollHeight/clientHeight: under the
+    // editor's CSS zoom those integers round per-line and falsely report
+    // overflow, making the fitter under-fill by most of a line (the PDF at
+    // zoom 1 was flush while the zoomed preview showed a gap). A Range over
+    // the content and the box rect both scale uniformly with zoom, so this is
+    // truly zoom-proof. Vertical overflow -> content bottom passes the box;
+    // multicol overflow -> a 3rd column pushes content right of the box.
+    var r = el.getBoundingClientRect();
+    var rg = document.createRange();
+    rg.selectNodeContents(el);
+    var cr = rg.getBoundingClientRect();
+    return cr.bottom > r.bottom + 2 || cr.right > r.right + 2;
   }
   // Split text into COMPLETE Telugu letters (grapheme clusters) so a cut never
   // lands inside a conjunct / vowel-matra (which breaks the glyph). Chromium has
@@ -1416,7 +1422,13 @@ const FIT_DECK_SCRIPT = `<script>
   }
   // Vertical justification ("feathering"): stretch line-height a hair so the
   // fitted whole lines span the block EXACTLY - kills the partial-line gap at
-  // the bottom that no amount of extra text can fill.
+  // the bottom that no amount of extra text can fill. Deliberately simple and
+  // computed from CSS-px metrics: the PDF/publish render (zoom 1) lands flush
+  // (measured 4px). Iterative rect-chasing was tried and REVERTED - stretching
+  // an exactly-full multicol block spills a line to the next column and makes
+  // the gap WORSE. The editor's zoomed preview may show up to ~half a line of
+  // slack from engine line-packing under CSS zoom; cosmetic only - never in
+  // the PDF or the published page images.
   function feather(el) {
     var cs = getComputedStyle(el);
     var lh = parseFloat(cs.lineHeight);
@@ -1450,9 +1462,30 @@ const FIT_DECK_SCRIPT = `<script>
         // CONTINUING story (front page -> later page): fill the block to the
         // very last line - even mid-sentence - and end with ".."; the sentence
         // finishes in the continuation block. No white gap above the jump link.
-        var spc = cut.lastIndexOf(' ');
-        if (spc > cut.length * 0.85) cut = cut.slice(0, spc); // word boundary, minimal give-back
-        el.textContent = cut.replace(/[\\s,;:।—-]+$/, '') + '..';
+        //
+        // Greedy TOP-UP after the binary search: measure the real leftover with
+        // rect geometry and keep adding ~a line's worth of text while it still
+        // fits. The search alone converged short under the editor's CSS zoom
+        // (engine line rounding), leaving a full line unused at some zooms -
+        // this self-corrects at ANY zoom because it re-measures what rendered.
+        el.textContent = units.slice(0, best).join('') + '..';
+        var guard = 0;
+        while (guard++ < 120 && best < units.length) {
+          var rB = el.getBoundingClientRect();
+          var rgB = document.createRange(); rgB.selectNodeContents(el);
+          var crB = rgB.getBoundingClientRect();
+          var rl = rgB.getClientRects();
+          var lineRect = rl.length ? rl[0].height : 0; // one line, in the SAME rect units
+          if (!lineRect || rB.bottom - crB.bottom <= lineRect * 0.6) break;
+          var trial = Math.min(units.length, best + 6);
+          el.textContent = units.slice(0, trial).join('') + '..';
+          if (overflows(el)) { el.textContent = units.slice(0, best).join('') + '..'; break; }
+          best = trial;
+        }
+        var cutC = units.slice(0, best).join('');
+        var spc = cutC.lastIndexOf(' ');
+        if (spc > cutC.length * 0.85) cutC = cutC.slice(0, spc); // word boundary, minimal give-back
+        el.textContent = cutC.replace(/[\\s,;:।—-]+$/, '') + '..';
         feather(el);                             // absorb the partial-line leftover
         return;
       }
