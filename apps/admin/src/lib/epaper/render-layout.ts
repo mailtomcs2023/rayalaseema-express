@@ -598,11 +598,15 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
   // not a blank "continued from page N" husk. buildContinuations unwires these
   // on its next run; this guard covers data it hasn't touched yet.
   if (!slice) return `<div class="secondary block empty" style="${blockStyle(b)}"></div>`;
+  // Honor the block's heading styles (font/colour/size) exactly like the other
+  // story blocks - continuation headings previously ignored Block Settings and
+  // skipped Anu-font encoding, so an operator font change silently did nothing.
+  const hlStyle = hlInlineStyle(b.style, 22);
   const inner = `
     <div class="block-inner">
       <div class="cont-header">
         <span class="cont-from">← ${from}వ పేజీ తరువాత</span>
-        <span class="cont-hl">${esc(a.title)}</span>
+        <span class="cont-hl"${hlStyle}>${headlineHtml(b.overrideTitle?.trim() || a.title, b)}</span>
       </div>
       <p class="cont-body fit-deck">${esc(slice)}</p>
     </div>`;
