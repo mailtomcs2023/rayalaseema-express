@@ -970,6 +970,16 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   // consistent styling).
   const blockHtml: string[] = [];
 
+  // Default heading font for continuation blocks: Geetha (operator standard).
+  // Injected as a per-block default BEFORE rendering so the Anu @font-face
+  // collection and byte-encoding pipeline both see it; a block's explicitly
+  // chosen font still wins.
+  for (const b of input.layout.blocks) {
+    if (b.type === "continuation" && !b.style?.hlFontFamily) {
+      b.style = { ...(b.style ?? {}), hlFontFamily: "'Geetha'" };
+    }
+  }
+
   // Page-unique banner colours: each coloured story block gets a different hue.
   const bannerColors = assignBannerColors(input.layout.blocks, input.pageNumber ?? 0);
 
