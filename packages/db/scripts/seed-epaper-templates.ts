@@ -121,27 +121,42 @@ function districtPage(slug: string, nameTe: string, sortOrder: number): Template
     fillRules: { districtSlug: slug },
     sortOrder,
     layout: {
-      blocks: [
-        { id: "band", type: "section-band", x: 0, y: 0, w: 12, h: 2 },
-        { id: "lead", type: "lead", x: 0, y: 2, w: 8, h: 11, slotFilter: { districtSlug: slug, minImages: 1 } },
-        { id: "maj-1", type: "major", x: 8, y: 2, w: 4, h: 6, slotFilter: { districtSlug: slug, minImages: 1 } },
-        { id: "maj-2", type: "major", x: 8, y: 8, w: 4, h: 5, slotFilter: { districtSlug: slug, minImages: 1 } },
-        { id: "sec-1", type: "secondary", x: 0, y: 13, w: 3, h: 6, slotFilter: { districtSlug: slug } },
-        { id: "sec-2", type: "secondary", x: 3, y: 13, w: 3, h: 6, slotFilter: { districtSlug: slug } },
-        { id: "sec-3", type: "secondary", x: 6, y: 13, w: 3, h: 6, slotFilter: { districtSlug: slug } },
-        { id: "sec-4", type: "secondary", x: 9, y: 13, w: 3, h: 6, slotFilter: { districtSlug: slug } },
-        { id: "br-1", type: "brief", x: 0, y: 19, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-2", type: "brief", x: 0, y: 21, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-3", type: "brief", x: 0, y: 23, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-4", type: "brief", x: 0, y: 25, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-5", type: "brief", x: 6, y: 19, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-6", type: "brief", x: 6, y: 21, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-7", type: "brief", x: 6, y: 23, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "br-8", type: "brief", x: 6, y: 25, w: 6, h: 2, slotFilter: { districtSlug: slug } },
-        { id: "ad", type: "ad", x: 0, y: 27, w: 12, h: 3 },
-      ],
+      // Operator-approved inner-page pattern (captured from the hand-corrected
+      // 17-Jun page 2). Heights here are INITIAL - the auto-adjust reflow sizes
+      // every block to its article's copy and re-tiles to fill 30 rows; empty
+      // slots become continuation targets or get topped up on-category.
+      blocks: innerPagePattern({ districtSlug: slug }),
     },
   };
+}
+
+/**
+ * Shared inner-page block pattern (district + section pages): lead + 2 majors
+ * up top, then a dense mixed band of secondaries. ~17 story slots; several get
+ * claimed as continuation targets by buildContinuations, the rest are filled
+ * on-category (with quality-relaxed top-up so nothing stays empty).
+ */
+function innerPagePattern(filter: { categorySlug?: string; districtSlug?: string }): Block[] {
+  const f = Object.keys(filter).length ? filter : undefined;
+  return [
+    { id: "band", type: "section-band", x: 0, y: 0, w: 12, h: 1 },
+    { id: "lead", type: "lead", x: 0, y: 1, w: 4, h: 9, slotFilter: { ...filter, minImages: 1 } },
+    { id: "maj-1", type: "major", x: 4, y: 1, w: 4, h: 5, slotFilter: { ...filter, minImages: 1 } },
+    { id: "maj-2", type: "major", x: 8, y: 1, w: 4, h: 4, slotFilter: f },
+    { id: "sec-1", type: "secondary", x: 8, y: 5, w: 4, h: 5, slotFilter: f },
+    { id: "sec-2", type: "secondary", x: 4, y: 6, w: 4, h: 4, slotFilter: f },
+    { id: "sec-3", type: "secondary", x: 0, y: 10, w: 3, h: 5, slotFilter: f },
+    { id: "sec-4", type: "secondary", x: 3, y: 10, w: 3, h: 5, slotFilter: f },
+    { id: "sec-5", type: "secondary", x: 6, y: 10, w: 6, h: 3, slotFilter: f },
+    { id: "sec-6", type: "secondary", x: 6, y: 13, w: 6, h: 3, slotFilter: f },
+    { id: "sec-7", type: "secondary", x: 0, y: 15, w: 6, h: 3, slotFilter: f },
+    { id: "sec-8", type: "secondary", x: 6, y: 16, w: 6, h: 3, slotFilter: f },
+    { id: "sec-9", type: "secondary", x: 0, y: 18, w: 6, h: 3, slotFilter: f },
+    { id: "sec-10", type: "secondary", x: 6, y: 19, w: 6, h: 3, slotFilter: f },
+    { id: "sec-11", type: "secondary", x: 0, y: 21, w: 6, h: 3, slotFilter: f },
+    { id: "sec-12", type: "secondary", x: 6, y: 22, w: 6, h: 4, slotFilter: f },
+    { id: "sec-13", type: "secondary", x: 0, y: 24, w: 6, h: 2, slotFilter: f },
+  ];
 }
 
 // =========== REUSABLE STANDARD SECTION ===========
@@ -172,25 +187,12 @@ function sectionPage(
     fillRules: Object.keys(fillRules).length ? fillRules : undefined,
     sortOrder,
     layout: {
-      blocks: [
-        { id: "band", type: "section-band", x: 0, y: 0, w: 12, h: 2 },
-        { id: "lead", type: "lead", x: 0, y: 2, w: 8, h: 11, slotFilter: filter({ minImages: 1 }) },
-        { id: "maj-1", type: "major", x: 8, y: 2, w: 4, h: 6, slotFilter: filter({ minImages: 1 }) },
-        { id: "maj-2", type: "major", x: 8, y: 8, w: 4, h: 5, slotFilter: filter() },
-        { id: "sec-1", type: "secondary", x: 0, y: 13, w: 3, h: 6, slotFilter: filter() },
-        { id: "sec-2", type: "secondary", x: 3, y: 13, w: 3, h: 6, slotFilter: filter() },
-        { id: "sec-3", type: "secondary", x: 6, y: 13, w: 3, h: 6, slotFilter: filter() },
-        { id: "sec-4", type: "secondary", x: 9, y: 13, w: 3, h: 6, slotFilter: filter() },
-        { id: "br-1", type: "brief", x: 0, y: 19, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-2", type: "brief", x: 0, y: 21, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-3", type: "brief", x: 0, y: 23, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-4", type: "brief", x: 0, y: 25, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-5", type: "brief", x: 6, y: 19, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-6", type: "brief", x: 6, y: 21, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-7", type: "brief", x: 6, y: 23, w: 6, h: 2, slotFilter: filter() },
-        { id: "br-8", type: "brief", x: 6, y: 25, w: 6, h: 2, slotFilter: filter() },
-        { id: "ad", type: "ad", x: 0, y: 27, w: 12, h: 3 },
-      ],
+      // Same operator-approved pattern as district pages (see innerPagePattern),
+      // filtered by this section's category (+ optional district).
+      blocks: innerPagePattern({
+        ...(nameSlug ? { categorySlug: nameSlug } : {}),
+        ...(opts.districtSlug ? { districtSlug: opts.districtSlug } : {}),
+      }),
     },
   };
 }

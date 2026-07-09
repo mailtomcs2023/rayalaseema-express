@@ -156,6 +156,41 @@ export async function POST(req: NextRequest) {
     // targets - the reflow then drops whatever empties remain.
     const continuationsCreated = await buildContinuations(edition.id);
 
+    // Top-up: any story slot STILL empty after continuations claimed theirs is
+    // filled with a same-category/district article, relaxing only the quality
+    // gates (minImages/minWords). Keeps every page on-topic and complete - "a
+    // full newspaper, no empty blocks" - without the historical general-pool
+    // top-up that starved later sections.
+    const pagesForTopUp = await prisma.epaperPage.findMany({
+      where: { editionId: edition.id, pageNumber: { gt: 1 } },
+      orderBy: { pageNumber: "asc" },
+      select: { id: true, templateSlug: true, layout: true },
+    });
+    let toppedUp = 0;
+    const STORY = new Set(["lead", "major", "secondary", "brief"]);
+    for (const p of pagesForTopUp) {
+      const blocks = (((p.layout as unknown as { blocks?: BlockSlot[] }) ?? {}).blocks ?? []);
+      if (!blocks.some((b) => STORY.has(b.type) && !b.articleId && !b.locked)) continue;
+      const tpl = templates.find((x) => x.slug === p.templateSlug);
+      const r = await autofillTemplate({
+        templateSlug: p.templateSlug ?? "",
+        templateLayout: { blocks },
+        templateRules: (tpl?.fillRules as Record<string, unknown> | null) ?? undefined,
+        excludeArticleIds: usedArticles,
+        window: contentWindow,
+        referenceTime,
+        topUpOnly: true,
+      });
+      if (r.filledCount > 0) {
+        for (const id of r.usedArticleIds) usedArticles.add(id);
+        await prisma.epaperPage.update({
+          where: { id: p.id },
+          data: { layout: { blocks: r.blocks } as any },
+        });
+        toppedUp += r.filledCount;
+      }
+    }
+
     // Content-aware reflow for inner pages: drop unfilled slots, size blocks
     // to their article's copy, re-tile the grid so no gaps remain. The front
     // page always fills and is operator-tuned, so it's skipped.

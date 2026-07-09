@@ -45,6 +45,11 @@ export interface AutofillInput {
   // date-anchored edition this is the window end, so "freshness" is relative to
   // the edition's own day, not the real-world clock when you click Generate.
   referenceTime?: number;
+  // Top-up mode: leave already-assigned slots untouched and fill ONLY the
+  // still-empty story slots, relaxing the slot QUALITY gates (minImages/
+  // minWords/breaking) while keeping the category/district identity. Run after
+  // continuations claim their slots so no block is left empty.
+  topUpOnly?: boolean;
 }
 
 // Front-page slots get a heavy bonus on the top breaking+featured story so the
@@ -175,20 +180,32 @@ async function loadCandidatePool(input: AutofillInput): Promise<ScoredArticle[]>
  * adds up to +15 to popular categories so the auto-fill steers toward what
  * readers actually consume.
  */
-function scoreFit(slot: BlockSlot, a: ScoredArticle, heat?: Record<string, number>, templateSlug?: string, relaxCategory = false, referenceTime = Date.now()): number {
+function scoreFit(
+  slot: BlockSlot,
+  a: ScoredArticle,
+  heat?: Record<string, number>,
+  templateSlug?: string,
+  relax: boolean | { category?: boolean; quality?: boolean } = false,
+  referenceTime = Date.now(),
+): number {
   const f = slot.slotFilter || {};
+  const relaxCategory = relax === true || (typeof relax === "object" && !!relax.category);
+  const relaxQuality = typeof relax === "object" && !!relax.quality;
 
-  // Hard disqualifiers. `relaxCategory` (fallback fill) ignores the category/
-  // district match so an under-filled section page can top up from the general
-  // pool; the image/length filters still apply so quality stays consistent.
+  // Hard disqualifiers. `category` relax ignores the category/district match
+  // (general-pool fallback); `quality` relax keeps the page's identity but
+  // waives the image/length gates - used by the top-up pass so a thin category
+  // still fills its own page instead of leaving empty blocks.
   if (!relaxCategory) {
     if (f.categorySlug && f.categorySlug !== a.categorySlug) return -1;
     if (f.districtSlug && f.districtSlug !== a.districtSlug) return -1;
   }
-  if (f.minImages && f.minImages > 0 && !a.hasImage) return -1;
-  if (f.minWords && a.wordCount < f.minWords) return -1;
-  if (f.maxWords && a.wordCount > f.maxWords) return -1;
-  if (f.breaking && !a.breaking) return -1;
+  if (!relaxQuality) {
+    if (f.minImages && f.minImages > 0 && !a.hasImage) return -1;
+    if (f.minWords && a.wordCount < f.minWords) return -1;
+    if (f.maxWords && a.wordCount > f.maxWords) return -1;
+    if (f.breaking && !a.breaking) return -1;
+  }
 
   let s = 0;
 
@@ -269,11 +286,14 @@ export async function autofillTemplate(input: AutofillInput): Promise<AutofillRe
   let filled = 0;
 
   for (const slot of storySlots) {
+    // Top-up mode: existing assignments are untouchable; only empty slots fill.
+    if (input.topUpOnly && slot.articleId) continue;
+    const relax = input.topUpOnly ? { quality: true } : false;
     let bestArticle: ScoredArticle | null = null;
     let bestScore = -1;
     for (const a of pool) {
       if (used.has(a.id)) continue;
-      const score = scoreFit(slot, a, heat, input.templateSlug, false, refTime);
+      const score = scoreFit(slot, a, heat, input.templateSlug, relax, refTime);
       if (score > bestScore) {
         bestScore = score;
         bestArticle = a;
