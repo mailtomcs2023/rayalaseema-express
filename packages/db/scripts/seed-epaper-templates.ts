@@ -233,34 +233,26 @@ const utilityPage: TemplateSpec = {
   defaultLabel: "ఉపయోగకరం",
   sortOrder: 90,
   layout: {
+    // Operator-approved utility layout (captured from the hand-corrected page):
+    // briefs-heavy with a tall rasi-phalalu column and a no-image weather block.
     blocks: [
-      { id: "band", type: "section-band", x: 0, y: 0, w: 12, h: 2 },
-      // Mandi top-left
-      { id: "mandi-band", type: "text", x: 0, y: 2, w: 6, h: 1, text: "<b>మండీ ధరలు</b>" },
-      { id: "mandi-1", type: "brief", x: 0, y: 3, w: 6, h: 2 },
-      { id: "mandi-2", type: "brief", x: 0, y: 5, w: 6, h: 2 },
-      { id: "mandi-3", type: "brief", x: 0, y: 7, w: 6, h: 2 },
-      // Panchangam top-right
-      { id: "panch-band", type: "text", x: 6, y: 2, w: 6, h: 1, text: "<b>పంచాంగం · రాశి ఫలాలు</b>" },
-      { id: "panch-1", type: "brief", x: 6, y: 3, w: 6, h: 2, slotFilter: { categorySlug: "rasi-phalalu" } },
-      { id: "panch-2", type: "brief", x: 6, y: 5, w: 6, h: 2, slotFilter: { categorySlug: "rasi-phalalu" } },
-      { id: "panch-3", type: "brief", x: 6, y: 7, w: 6, h: 2, slotFilter: { categorySlug: "rasi-phalalu" } },
-      // Weather mid-page
-      { id: "weather-band", type: "text", x: 0, y: 9, w: 12, h: 1, text: "<b>వాతావరణం</b>" },
-      { id: "weather-1", type: "secondary", x: 0, y: 10, w: 3, h: 5, slotFilter: { categorySlug: "weather" } },
-      { id: "weather-2", type: "secondary", x: 3, y: 10, w: 3, h: 5, slotFilter: { categorySlug: "weather" } },
-      { id: "weather-3", type: "secondary", x: 6, y: 10, w: 3, h: 5, slotFilter: { categorySlug: "weather" } },
-      { id: "weather-4", type: "secondary", x: 9, y: 10, w: 3, h: 5, slotFilter: { categorySlug: "weather" } },
-      // Briefs filler
-      { id: "br-1", type: "brief", x: 0, y: 15, w: 6, h: 2 },
-      { id: "br-2", type: "brief", x: 0, y: 17, w: 6, h: 2 },
-      { id: "br-3", type: "brief", x: 0, y: 19, w: 6, h: 2 },
-      { id: "br-4", type: "brief", x: 0, y: 21, w: 6, h: 2 },
-      { id: "br-5", type: "brief", x: 6, y: 15, w: 6, h: 2 },
-      { id: "br-6", type: "brief", x: 6, y: 17, w: 6, h: 2 },
-      { id: "br-7", type: "brief", x: 6, y: 19, w: 6, h: 2 },
-      { id: "br-8", type: "brief", x: 6, y: 21, w: 6, h: 2 },
-      { id: "ad", type: "ad", x: 0, y: 23, w: 12, h: 4 },
+      { id: "band", type: "section-band", x: 0, y: 0, w: 12, h: 1 },
+      { id: "br-1", type: "brief", x: 0, y: 1, w: 6, h: 4 },
+      { id: "panch-1", type: "brief", x: 6, y: 1, w: 6, h: 7, slotFilter: { categorySlug: "rasi-phalalu" } },
+      { id: "br-2", type: "brief", x: 0, y: 5, w: 6, h: 3 },
+      { id: "br-3", type: "brief", x: 0, y: 8, w: 4, h: 3 },
+      { id: "br-4", type: "brief", x: 4, y: 8, w: 4, h: 3 },
+      { id: "sec-1", type: "secondary", x: 8, y: 8, w: 4, h: 3, style: { imagePosition: "none" } },
+      { id: "weather-1", type: "secondary", x: 0, y: 11, w: 6, h: 4, slotFilter: { categorySlug: "weather" }, style: { imagePosition: "none" } },
+      { id: "br-5", type: "brief", x: 6, y: 11, w: 6, h: 3 },
+      { id: "br-6", type: "brief", x: 6, y: 14, w: 6, h: 3 },
+      { id: "br-7", type: "brief", x: 0, y: 15, w: 6, h: 3 },
+      { id: "br-8", type: "brief", x: 6, y: 17, w: 6, h: 3 },
+      { id: "br-9", type: "brief", x: 0, y: 18, w: 6, h: 3 },
+      { id: "br-10", type: "brief", x: 6, y: 20, w: 6, h: 3 },
+      { id: "br-11", type: "brief", x: 0, y: 21, w: 6, h: 3 },
+      { id: "br-12", type: "brief", x: 6, y: 23, w: 6, h: 3 },
+      { id: "br-13", type: "brief", x: 0, y: 24, w: 6, h: 2 },
     ],
   },
 };
