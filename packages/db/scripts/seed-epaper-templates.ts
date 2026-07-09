@@ -144,17 +144,19 @@ function innerPagePattern(filter: { categorySlug?: string; districtSlug?: string
     { id: "maj-1", type: "major", x: 4, y: 1, w: 4, h: 5, slotFilter: { ...filter, minImages: 1 } },
     { id: "maj-2", type: "major", x: 8, y: 1, w: 4, h: 4, slotFilter: f },
     { id: "sec-1", type: "secondary", x: 8, y: 5, w: 4, h: 5, slotFilter: f },
-    { id: "sec-2", type: "secondary", x: 4, y: 6, w: 4, h: 4, slotFilter: f },
+    // Operator-tuned: the wide strip secondaries run heading+content only (no
+    // image) so the page reads text-dense like a broadsheet inner page.
+    { id: "sec-2", type: "secondary", x: 4, y: 6, w: 4, h: 4, slotFilter: f, style: { imagePosition: "none" } },
     { id: "sec-3", type: "secondary", x: 0, y: 10, w: 3, h: 5, slotFilter: f },
     { id: "sec-4", type: "secondary", x: 3, y: 10, w: 3, h: 5, slotFilter: f },
     { id: "sec-5", type: "secondary", x: 6, y: 10, w: 6, h: 3, slotFilter: f },
     { id: "sec-6", type: "secondary", x: 6, y: 13, w: 6, h: 3, slotFilter: f },
-    { id: "sec-7", type: "secondary", x: 0, y: 15, w: 6, h: 3, slotFilter: f },
+    { id: "sec-7", type: "secondary", x: 0, y: 15, w: 6, h: 3, slotFilter: f, style: { imagePosition: "none" } },
     { id: "sec-8", type: "secondary", x: 6, y: 16, w: 6, h: 3, slotFilter: f },
     { id: "sec-9", type: "secondary", x: 0, y: 18, w: 6, h: 3, slotFilter: f },
-    { id: "sec-10", type: "secondary", x: 6, y: 19, w: 6, h: 3, slotFilter: f },
-    { id: "sec-11", type: "secondary", x: 0, y: 21, w: 6, h: 3, slotFilter: f },
-    { id: "sec-12", type: "secondary", x: 6, y: 22, w: 6, h: 4, slotFilter: f },
+    { id: "sec-10", type: "secondary", x: 6, y: 19, w: 6, h: 3, slotFilter: f, style: { imagePosition: "none" } },
+    { id: "sec-11", type: "secondary", x: 0, y: 21, w: 6, h: 3, slotFilter: f, style: { imagePosition: "none" } },
+    { id: "sec-12", type: "secondary", x: 6, y: 22, w: 6, h: 4, slotFilter: f, style: { imagePosition: "none" } },
     { id: "sec-13", type: "secondary", x: 0, y: 24, w: 6, h: 2, slotFilter: f },
   ];
 }
