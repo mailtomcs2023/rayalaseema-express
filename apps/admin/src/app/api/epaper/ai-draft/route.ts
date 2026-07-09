@@ -62,7 +62,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       editionId: result.editionId,
-      totalReordered: result.totalReordered,
+      version: result.version,
+      totalFilled: result.totalFilled,
+      totalBodiesRewritten: result.totalBodiesRewritten,
       totalHeadlinesFitted: result.totalHeadlinesFitted,
       pages: result.pages,
     });

@@ -724,7 +724,7 @@ function EpaperEditorPage() {
         return;
       }
       await loadEdition(date);
-      toast("success", `AI draft done - ${data.totalReordered ?? 0} stories reprioritised, ${data.totalHeadlinesFitted ?? 0} headlines fitted.`);
+      toast("success", `AI Draft v${data.version ?? "?"} saved - ${data.totalFilled ?? 0} empty slots filled, ${data.totalBodiesRewritten ?? 0} stories fitted, ${data.totalHeadlinesFitted ?? 0} headlines fitted. Compare versions in History.`);
     } catch (e: any) {
       toast("error", e.message || "AI draft failed");
       setError(e.message);
@@ -1492,26 +1492,41 @@ function EpaperEditorPage() {
     }
   };
 
-  // Drag-from-picker → drop-on-block. State tracks which block is currently
-  // being hovered while dragging so the block highlights.
-  const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
+  // Drag-from-picker → drop-on-block. The hover highlight is toggled
+  // imperatively (classList on the tile) instead of React state: dragover /
+  // dragleave fire dozens of times a second during a native drag (dragleave
+  // even when just crossing onto a tile's own children), and a state update
+  // here re-rendered the whole editor on every one - the drag visibly lagged.
+  const dragOverElRef = useRef<HTMLElement | null>(null);
+  const clearDragHighlight = () => {
+    dragOverElRef.current?.classList.remove("epb-dragover");
+    dragOverElRef.current = null;
+  };
   const onArticleDragStart = (e: React.DragEvent, articleId: string) => {
     e.dataTransfer.setData("application/x-re-article", articleId);
     e.dataTransfer.effectAllowed = "copy";
   };
-  const onBlockDragOver = (e: React.DragEvent, blockId: string) => {
-    if (e.dataTransfer.types.includes("application/x-re-article")) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = "copy";
-      if (dragOverBlockId !== blockId) setDragOverBlockId(blockId);
+  const onBlockDragOver = (e: React.DragEvent, _blockId: string) => {
+    if (!e.dataTransfer.types.includes("application/x-re-article")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    const el = e.currentTarget as HTMLElement;
+    if (dragOverElRef.current !== el) {
+      clearDragHighlight();
+      el.classList.add("epb-dragover");
+      dragOverElRef.current = el;
     }
   };
-  const onBlockDragLeave = (blockId: string) => {
-    if (dragOverBlockId === blockId) setDragOverBlockId(null);
+  const onBlockDragLeave = (e: React.DragEvent, _blockId: string) => {
+    // Only unlight when the pointer genuinely left the tile - dragleave also
+    // fires when moving onto a child (badge, toolbar, content preview).
+    const el = e.currentTarget as HTMLElement;
+    if (e.relatedTarget instanceof Node && el.contains(e.relatedTarget)) return;
+    if (dragOverElRef.current === el) clearDragHighlight();
   };
   const onBlockDrop = async (e: React.DragEvent, blockId: string) => {
+    clearDragHighlight();
     const articleId = e.dataTransfer.getData("application/x-re-article");
-    setDragOverBlockId(null);
     if (!articleId) return;
     e.preventDefault();
     await setBlockArticle(articleId, blockId);
@@ -1954,7 +1969,7 @@ function EpaperEditorPage() {
     },
   };
   const sDragOver = useCallback((e: React.DragEvent, id: string) => gridHandlersRef.current.onBlockDragOver(e, id), []);
-  const sDragLeave = useCallback((id: string) => gridHandlersRef.current.onBlockDragLeave(id), []);
+  const sDragLeave = useCallback((e: React.DragEvent, id: string) => gridHandlersRef.current.onBlockDragLeave(e, id), []);
   const sDrop = useCallback((e: React.DragEvent, id: string) => gridHandlersRef.current.onBlockDrop(e, id), []);
   const sRemove = useCallback((id: string) => gridHandlersRef.current.removeBlock(id), []);
   const sClearOff = useCallback(() => gridHandlersRef.current.clearOffPageBlocks(), []);
@@ -3009,7 +3024,6 @@ function EpaperEditorPage() {
                           warningsByBlock={warningsByBlock}
                           selectedBlockId={selectedBlockId}
                           multiSelected={selectedBlockIds}
-                          dragOverBlockId={dragOverBlockId}
                           onDragOverBlock={sDragOver}
                           onDragLeaveBlock={sDragLeave}
                           onDropBlock={sDrop}
@@ -3338,7 +3352,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
  */
 const DraggableBlockGrid = memo(function DraggableBlockGrid({
   layout, titles, warningsByBlock, selectedBlockId, multiSelected,
-  dragOverBlockId, onDragOverBlock, onDragLeaveBlock, onDropBlock,
+  onDragOverBlock, onDragLeaveBlock, onDropBlock,
   onSelect, onToggleLock, onLayoutChange, onRemoveBlock, onClearOffPage,
   pageId, pageVersion,
   onInlineEdit,
@@ -3356,9 +3370,8 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
   warningsByBlock?: Record<string, Array<{ kind: string; detail: string }>>;
   selectedBlockId: string | null;
   multiSelected?: Set<string>;
-  dragOverBlockId?: string | null;
   onDragOverBlock?: (e: React.DragEvent, blockId: string) => void;
-  onDragLeaveBlock?: (blockId: string) => void;
+  onDragLeaveBlock?: (e: React.DragEvent, blockId: string) => void;
   onDropBlock?: (e: React.DragEvent, blockId: string) => void;
   onSelect: (id: string, e?: React.MouseEvent) => void;
   onToggleLock: (id: string) => void;
@@ -3607,7 +3620,6 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
           const tileCls = [
             "epb-tile",
             (isSelected || isMulti) && "epb-selected",
-            dragOverBlockId === b.id && "epb-dragover",
             hasOverflow && "epb-overflow",
             isStory && !b.articleId && "epb-empty",
             b.locked && "epb-locked",
@@ -3618,7 +3630,7 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
               onClick={(e) => { if (editingTextId && editingTextId !== b.id) setEditingTextId(null); if (isStory) onSelect(b.id, e); }}
               onDoubleClick={(e) => { if (isStory && title && onInlineEdit) { e.stopPropagation(); onSelect(b.id); setEditingTextId(b.id); } }}
               onDragOver={(e) => isStory && onDragOverBlock?.(e, b.id)}
-              onDragLeave={() => isStory && onDragLeaveBlock?.(b.id)}
+              onDragLeave={(e) => isStory && onDragLeaveBlock?.(e, b.id)}
               onDrop={(e) => isStory && onDropBlock?.(e, b.id)}
               style={{
                 // tile bg transparent so the rendered iframe behind shows

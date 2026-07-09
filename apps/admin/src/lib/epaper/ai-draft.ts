@@ -1,58 +1,57 @@
-// AI draft pass for an e-paper edition (Phase 1 + 2 of the auto-layout roadmap).
+// AI draft pass for an e-paper edition - "make the paper publish-ready".
 //
-// Runs AFTER generate-edition has autofilled article ids into the template
-// slots, and BEFORE the human reviews + renders. It does the two editorial jobs
-// a sub-editor would do by hand in InDesign, using the LLM we already have
-// (Azure OpenAI via lib/ai/client):
+// Runs AFTER generate-edition, BEFORE the human reviews + renders. Spec agreed
+// with the operator (2026-07):
 //
-//   1. EDITORIAL REORDER - re-rank the articles already assigned to one page by
-//      newsworthiness and move the strongest into the highest-prominence slots
-//      (lead > major > secondary > brief). Autofill picks WHICH stories; this
-//      decides WHICH gets the lead. Slot hard-filters (category/district/image/
-//      length) are respected so a reorder never puts an article in a slot it
-//      doesn't qualify for.
+//   1. FILL - every empty story slot gets an on-topic article (same category/
+//      district, quality gates relaxed, up to 90 days old, never duplicating an
+//      article already used anywhere in the paper).
+//   2. FIT BODIES - every story whose text overflows its block is REWRITTEN
+//      (condensed) by the LLM to fit that block's character capacity. A
+//      front-page story with a continuation tail is rewritten as a PAIR: the
+//      total fits head capacity + tail capacity, split at the wired point so
+//      both blocks fill exactly. Stories that already fit are untouched.
+//   3. FIT HEADLINES - headlines longer than their block's character budget
+//      are rewritten to fit.
+//   4. NO REORDERING - articles stay in the blocks the operator/autofill put
+//      them in. Geometry, styles, crops and locks are never touched.
 //
-//   2. HEADLINE FIT - rewrite each Telugu headline to fit its slot's character
-//      budget (derived from the slot width + headline font size), written to
-//      block.overrideTitle which the render already prefers over article.title.
-//      This kills the #1 cause of ugly pages: headlines that overflow their box.
+// Rewrites are CONDENSE-ONLY (never invent facts) and stored per block as
+// `overrideBody` / `overrideTitle` - the CMS article is never modified, and
+// clearing the override restores the original. Each run snapshots the edition
+// as "AI Draft vN" so the operator can flip between versions in History.
 //
-// It only ever mutates two fields on a block - `articleId` and `overrideTitle`.
-// Everything else (geometry, style, crops, locks) is preserved untouched, so the
-// downstream render/Anu/PDF pipeline is unaffected. Locked blocks are never
-// touched. LLM failures (incl. Azure content-filter on crime news) are caught
-// per page so one bad page never fails the whole draft.
+// Cost control: one LLM call per page (all of that page's rewrites batched),
+// naturally idempotent (a block whose override already fits is skipped), and
+// the deployment is configurable so condensation can run on a cheap model.
 
 import { prisma } from "@rayalaseema/db";
 import { chatJsonWithRetry } from "@/lib/ai/client";
-import { DEFAULT_GEOMETRY, type PageGeometry } from "./geometry";
+import { autofillTemplate, type BlockSlot } from "./autofill";
+import { buildContinuations, estimateCapacity, findSplit, type Block as CapacityBlock } from "./continuation";
+import { createSnapshot } from "./snapshots";
 
-const DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt51";
-
-// CSS px per mm at 96dpi - the render container is sized in mm, so a slot's
-// width in mm maps to CSS px this way for the char-budget estimate.
-const PX_PER_MM = 96 / 25.4;
+// Condensation is easy work - allow a cheap deployment, fall back to the main one.
+const DEPLOYMENT =
+  process.env.AZURE_OPENAI_DEPLOYMENT_DRAFT ||
+  process.env.AZURE_OPENAI_DEPLOYMENT ||
+  "gpt51";
 
 const STORY_TYPES = new Set(["lead", "major", "secondary", "brief"]);
 
-// Slot prominence - higher fills first and gets the strongest story.
-const SLOT_PRIORITY: Record<string, number> = { lead: 100, major: 70, secondary: 40, brief: 10 };
+// Grid-v1 pixel metrics (track render-layout.ts / continuation.ts).
+const EP_COL_GAP = 14;
+const EP_ROW_GAP = 12;
+const EP_COL_W = (1782 - 11 * EP_COL_GAP) / 12;
+const EP_ROW_H = 92;
 
-// Default headline font size per slot type (px), mirroring render-layout's
-// hlInlineStyle base sizes (lead 42, major 22, secondary 17). Brief is small.
-const BASE_HL_PX: Record<string, number> = { lead: 42, major: 22, secondary: 17, brief: 14 };
+// Default rendered headline px per type (mirrors render-layout CSS).
+const HL_PX: Record<string, number> = { lead: 50, major: 45, secondary: 45, brief: 33 };
+// Headline lines each type comfortably carries.
+const HL_LINES: Record<string, number> = { lead: 2, major: 2, secondary: 2, brief: 1 };
+// Telugu glyph advance ~0.72em.
+const GLYPH = 0.72;
 
-// How many headline lines each slot type can carry before it crowds the box.
-const HL_LINES: Record<string, number> = { lead: 3, major: 2, secondary: 2, brief: 2 };
-
-// Telugu display glyphs are wide; ~0.72 of the font size is a safe average
-// advance for budgeting (errs tight so headlines under-fill rather than spill).
-const GLYPH_ADVANCE_FACTOR = 0.72;
-
-// ---- shapes -------------------------------------------------------------
-
-// We treat stored blocks structurally: only articleId + overrideTitle are
-// mutated, all other keys pass through verbatim.
 export interface DraftBlock {
   id: string;
   type: string;
@@ -63,337 +62,315 @@ export interface DraftBlock {
   articleId?: string | null;
   locked?: boolean;
   overrideTitle?: string;
-  slotFilter?: {
-    categorySlug?: string;
-    districtSlug?: string;
-    minImages?: number;
-    minWords?: number;
-    maxWords?: number;
-    breaking?: boolean;
-  };
-  style?: { hlFontSize?: number; hlScale?: number } & Record<string, unknown>;
+  overrideBody?: string;
+  bodyStart?: number;
+  continuesToPage?: number;
+  continuesToBlockId?: string;
+  continuesFromPage?: number;
+  continuesFromBlockId?: string;
+  style?: { hlFontSize?: number; hlScale?: number; imagePosition?: string } & Record<string, unknown>;
   [k: string]: unknown;
-}
-
-interface ArticleMeta {
-  id: string;
-  title: string;
-  summary: string;
-  hasImage: boolean;
-  wordCount: number;
-  categorySlug: string;
-  districtSlug: string | null;
 }
 
 export interface PageDraftResult {
   pageId: string;
   pageNumber: number;
   templateSlug: string | null;
-  storySlots: number;
-  reordered: number;       // slots whose article changed
-  headlinesFitted: number; // headlines rewritten to fit
-  note?: string;           // set when the AI step was skipped (e.g. content filter)
+  filled: number;            // empty slots that got an article
+  bodiesRewritten: number;   // stories condensed to fit
+  headlinesFitted: number;   // headlines rewritten to fit
+  note?: string;             // set when the LLM step was skipped for this page
 }
 
 export interface EditionDraftResult {
   editionId: string;
+  version: number;           // "AI Draft vN" snapshot number of this run
   pages: PageDraftResult[];
-  totalReordered: number;
+  totalFilled: number;
+  totalBodiesRewritten: number;
   totalHeadlinesFitted: number;
 }
 
-// ---- character budget ---------------------------------------------------
+// ---- text + capacity helpers ---------------------------------------------
 
-/**
- * Approximate the maximum headline length (in characters) that will fit a
- * story slot, from its width in mm and the headline font size. Used as the
- * target the LLM rewrites the Telugu headline down to.
- */
-export function headlineCharBudget(b: DraftBlock, g: PageGeometry = DEFAULT_GEOMETRY): number {
-  void g; // geometry reserved for future per-edition overrides
-  const base = BASE_HL_PX[b.type] ?? 18;
+function stripHtml(s: string): string {
+  return s
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Plain-text character capacity of a block's body area. */
+function capacityChars(b: DraftBlock): number {
+  if (b.type === "brief") {
+    // Brief: orange tag + headline (~100px) then 15.5px body.
+    const wPx = b.w * EP_COL_W + (b.w - 1) * EP_COL_GAP;
+    const hPx = b.h * EP_ROW_H + (b.h - 1) * EP_ROW_GAP;
+    const lines = Math.floor(Math.max(0, hPx - 100) / (15.5 * 1.4));
+    const cpl = Math.max(1, Math.floor(wPx / (15.5 * 0.63)));
+    return Math.max(0, Math.floor(lines * cpl * 0.9));
+  }
+  if (b.type === "continuation") {
+    // Tails have no photo; ~60px "from page N" header instead of a headline.
+    return estimateCapacity({
+      ...b,
+      type: "secondary",
+      style: { ...(b.style ?? {}), imagePosition: "none" },
+    } as unknown as CapacityBlock);
+  }
+  return estimateCapacity(b as unknown as CapacityBlock);
+}
+
+/** Max headline characters that fit this block (grid-v1 column widths). */
+export function headlineCharBudget(b: DraftBlock): number {
+  const base = HL_PX[b.type] ?? 40;
   const fontPx =
     b.style?.hlFontSize && b.style.hlFontSize > 0
       ? b.style.hlFontSize
       : base * (b.style?.hlScale || 1);
-  const lines = HL_LINES[b.type] ?? 2;
-  const widthPx = b.w * PX_PER_MM;
-  const charsPerLine = Math.floor(widthPx / (fontPx * GLYPH_ADVANCE_FACTOR));
-  return Math.max(12, charsPerLine * lines);
+  const wPx = b.w * EP_COL_W + (b.w - 1) * EP_COL_GAP;
+  const charsPerLine = Math.max(4, Math.floor(wPx / (fontPx * GLYPH)));
+  return Math.max(12, charsPerLine * (HL_LINES[b.type] ?? 2));
 }
 
-// ---- slot/article compatibility (mirrors autofill hard filters) ---------
+// ---- LLM rewrite ----------------------------------------------------------
 
-function slotAccepts(slot: DraftBlock, a: ArticleMeta): boolean {
-  const f = slot.slotFilter || {};
-  if (f.categorySlug && f.categorySlug !== a.categorySlug) return false;
-  if (f.districtSlug && f.districtSlug !== a.districtSlug) return false;
-  if (f.minImages && f.minImages > 0 && !a.hasImage) return false;
-  if (f.minWords && a.wordCount < f.minWords) return false;
-  if (f.maxWords && a.wordCount > f.maxWords) return false;
-  return true;
+const REWRITE_SYSTEM =
+  "You are a sub-editor at a Telugu daily newspaper. You CONDENSE news copy to fit print blocks. " +
+  "Rules, strictly: (1) SHORTEN ONLY - never invent facts, names, numbers, quotes or context that is " +
+  "not in the original; keep the most newsworthy information first (inverted pyramid). " +
+  "(2) Natural printed-newspaper Telugu; keep essential English terms as they are. " +
+  "(3) When 'body' is requested: the rewritten body must be AT MOST maxChars characters and should " +
+  "use 90-100% of maxChars; flowing prose only - no headings, lists or commentary. " +
+  "(4) When 'headline' is requested: at most maxHeadlineChars characters, faithful and punchy. " +
+  'Reply ONLY as JSON: {"items":[{"id":"...","body":"...","headline":"..."}]} with one entry per ' +
+  "input id; omit body/headline keys that were not requested for that id. No markdown.";
+
+interface RewriteJob {
+  id: string; // block id of the (source) block
+  body?: { text: string; maxChars: number };
+  headline?: { text: string; maxChars: number };
 }
 
-// ---- article metadata ---------------------------------------------------
-
-async function loadArticleMeta(ids: string[]): Promise<Map<string, ArticleMeta>> {
-  const map = new Map<string, ArticleMeta>();
-  if (ids.length === 0) return map;
-  const rows = await prisma.content.findMany({
-    where: { id: { in: ids }, type: "ARTICLE" },
-    select: {
-      id: true,
-      title: true,
-      summary: true,
-      body: true,
-      featuredImage: true,
-      category: { select: { slug: true } },
-      constituency: { select: { district: { select: { slug: true } } } },
-    },
-  });
-  for (const r of rows) {
-    map.set(r.id, {
-      id: r.id,
-      title: r.title,
-      summary: r.summary || "",
-      hasImage: !!r.featuredImage,
-      wordCount: (r.body || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length,
-      categorySlug: r.category?.slug ?? "",
-      districtSlug: r.constituency?.district.slug ?? null,
-    });
-  }
-  return map;
-}
-
-// ---- LLM steps ----------------------------------------------------------
-
-const RANK_SYSTEM =
-  "You are the chief editor of a Rayalaseema regional Telugu daily newspaper. " +
-  "You are given the articles already selected for ONE newspaper page. Rank them " +
-  "from most to least newsworthy for prominence on that page - the most important " +
-  "story should be first (it gets the lead position). Judge by public interest, " +
-  "regional relevance, urgency, exclusivity and human impact. " +
-  'Reply ONLY as JSON: {"ranked":["id1","id2",...]} listing EVERY supplied id exactly once, no markdown.';
-
-async function rankArticles(
-  items: Array<{ id: string; title: string; summary: string; category: string }>,
-): Promise<string[]> {
-  const out = await chatJsonWithRetry<{ ranked?: string[] }>(
+async function rewritePageBatch(jobs: RewriteJob[]): Promise<Map<string, { body?: string; headline?: string }>> {
+  const payload = jobs.map((j) => ({
+    id: j.id,
+    ...(j.body ? { maxChars: j.body.maxChars, body: j.body.text.slice(0, 7000) } : {}),
+    ...(j.headline ? { maxHeadlineChars: j.headline.maxChars, headline: j.headline.text.slice(0, 300) } : {}),
+  }));
+  const out = await chatJsonWithRetry<{ items?: Array<{ id?: string; body?: string; headline?: string }> }>(
     {
       deployment: DEPLOYMENT,
       messages: [
-        { role: "system", content: RANK_SYSTEM },
-        { role: "user", content: JSON.stringify(items) },
+        { role: "system", content: REWRITE_SYSTEM },
+        { role: "user", content: JSON.stringify(payload) },
       ],
       temperature: 0.2,
     },
-    [600, 1200],
+    [1000, 2000],
   );
-  return Array.isArray(out?.ranked) ? out.ranked.filter((x) => typeof x === "string") : [];
-}
-
-const FIT_SYSTEM =
-  "You rewrite Telugu newspaper headlines so each fits within its character budget " +
-  "while preserving the news meaning and tone. Keep it natural Telugu; do not add " +
-  "English unless it was in the original; no quotes, no numbering, no explanation. " +
-  "Each headline must be at most its given maxChars characters. " +
-  'Reply ONLY as JSON: {"fits":[{"slotId":"...","headline":"..."}]} with one entry per input, no markdown.';
-
-async function fitHeadlines(
-  items: Array<{ slotId: string; maxChars: number; headline: string }>,
-): Promise<Map<string, string>> {
-  const out = await chatJsonWithRetry<{ fits?: Array<{ slotId?: string; headline?: string }> }>(
-    {
-      deployment: DEPLOYMENT,
-      messages: [
-        { role: "system", content: FIT_SYSTEM },
-        { role: "user", content: JSON.stringify(items) },
-      ],
-      temperature: 0.3,
-    },
-    [800, 1600],
-  );
-  const map = new Map<string, string>();
-  for (const f of out?.fits || []) {
-    if (f?.slotId && typeof f.headline === "string" && f.headline.trim()) {
-      map.set(f.slotId, f.headline.trim());
-    }
+  const map = new Map<string, { body?: string; headline?: string }>();
+  for (const it of out?.items || []) {
+    if (it?.id) map.set(it.id, { body: it.body, headline: it.headline });
   }
   return map;
 }
 
-// ---- per-page draft -----------------------------------------------------
+// ---- public entry ----------------------------------------------------------
 
-async function draftPage(page: {
-  id: string;
-  pageNumber: number;
-  templateSlug: string | null;
-  layout: unknown;
-}): Promise<PageDraftResult> {
-  const layout = (page.layout as { blocks?: DraftBlock[] }) || {};
-  const blocks: DraftBlock[] = Array.isArray(layout.blocks) ? layout.blocks : [];
-
-  // Non-locked story slots that actually carry an article.
-  const storySlots = blocks.filter(
-    (b) => STORY_TYPES.has(b.type) && !b.locked && b.articleId,
-  );
-
-  const base: PageDraftResult = {
-    pageId: page.id,
-    pageNumber: page.pageNumber,
-    templateSlug: page.templateSlug,
-    storySlots: storySlots.length,
-    reordered: 0,
-    headlinesFitted: 0,
-  };
-
-  if (storySlots.length === 0) return base;
-
-  const meta = await loadArticleMeta(storySlots.map((b) => b.articleId as string));
-
-  // ---- Phase 1: editorial reorder (needs >=2 slots to matter) ----
-  let reordered = 0;
-  if (storySlots.length >= 2) {
-    try {
-      const items = storySlots
-        .map((b) => meta.get(b.articleId as string))
-        .filter((m): m is ArticleMeta => !!m)
-        .map((m) => ({
-          id: m.id,
-          title: m.title.slice(0, 180),
-          summary: m.summary.slice(0, 200),
-          category: m.categorySlug,
-        }));
-
-      const ranked = await rankArticles(items);
-      if (ranked.length) {
-        // Slots in descending prominence; assign ranked articles greedily,
-        // skipping any article a slot's hard-filter rejects.
-        const targets = [...storySlots].sort(
-          (a, b) => (SLOT_PRIORITY[b.type] ?? 0) - (SLOT_PRIORITY[a.type] ?? 0),
-        );
-        // Order the available articles by the LLM rank, with any un-ranked
-        // assigned ids appended so nothing is lost.
-        const order = [
-          ...ranked.filter((id) => meta.has(id)),
-          ...storySlots.map((b) => b.articleId as string).filter((id) => !ranked.includes(id)),
-        ];
-        const remaining = order.slice();
-        const newAssign = new Map<string, string>(); // slotId -> articleId
-
-        for (const slot of targets) {
-          let pick = -1;
-          for (let k = 0; k < remaining.length; k++) {
-            const m = meta.get(remaining[k]);
-            if (m && slotAccepts(slot, m)) {
-              pick = k;
-              break;
-            }
-          }
-          // Fall back to whatever was originally here (keeps a valid page) if
-          // nothing in the pool qualifies for this slot.
-          const chosen =
-            pick >= 0 ? remaining.splice(pick, 1)[0] : (slot.articleId as string);
-          newAssign.set(slot.id, chosen);
-        }
-
-        for (const slot of storySlots) {
-          const next = newAssign.get(slot.id);
-          if (next && next !== slot.articleId) {
-            slot.articleId = next;
-            // The previous headline override belonged to the previous article -
-            // drop it so Phase 2 (or the article's own title) takes over.
-            delete slot.overrideTitle;
-            reordered++;
-          }
-        }
-      }
-    } catch (e) {
-      return { ...base, reordered, note: `reorder skipped: ${(e as Error).message}` };
-    }
-  }
-
-  // ---- Phase 2: headline fit ----
-  let headlinesFitted = 0;
-  try {
-    const needFit: Array<{ slotId: string; maxChars: number; headline: string }> = [];
-    for (const slot of storySlots) {
-      const m = meta.get(slot.articleId as string);
-      if (!m) continue;
-      const current = (slot.overrideTitle?.trim() || m.title).trim();
-      const budget = headlineCharBudget(slot);
-      if (current.length > budget) {
-        needFit.push({ slotId: slot.id, maxChars: budget, headline: current });
-      }
-    }
-    if (needFit.length) {
-      const fits = await fitHeadlines(needFit);
-      for (const slot of storySlots) {
-        const fitted = fits.get(slot.id);
-        if (!fitted) continue;
-        const budget = headlineCharBudget(slot);
-        // Accept only if it actually got shorter and is within ~10% of budget.
-        const original = (slot.overrideTitle?.trim() || meta.get(slot.articleId as string)?.title || "").trim();
-        if (fitted.length <= budget * 1.1 && fitted.length < original.length) {
-          slot.overrideTitle = fitted;
-          headlinesFitted++;
-        }
-      }
-    }
-  } catch (e) {
-    // Keep any reorder we already did; just note the headline step failed.
-    const out = { ...base, reordered, headlinesFitted, note: `headline-fit skipped: ${(e as Error).message}` };
-    if (reordered || headlinesFitted) {
-      (layout as { blocks: DraftBlock[] }).blocks = blocks;
-      await prisma.epaperPage.update({ where: { id: page.id }, data: { layout: layout as any } });
-    }
-    return out;
-  }
-
-  // Persist if anything changed.
-  if (reordered || headlinesFitted) {
-    (layout as { blocks: DraftBlock[] }).blocks = blocks;
-    await prisma.epaperPage.update({ where: { id: page.id }, data: { layout: layout as any } });
-  }
-
-  return { ...base, reordered, headlinesFitted };
-}
-
-// ---- public entry -------------------------------------------------------
-
-/**
- * Run the AI draft pass across every page of an edition. Safe to re-run; it is
- * idempotent-ish (re-ranking a settled page is a no-op, re-fitting a headline
- * that already fits is skipped).
- */
 export async function draftEdition(editionId: string): Promise<EditionDraftResult> {
-  const pages = await prisma.epaperPage.findMany({
+  // Version bookkeeping FIRST: capture the untouched state before the first
+  // draft ever mutates anything, so History always offers a clean baseline.
+  const prior = await prisma.epaperEditionSnapshot.count({
+    where: { editionId, note: { startsWith: "AI Draft v" } },
+  });
+  const version = prior + 1;
+  if (version === 1) {
+    await createSnapshot(editionId, "manual", { note: "Before AI Draft" });
+  }
+
+  // ---------- Phase 0: fill every empty story slot (deterministic, no LLM) ---
+  const templates = await prisma.epaperTemplate.findMany({ select: { slug: true, fillRules: true } });
+  const window = { since: new Date(Date.now() - 90 * 86400e3), until: new Date() };
+
+  let pages = await prisma.epaperPage.findMany({
     where: { editionId },
     orderBy: { pageNumber: "asc" },
     select: { id: true, pageNumber: true, templateSlug: true, layout: true },
   });
 
-  // Pages run concurrently (bounded pool) so a 9-page edition drafts in roughly
-  // the time of the slowest page instead of the sum of all pages. Each page is
-  // at most 2 LLM calls; CONCURRENCY keeps us within Azure rate limits.
-  const CONCURRENCY = 5;
-  const results: PageDraftResult[] = new Array(pages.length);
-  let next = 0;
-  async function worker() {
-    for (;;) {
-      const i = next++;
-      if (i >= pages.length) break;
-      results[i] = await draftPage(pages[i]);
+  // Articles already anywhere in the paper - the no-duplicates guarantee.
+  const used = new Set<string>();
+  for (const p of pages) {
+    for (const b of (((p.layout as any)?.blocks ?? []) as DraftBlock[])) {
+      if (b.articleId) used.add(b.articleId);
     }
   }
-  await Promise.all(
-    Array.from({ length: Math.min(CONCURRENCY, pages.length) }, () => worker()),
-  );
+
+  const filledByPage = new Map<string, number>();
+  for (const p of pages) {
+    const blocks = (((p.layout as any)?.blocks ?? []) as DraftBlock[]);
+    const empties = blocks.filter((b) => STORY_TYPES.has(b.type) && !b.articleId && !b.locked).length;
+    if (!empties) continue;
+    const tpl = templates.find((t) => t.slug === p.templateSlug);
+    const r = await autofillTemplate({
+      templateSlug: p.templateSlug ?? "",
+      templateLayout: { blocks: blocks as unknown as BlockSlot[] },
+      templateRules: (tpl?.fillRules as Record<string, unknown> | null) ?? undefined,
+      excludeArticleIds: used,
+      window,
+      referenceTime: Date.now(),
+      topUpOnly: true,
+    });
+    if (r.filledCount > 0) {
+      for (const id of r.usedArticleIds) used.add(id);
+      await prisma.epaperPage.update({
+        where: { id: p.id },
+        data: { layout: { ...(p.layout as any), blocks: r.blocks } as any, version: { increment: 1 } },
+      });
+      filledByPage.set(p.id, r.filledCount);
+    }
+  }
+
+  // New fills may overflow -> refresh/wire continuations before measuring.
+  await buildContinuations(editionId);
+
+  // ---------- Phase 1: measure + collect rewrite jobs ------------------------
+  pages = await prisma.epaperPage.findMany({
+    where: { editionId },
+    orderBy: { pageNumber: "asc" },
+    select: { id: true, pageNumber: true, templateSlug: true, layout: true },
+  });
+  const bundles = pages.map((p) => ({
+    ...p,
+    blocks: (((p.layout as any)?.blocks ?? []) as DraftBlock[]),
+    dirty: false,
+  }));
+  const blockIndex = new Map<string, { page: (typeof bundles)[number]; block: DraftBlock }>();
+  for (const p of bundles) for (const b of p.blocks) blockIndex.set(b.id, { page: p, block: b });
+
+  // Plain-text bodies + titles for every placed article.
+  const ids = [...new Set(bundles.flatMap((p) => p.blocks.map((b) => b.articleId).filter((x): x is string => !!x)))];
+  const arts = new Map<string, { title: string; plain: string }>();
+  for (const r of await prisma.content.findMany({
+    where: { id: { in: ids }, type: "ARTICLE" },
+    select: { id: true, title: true, body: true, summary: true },
+  })) {
+    arts.set(r.id, { title: r.title, plain: stripHtml(r.body || "") || (r.summary || "") });
+  }
+
+  interface PairInfo { tail: DraftBlock; tailPage: (typeof bundles)[number] }
+  const results: PageDraftResult[] = [];
+
+  for (const p of bundles) {
+    const jobs: RewriteJob[] = [];
+    const pairs = new Map<string, PairInfo>(); // source block id -> its tail
+
+    for (const b of p.blocks) {
+      if (b.locked || !b.articleId) continue;
+      if (!STORY_TYPES.has(b.type)) continue; // tails handled via their source
+      const art = arts.get(b.articleId);
+      if (!art) continue;
+
+      // Headline: fit when the current (override or original) title exceeds budget.
+      const hlBudget = headlineCharBudget(b);
+      const curTitle = (b.overrideTitle?.trim() || art.title).trim();
+      const headline = curTitle.length > hlBudget * 1.05 ? { text: curTitle, maxChars: hlBudget } : undefined;
+
+      // Body: capacity target. Continuation SOURCE -> pair target (head + tail).
+      let target = capacityChars(b);
+      let pair: PairInfo | undefined;
+      if (b.continuesToBlockId) {
+        const hit = blockIndex.get(b.continuesToBlockId);
+        if (hit && hit.block.type === "continuation") {
+          pair = { tail: hit.block, tailPage: hit.page };
+          target += capacityChars(hit.block);
+        }
+      }
+      const effectiveLen = (b.overrideBody ?? art.plain).length;
+      // Rewrite when the effective text overflows the target (8% tolerance);
+      // skip absurdly small targets - the fit script's sentence-cut handles those.
+      const body =
+        target > 150 && effectiveLen > target * 1.08
+          ? { text: art.plain, maxChars: Math.round(target) }
+          : undefined;
+
+      if (!body && !headline) continue;
+      if (pair && body) pairs.set(b.id, pair);
+      jobs.push({ id: b.id, body, headline });
+    }
+
+    const filled = filledByPage.get(p.id) ?? 0;
+    if (jobs.length === 0) {
+      results.push({ pageId: p.id, pageNumber: p.pageNumber, templateSlug: p.templateSlug, filled, bodiesRewritten: 0, headlinesFitted: 0 });
+      continue;
+    }
+
+    // ---------- Phase 2: one LLM call per page, apply with validation --------
+    let bodies = 0, heads = 0, note: string | undefined;
+    try {
+      const out = await rewritePageBatch(jobs);
+      for (const j of jobs) {
+        const got = out.get(j.id);
+        const hit = blockIndex.get(j.id);
+        if (!got || !hit) continue;
+        const b = hit.block;
+
+        if (j.headline && typeof got.headline === "string" && got.headline.trim()) {
+          const fitted = got.headline.trim();
+          if (fitted.length <= j.headline.maxChars * 1.1 && fitted.length < j.headline.text.length) {
+            b.overrideTitle = fitted;
+            heads++;
+            p.dirty = true;
+          }
+        }
+
+        if (j.body && typeof got.body === "string" && got.body.trim()) {
+          const text = got.body.trim();
+          const okLen = text.length <= j.body.maxChars * 1.15 && text.length >= j.body.maxChars * 0.4 && text.length < j.body.text.length;
+          if (okLen) {
+            b.overrideBody = text;
+            p.dirty = true;
+            const pair = pairs.get(j.id);
+            if (pair) {
+              // The tail renders the SAME rewritten text from the recomputed
+              // split point, so head and tail meet exactly.
+              pair.tail.overrideBody = text;
+              pair.tail.bodyStart = findSplit(text, capacityChars(b));
+              pair.tailPage.dirty = true;
+            }
+            bodies++;
+          }
+        }
+      }
+    } catch (e) {
+      note = `rewrite skipped: ${(e as Error).message}`;
+    }
+
+    results.push({ pageId: p.id, pageNumber: p.pageNumber, templateSlug: p.templateSlug, filled, bodiesRewritten: bodies, headlinesFitted: heads, note });
+  }
+
+  // ---------- Phase 3: persist + version snapshot ----------------------------
+  for (const p of bundles) {
+    if (!p.dirty) continue;
+    await prisma.epaperPage.update({
+      where: { id: p.id },
+      data: { layout: { ...(p.layout as any), blocks: p.blocks } as any, version: { increment: 1 } },
+    });
+  }
+
+  await createSnapshot(editionId, "manual", { note: `AI Draft v${version}` });
 
   return {
     editionId,
+    version,
     pages: results,
-    totalReordered: results.reduce((n, r) => n + r.reordered, 0),
+    totalFilled: results.reduce((n, r) => n + r.filled, 0),
+    totalBodiesRewritten: results.reduce((n, r) => n + r.bodiesRewritten, 0),
     totalHeadlinesFitted: results.reduce((n, r) => n + r.headlinesFitted, 0),
   };
 }

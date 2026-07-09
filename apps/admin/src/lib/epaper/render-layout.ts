@@ -42,6 +42,7 @@ export interface Block {
   adAssetId?: string;     // ad block reference into EpaperAdAsset library
   overrideTitle?: string; // per-placement headline override; falls back to article.title
   overrideDek?: string;   // per-placement summary override; falls back to article.summary
+  overrideBody?: string;  // per-placement body override (AI Draft fit) - the CMS article stays intact
   imageCrop?: { x: number; y: number; w: number; h: number }; // 0..1 fractional crop on featured image
   content?: string;
   href?: string;
@@ -983,6 +984,14 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   // Page-unique banner colours: each coloured story block gets a different hue.
   const bannerColors = assignBannerColors(input.layout.blocks, input.pageNumber ?? 0);
 
+  // Per-block body override (AI Draft "fit"): render this block from the
+  // condensed text instead of the article body. Continuation pairs share the
+  // SAME override on head + tail, so slicing at bodyStart still lines up.
+  const artFor = (b: Block): ResolvedArticle => {
+    const a = articles.get(b.articleId!)!;
+    return b.overrideBody ? { ...a, bodyText: b.overrideBody } : a;
+  };
+
   for (const b of input.layout.blocks) {
     switch (b.type) {
       case "masthead":
@@ -993,27 +1002,27 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
         break;
       case "lead":
         if (b.articleId && articles.has(b.articleId)) {
-          blockHtml.push(leadBlock(b, articles.get(b.articleId)!));
+          blockHtml.push(leadBlock(b, artFor(b)));
         }
         break;
       case "major":
         if (b.articleId && articles.has(b.articleId)) {
-          blockHtml.push(majorBlock(b, articles.get(b.articleId)!, bannerColors.get(b.id) ?? null));
+          blockHtml.push(majorBlock(b, artFor(b), bannerColors.get(b.id) ?? null));
         }
         break;
       case "secondary":
         if (b.articleId && articles.has(b.articleId)) {
-          blockHtml.push(secondaryBlock(b, articles.get(b.articleId)!, bannerColors.get(b.id) ?? null));
+          blockHtml.push(secondaryBlock(b, artFor(b), bannerColors.get(b.id) ?? null));
         }
         break;
       case "continuation":
         if (b.articleId && articles.has(b.articleId)) {
-          blockHtml.push(continuationBlock(b, articles.get(b.articleId)!));
+          blockHtml.push(continuationBlock(b, artFor(b)));
         }
         break;
       case "brief":
         if (b.articleId && articles.has(b.articleId)) {
-          blockHtml.push(briefBlock(b, [articles.get(b.articleId)!]));
+          blockHtml.push(briefBlock(b, [artFor(b)]));
         } else {
           blockHtml.push(`<div class="briefs block empty" style="${blockStyle(b)}"></div>`);
         }
