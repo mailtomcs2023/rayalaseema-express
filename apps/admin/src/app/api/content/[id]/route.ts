@@ -317,6 +317,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }, { status: 403 });
       }
       data.publishedAt = new Date();
+
+      // Byline: auto-imported wire copy is created under the org-named system
+      // account. On first publish, reassign authorship to the human editor
+      // hitting publish - Google News strongly favours real named bylines,
+      // and the editor is the person editorially accountable for the piece.
+      // Articles already owned by a real reporter are left untouched.
+      if (current.status !== "PUBLISHED" && data.authorId === undefined) {
+        const orgNames = ["rayalaseema news", "రాయలసీమ న్యూస్", "rayalaseema express"];
+        const currentAuthor = await prisma.user.findUnique({
+          where: { id: current.authorId },
+          select: { name: true },
+        });
+        if (
+          currentAuthor &&
+          orgNames.includes(currentAuthor.name.trim().toLowerCase()) &&
+          session.user.id !== current.authorId
+        ) {
+          data.authorId = session.user.id;
+        }
+      }
     }
 
     // Auto-assign on every DRAFT/REJECTED → SUBMITTED transition so admin-web
