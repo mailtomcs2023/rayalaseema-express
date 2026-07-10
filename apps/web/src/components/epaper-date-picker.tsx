@@ -67,6 +67,11 @@ interface Props {
    * pills are hidden in this mode (editions live elsewhere in the toolbar).
    */
   toolbarMode?: boolean;
+  /**
+   * When true, renders ONLY the district edition pills - no date button.
+   * Used when the date already lives in a bar (brand bar / viewer toolbar).
+   */
+  editionsOnly?: boolean;
 }
 
 export function EpaperDatePicker({
@@ -76,6 +81,7 @@ export function EpaperDatePicker({
   districtEditions,
   onSub,
   toolbarMode = false,
+  editionsOnly = false,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -103,6 +109,26 @@ export function EpaperDatePicker({
     // must always load that date's epaper completely fresh.
     router.refresh();
   }
+
+  const editionPills = districtEditions.length > 0 ? (
+    <div className="flex gap-2 flex-wrap">
+      {districtEditions.map((ek) => (
+        <Button
+          key={ek}
+          size="sm"
+          variant={ek === editionKey ? "default" : "outline"}
+          style={{ fontFamily: "var(--font-telugu-body), sans-serif", fontSize: 13, fontWeight: 700 }}
+          onClick={() =>
+            router.push(epHref("/epaper", `date=${selectedDate}&edition=${ek}`))
+          }
+        >
+          {EDITION_NAMES[ek] ?? ek}
+        </Button>
+      ))}
+    </div>
+  ) : null;
+
+  if (editionsOnly) return editionPills;
 
   if (toolbarMode) {
     return (
@@ -164,23 +190,7 @@ export function EpaperDatePicker({
       </div>
 
       {/* ── District edition buttons (hidden when only "main" is available) ── */}
-      {districtEditions.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          {districtEditions.map((ek) => (
-            <Button
-              key={ek}
-              size="sm"
-              variant={ek === editionKey ? "default" : "outline"}
-              style={{ fontFamily: "var(--font-telugu-body), sans-serif", fontSize: 13, fontWeight: 700 }}
-              onClick={() =>
-                router.push(epHref("/epaper", `date=${selectedDate}&edition=${ek}`))
-              }
-            >
-              {EDITION_NAMES[ek] ?? ek}
-            </Button>
-          ))}
-        </div>
-      )}
+      {editionPills}
     </div>
   );
 }

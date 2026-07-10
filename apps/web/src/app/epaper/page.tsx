@@ -88,10 +88,22 @@ export default async function EpaperPage({
       {!hasViewer && (
         <div style={{ background: "var(--brand)", position: "relative", zIndex: 40 }}>
           <div style={{ maxWidth: 1280, margin: "0 auto", padding: "12px" }}>
-            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-              <span style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 26, lineHeight: 1, fontWeight: 800, color: "#fff" }}>
-                ఈ-పేపర్
-              </span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <span style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 26, lineHeight: 1, fontWeight: 800, color: "#fff" }}>
+                  ఈ-పేపర్
+                </span>
+                {/* Same white-text date trigger the viewer toolbar uses - the
+                    date picker is ALWAYS reachable, even with nothing published. */}
+                <EpaperDatePicker
+                  availableDates={dates}
+                  selectedDate={selDate}
+                  editionKey={editionKey}
+                  districtEditions={districtEditions}
+                  onSub={onSub}
+                  toolbarMode
+                />
+              </div>
               <EpaperSearchInline />
             </div>
           </div>
@@ -99,10 +111,10 @@ export default async function EpaperPage({
       )}
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: hasViewer ? "16px 12px 24px" : "0 12px 24px" }}>
-        {/* Date picker + district edition buttons - rendered ABOVE the viewer.
-            Also shown in the empty state so readers can always browse to an
-            available edition instead of hitting a dead end. */}
-        {selDate && dates.length > 0 && (districtEditions.length > 0 || !(selected && selected.pages.length > 0)) && (
+        {/* District edition pills above the viewer / empty state. The date
+            picker itself always lives in a red bar: the brand bar when no
+            edition is open, the viewer toolbar when one is. */}
+        {districtEditions.length > 0 && (
           <div className="pt-4 pb-2">
             <EpaperDatePicker
               availableDates={dates}
@@ -110,6 +122,7 @@ export default async function EpaperPage({
               editionKey={editionKey}
               districtEditions={districtEditions}
               onSub={onSub}
+              editionsOnly
             />
           </div>
         )}

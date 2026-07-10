@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import Moveable from "react-moveable";
 import Selecto from "selecto";
 import { DEFAULT_GEOMETRY, snapColumn, type PageGeometry } from "@/lib/epaper/geometry";
@@ -30,6 +30,101 @@ export interface Block {
   [k: string]: unknown;
 }
 
+// Per-type color so overlapping blocks stay visually distinct (the
+// original single-pink-for-empty made layered tiles look like one
+// big slab covering the whole page).
+const TYPE_COLORS: Record<string, { bg: string; border: string }> = {
+  masthead:       { bg: "#7c2d12", border: "#9a3412" },
+  "section-band": { bg: "#991b1b", border: "#b91c1c" },
+  lead:           { bg: "#bfdbfe", border: "#3b82f6" },
+  major:          { bg: "#c7d2fe", border: "#6366f1" },
+  secondary:      { bg: "#ddd6fe", border: "#8b5cf6" },
+  brief:          { bg: "#fed7aa", border: "#f97316" },
+  image:          { bg: "#bbf7d0", border: "#22c55e" },
+  ad:             { bg: "repeating-linear-gradient(45deg,#fafaf6,#fafaf6 6px,#e5e7eb 6px,#e5e7eb 12px)", border: "#9ca3af" },
+  text:           { bg: "#fef9c3", border: "#eab308" },
+  folio:          { bg: "#f3f4f6", border: "#9ca3af" },
+  "story-jump":   { bg: "#fff7ed", border: "#fb923c" },
+  "pull-quote":   { bg: "#fce7f3", border: "#ec4899" },
+};
+const FALLBACK_COLOR = { bg: "#fee2e2", border: "#f87171" };
+
+interface BlockItemProps {
+  block: Block;
+  isSelected: boolean;
+  scale: number;
+  onSelect: (ids: string[], shift: boolean) => void;
+  onDetachMaster?: (block: Block) => void;
+  renderBlockContent: (b: Block) => React.ReactNode;
+}
+
+// Memoized so drag/selection/Alt re-renders of the Canvas skip every block
+// whose props didn't change - block content (article text, images) is by far
+// the most expensive part of a render pass.
+const BlockItem = memo(function BlockItem({
+  block: b,
+  isSelected,
+  scale,
+  onSelect,
+  onDetachMaster,
+  renderBlockContent,
+}: BlockItemProps) {
+  const isMaster = !!b.isMaster;
+  const t = TYPE_COLORS[b.type] ?? FALLBACK_COLOR;
+  const mm = (v: number) => v * scale;
+  return (
+    <WithTooltip
+      text={isMaster ? "Master block (inherited). Right-click → Detach to override on this page." : null}
+    >
+      <div
+        data-block-id={b.id}
+        style={{
+          position: "absolute",
+          left: mm(b.x),
+          top: mm(b.y),
+          width: mm(b.w),
+          height: mm(b.h),
+          background: isMaster ? "rgba(99,102,241,0.10)" : t.bg,
+          // Always 2px solid border so overlapping tiles stay visually
+          // separable; selection bumps to indigo, master uses dashed purple.
+          border: isMaster
+            ? "2px dashed #6366f1"
+            : isSelected
+            ? "3px solid #4f46e5"
+            : `2px solid ${t.border}`,
+          boxShadow: isSelected ? "0 0 0 4px rgba(79,70,229,0.15)" : "inset 0 0 0 1px rgba(255,255,255,0.4)",
+          cursor: isMaster ? "not-allowed" : "grab",
+          overflow: "hidden",
+          padding: 4,
+          fontSize: 11,
+          color: ["masthead", "section-band"].includes(b.type) ? "#fff" : "#111",
+          opacity: isMaster ? 0.55 : 1,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isMaster) return;
+          onSelect([b.id], e.shiftKey);
+        }}
+        onContextMenu={async (e) => {
+          if (!isMaster || !onDetachMaster) return;
+          e.preventDefault();
+          if (
+            await confirm({
+              title: `Detach this ${b.type} block from the master?`,
+              description: "It becomes editable on this page only - the master is unchanged.",
+              confirmText: "Detach",
+            })
+          ) {
+            onDetachMaster(b);
+          }
+        }}
+      >
+        {renderBlockContent(b)}
+      </div>
+    </WithTooltip>
+  );
+});
+
 export interface CanvasProps {
   blocks: Block[];
   geometry?: PageGeometry;
@@ -57,7 +152,19 @@ export function Canvas({
   const selectoRef = useRef<Selecto | null>(null);
   const [movableTargets, setMovableTargets] = useState<HTMLElement[]>([]);
   const [altHeld, setAltHeld] = useState(false);
-  const [activeLabel, setActiveLabel] = useState<{ id: string; text: string } | null>(null);
+  // Live drag/resize label is updated imperatively (textContent + display) so
+  // a 60fps drag never triggers a React render of the whole canvas.
+  const labelRef = useRef<HTMLDivElement>(null);
+
+  const showLabel = (text: string) => {
+    const el = labelRef.current;
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = "block";
+  };
+  const hideLabel = () => {
+    if (labelRef.current) labelRef.current.style.display = "none";
+  };
 
   // mm → px scale for on-screen rendering
   const mm = (v: number) => v * scale;
@@ -161,87 +268,24 @@ export function Canvas({
             ⌥ ALT - SNAP OFF
           </div>
         )}
-        {/* Live position/size label during active drag/resize. */}
-        {activeLabel && (
-          <div style={{ position: "absolute", top: 4, left: 4, padding: "2px 8px", background: "#4f46e5", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 3, fontFamily: "monospace" }}>
-            {activeLabel.text}
-          </div>
-        )}
+        {/* Live position/size label during active drag/resize (imperative -
+            written via labelRef so drags don't re-render the canvas). */}
+        <div
+          ref={labelRef}
+          style={{ display: "none", position: "absolute", top: 4, left: 4, padding: "2px 8px", background: "#4f46e5", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 3, fontFamily: "monospace" }}
+        />
       </div>
-      {blocks.map((b) => {
-        const isSelected = selectedBlockIds.has(b.id);
-        const isMaster = !!b.isMaster;
-        // Per-type color so overlapping blocks stay visually distinct (the
-        // original single-pink-for-empty made layered tiles look like one
-        // big slab covering the whole page).
-        const typeColor: Record<string, { bg: string; border: string }> = {
-          masthead:       { bg: "#7c2d12", border: "#9a3412" },
-          "section-band": { bg: "#991b1b", border: "#b91c1c" },
-          lead:           { bg: "#bfdbfe", border: "#3b82f6" },
-          major:          { bg: "#c7d2fe", border: "#6366f1" },
-          secondary:      { bg: "#ddd6fe", border: "#8b5cf6" },
-          brief:          { bg: "#fed7aa", border: "#f97316" },
-          image:          { bg: "#bbf7d0", border: "#22c55e" },
-          ad:             { bg: "repeating-linear-gradient(45deg,#fafaf6,#fafaf6 6px,#e5e7eb 6px,#e5e7eb 12px)", border: "#9ca3af" },
-          text:           { bg: "#fef9c3", border: "#eab308" },
-          folio:          { bg: "#f3f4f6", border: "#9ca3af" },
-          "story-jump":   { bg: "#fff7ed", border: "#fb923c" },
-          "pull-quote":   { bg: "#fce7f3", border: "#ec4899" },
-        };
-        const t = typeColor[b.type] ?? { bg: "#fee2e2", border: "#f87171" };
-        return (
-          <WithTooltip
-            key={b.id}
-            text={isMaster ? "Master block (inherited). Right-click → Detach to override on this page." : null}
-          >
-            <div
-              data-block-id={b.id}
-              style={{
-                position: "absolute",
-                left: mm(b.x),
-                top: mm(b.y),
-                width: mm(b.w),
-                height: mm(b.h),
-                background: isMaster ? "rgba(99,102,241,0.10)" : t.bg,
-                // Always 2px solid border so overlapping tiles stay visually
-                // separable; selection bumps to indigo, master uses dashed purple.
-                border: isMaster
-                  ? "2px dashed #6366f1"
-                  : isSelected
-                  ? "3px solid #4f46e5"
-                  : `2px solid ${t.border}`,
-                boxShadow: isSelected ? "0 0 0 4px rgba(79,70,229,0.15)" : "inset 0 0 0 1px rgba(255,255,255,0.4)",
-                cursor: isMaster ? "not-allowed" : "grab",
-                overflow: "hidden",
-                padding: 4,
-                fontSize: 11,
-                color: ["masthead", "section-band"].includes(b.type) ? "#fff" : "#111",
-                opacity: isMaster ? 0.55 : 1,
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (isMaster) return;
-                onSelect([b.id], e.shiftKey);
-              }}
-              onContextMenu={async (e) => {
-                if (!isMaster || !onDetachMaster) return;
-                e.preventDefault();
-                if (
-                  await confirm({
-                    title: `Detach this ${b.type} block from the master?`,
-                    description: "It becomes editable on this page only - the master is unchanged.",
-                    confirmText: "Detach",
-                  })
-                ) {
-                  onDetachMaster(b);
-                }
-              }}
-            >
-              {renderBlockContent(b)}
-            </div>
-          </WithTooltip>
-        );
-      })}
+      {blocks.map((b) => (
+        <BlockItem
+          key={b.id}
+          block={b}
+          isSelected={selectedBlockIds.has(b.id)}
+          scale={scale}
+          onSelect={onSelect}
+          onDetachMaster={onDetachMaster}
+          renderBlockContent={renderBlockContent}
+        />
+      ))}
 
       {movableTargets.length > 0 && (
         <Moveable
@@ -253,7 +297,7 @@ export function Canvas({
           renderDirections={["nw", "ne", "sw", "se"]}
           edge={false}
           onDragEnd={(e) => {
-            setActiveLabel(null);
+            hideLabel();
             const id = (e.target as HTMLElement).getAttribute("data-block-id");
             if (!id) return;
             const current = blocksById.get(id);
@@ -270,7 +314,7 @@ export function Canvas({
             commitChange(id, next);
           }}
           onResizeEnd={(e) => {
-            setActiveLabel(null);
+            hideLabel();
             const id = (e.target as HTMLElement).getAttribute("data-block-id");
             if (!id) return;
             const current = blocksById.get(id);
@@ -297,7 +341,7 @@ export function Canvas({
               const liveX = current.x + dx;
               const liveY = current.y + dy;
               const colIdx = Math.round(liveX / (geometry.colWidth + geometry.gutter));
-              setActiveLabel({ id, text: `${altHeld ? "free" : `col ${colIdx}`} · x:${liveX.toFixed(1)}mm  y:${liveY.toFixed(1)}mm` });
+              showLabel(`${altHeld ? "free" : `col ${colIdx}`} · x:${liveX.toFixed(1)}mm  y:${liveY.toFixed(1)}mm`);
             }
           }}
           onResize={(e) => {
@@ -309,7 +353,7 @@ export function Canvas({
               const w_mm = e.width / scale;
               const h_mm = e.height / scale;
               const span = Math.max(1, Math.round((w_mm + geometry.gutter) / (geometry.colWidth + geometry.gutter)));
-              setActiveLabel({ id, text: `${altHeld ? "free" : `${span} col`} · w:${w_mm.toFixed(1)}mm  h:${h_mm.toFixed(1)}mm` });
+              showLabel(`${altHeld ? "free" : `${span} col`} · w:${w_mm.toFixed(1)}mm  h:${h_mm.toFixed(1)}mm`);
             }
           }}
         />
