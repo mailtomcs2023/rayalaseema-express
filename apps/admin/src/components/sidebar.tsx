@@ -125,9 +125,9 @@ export function Sidebar({ initialRole }: { initialRole?: Role }) {
             button is rendered. */}
         <div style={{ padding: "18px 20px", borderBottom: "1px solid #1f2937", display: "flex", alignItems: "center" }}>
           {/* White-on-transparent wordmark - sidebar bg is #111827, so the
-              inverse logo (apps/admin/public/logo-inverse.svg) reads cleanly. */}
+              inverse logo (apps/admin/public/logo-inverse.png) reads cleanly. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-inverse.svg" alt="Rayalaseema News" style={{ height: 44, width: "auto", display: "block" }} />
+          <img src="/logo-inverse.png" alt="Rayalaseema News" style={{ height: 44, width: "auto", display: "block" }} />
         </div>
 
         {/* Nav - filtered by the signed-in user's role. The API-side

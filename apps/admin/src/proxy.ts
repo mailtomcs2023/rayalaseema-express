@@ -30,7 +30,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico" ||
     pathname === "/logo.png" ||
-    pathname === "/logo-inverse.svg" ||
+    pathname === "/logo-inverse.png" ||
     pathname.startsWith("/uploads")
   ) {
     return passthrough;
@@ -88,5 +88,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo-transparent.svg|logo-inverse.svg|logo.svg|uploads).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo-inverse.png|logo.png|uploads).*)"],
 };

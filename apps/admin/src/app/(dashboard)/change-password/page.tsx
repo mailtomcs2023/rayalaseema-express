@@ -97,7 +97,7 @@ export default function ChangePasswordPage() {
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-inverse.svg" alt="Rayalaseema News" style={{ height: 32, display: "block" }} />
+          <img src="/logo-inverse.png" alt="Rayalaseema News" style={{ height: 32, display: "block" }} />
           <Button
             type="button"
             variant="ghost"

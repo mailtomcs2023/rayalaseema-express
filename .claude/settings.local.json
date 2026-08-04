@@ -155,7 +155,15 @@
       "Bash(base64 -w0 /tmp/db-q.sh)",
       "Bash(base64 -w0 /tmp/db-q2.sh)",
       "Bash(base64 -w0 /tmp/db-update.sh)",
-      "Bash(base64 -w0 /tmp/eco-fix.sh)"
+      "Bash(base64 -w0 /tmp/eco-fix.sh)",
+      "Bash(curl -s \"https://rayalaseemanews.com\" -I -A \"Mozilla/5.0\")",
+      "Bash(cat)",
+      "Bash(base64 -w0 /d/tmp/rayalaseema-backlinks/vm-crawl-stats.sh)",
+      "Bash(az vm *)",
+      "PowerShell($a = Invoke-WebRequest -Uri \"https://rayalaseemanews.com/news-sitemap.xml\" -UseBasicParsing -TimeoutSec 15; $u = [regex]::Match\\($a.Content,'<loc>\\([^<]+\\)'\\).Groups[1].Value; $art = Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 20; \"article: $u\"; \"meta robots: '$\\([regex]::Match\\($art.Content,'name=\\\\\"robots\\\\\" content=\\\\\"\\([^\\\\\"]+\\)'\\).Groups[1].Value\\)'\"; \"adsense script: $\\([regex]::Matches\\($art.Content,'adsbygoogle|pagead2'\\).Count\\) refs\")",
+      "PowerShell(node \"d:\\\\tmp\\\\rayalaseema-backlinks\\\\gen-logos.mjs\")",
+      "PowerShell($r = Invoke-RestMethod -Uri \"https://www.wikidata.org/w/api.php?action=wbsearchentities&search=Rayalaseema%20News&language=en&format=json&limit=5\" -TimeoutSec 20; $r.search | ForEach-Object { \"$\\($_.id\\): $\\($_.label\\) — $\\($_.description\\)\" })",
+      "PowerShell($e = Invoke-RestMethod -Uri \"https://www.wikidata.org/wiki/Special:EntityData/Q140044628.json\" -TimeoutSec 20; $ent = $e.entities.Q140044628; \"labels: \" + \\(\\($ent.labels.PSObject.Properties | ForEach-Object { \"$\\($_.Name\\)=$\\($_.Value.value\\)\" }\\) -join \"; \"\\); \"claims:\"; foreach \\($p in $ent.claims.PSObject.Properties\\) { $v = $p.Value[0].mainsnak.datavalue.value; $s = if \\($v -is [string]\\) { $v } elseif \\($v.id\\) { $v.id } elseif \\($v.time\\) { $v.time } else { \\($v | ConvertTo-Json -Compress -Depth 3\\) }; \"  $\\($p.Name\\): $s\" })"
     ],
     "additionalDirectories": [
       "D:\\RSE2026M365\\assets\\masthead",
