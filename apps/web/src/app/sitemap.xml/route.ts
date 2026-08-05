@@ -9,10 +9,9 @@ export const revalidate = 300;
 //   1.0  /                             - home
 //   0.9  /<district> hubs              - TIER-0 ranking targets (8 URLs)
 //   0.85 /<district>/<constituency>    - TIER-0 ranking targets (~55 URLs)
-//   0.8  /tag/<slug>                   - topic hubs
 //   0.7  /category/<slug>              - category hubs
-//   0.6  /author/<slug>                - author profiles
 //   0.6  article URLs                  - last-modified driven
+// Tag/author pages are noindex,follow and deliberately NOT listed.
 //   0.5  trust pages                   - about/masthead/policies/etc
 //
 // Sub-sitemaps: news-sitemap.xml + rss/all.xml are listed in
@@ -33,11 +32,16 @@ export async function GET() {
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
   const now = new Date().toISOString();
 
-  const [articles, categories, districts, constituencies, tags, authors] = await Promise.all([
+  const [articles, categories, districts, constituencies] = await Promise.all([
     prisma.content.findMany({
       where: { type: "ARTICLE", status: "PUBLISHED" },
       select: {
         id: true, slug: true, updatedAt: true,
+        // category is required here: articleHref() without it emits the
+        // /telugu-news/<slug> fallback, which 301s to the real category URL.
+        // A sitemap full of redirecting URLs is what got the site de-indexed
+        // (GSC "Crawled - currently not indexed").
+        category: { select: { slug: true } },
         constituency: { select: { slug: true, district: { select: { slug: true } } } },
       },
       orderBy: { updatedAt: "desc" },
@@ -48,11 +52,6 @@ export async function GET() {
       where: { active: true },
       select: { slug: true, district: { select: { slug: true } } },
       orderBy: { acNumber: "asc" },
-    }),
-    prisma.tag.findMany({ select: { slug: true } }),
-    prisma.user.findMany({
-      where: { active: true, publicProfileSlug: { not: null } },
-      select: { publicProfileSlug: true },
     }),
   ]);
 
@@ -67,16 +66,13 @@ export async function GET() {
     // old /constituency/<slug> 301s there.
     urls.push(`  <url><loc>${siteUrl}/${c.district.slug}/${c.slug}</loc><changefreq>daily</changefreq><priority>0.85</priority></url>`);
   }
-  for (const t of tags) {
-    urls.push(`  <url><loc>${siteUrl}/tag/${t.slug}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`);
-  }
+  // Tag and author pages are noindex,follow (crawl paths, not ranking
+  // targets) - listing them in the sitemap contradicts the meta and wastes
+  // crawl budget, so they are intentionally absent.
   for (const c of categories) {
     // Categories serve at the bare root slug (/business); old /category/<slug>
     // 301s here via next.config redirects().
     urls.push(`  <url><loc>${siteUrl}/${c.slug}</loc><changefreq>hourly</changefreq><priority>0.7</priority></url>`);
-  }
-  for (const a of authors) {
-    urls.push(`  <url><loc>${siteUrl}/author/${a.publicProfileSlug}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>`);
   }
   for (const a of articles) {
     urls.push(`  <url><loc>${siteUrl}${articleHref(a)}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`);

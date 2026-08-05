@@ -21,6 +21,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${tag.name} | రాయలసీమ న్యూస్`,
     description: `${tag.name} - తాజా వార్తలు, విశ్లేషణలు`,
     alternates: { canonical: `${siteUrl}/tag/${slug}` },
+    // Tag pages are crawl paths, not ranking targets: noindex,follow keeps
+    // Google following the article links without indexing the thin hub
+    // itself (GSC de-indexing incident, 2026-08).
+    robots: { index: false, follow: true },
     openGraph: {
       title: tag.name,
       url: `${siteUrl}/tag/${slug}`,

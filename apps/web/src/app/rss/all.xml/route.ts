@@ -26,6 +26,9 @@ export async function GET() {
     where: { type: "ARTICLE", status: "PUBLISHED" },
     select: {
       id: true, slug: true, title: true, summary: true, publishedAt: true,
+      // category keeps articleHref() canonical for non-geo articles (without
+      // it the /telugu-news/<slug> fallback is emitted, which 301s).
+      category: { select: { slug: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
     orderBy: { publishedAt: "desc" },

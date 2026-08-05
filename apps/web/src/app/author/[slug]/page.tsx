@@ -31,6 +31,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${author.name} | Rayalaseema News`,
     description: author.bio || `${author.name}, ${author.role} at Rayalaseema News. Read all articles by ${author.name}.`,
     alternates: { canonical: `${SITE_URL}/author/${author.publicProfileSlug}` },
+    // Author profiles are E-E-A-T/trust pages, not ranking targets:
+    // noindex,follow (also covers the ?page=N pagination variants).
+    robots: { index: false, follow: true },
     openGraph: {
       title: author.name,
       description: author.bio || undefined,

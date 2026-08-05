@@ -13,6 +13,14 @@
 // after a publish self-resolves on the next revalidate tick.
 export const revalidate = 30;
 
+import type { Metadata } from "next";
+
+// Self-referencing canonical on the homepage - dedupes any query-string /
+// tracking-parameter variants (?utm_*, ?fbclid) Google may crawl.
+export const metadata: Metadata = {
+  alternates: { canonical: process.env.SITE_URL || "https://rayalaseemanews.com" },
+};
+
 import { Header } from "@/components/header";
 import { SiteFooter } from "@/components/site-footer";
 import { MastheadAdSlot } from "@/components/masthead-ad-slot";

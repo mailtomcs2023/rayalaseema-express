@@ -165,6 +165,10 @@ export async function getLatestArticles(limit = 12) {
     where: { type: "ARTICLE", status: "PUBLISHED", createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF } },
     select: {
       id: true, title: true, slug: true, publishedAt: true,
+      // category keeps articleHref() canonical for non-geo articles - without
+      // it every latest-news link points at the /telugu-news/<slug> fallback,
+      // which 301s (Google crawled those as duplicate URLs; GSC incident 2026-08).
+      category: { select: { slug: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
     orderBy: { publishedAt: "desc" },
