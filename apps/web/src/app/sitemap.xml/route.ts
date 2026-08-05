@@ -75,6 +75,11 @@ export async function GET() {
     urls.push(`  <url><loc>${siteUrl}/${c.slug}</loc><changefreq>hourly</changefreq><priority>0.7</priority></url>`);
   }
   for (const a of articles) {
+    // An article with neither category nor constituency has no canonical
+    // home - its /telugu-news/<slug> fallback 404s (the article route
+    // requires a category). Skip it instead of shipping a dead sitemap URL;
+    // fix is assigning the article a category in the admin.
+    if (!a.category?.slug && !a.constituency?.slug) continue;
     urls.push(`  <url><loc>${siteUrl}${articleHref(a)}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`);
   }
   for (const slug of TRUST_PAGES) {
