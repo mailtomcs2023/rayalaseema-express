@@ -109,7 +109,8 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
                 alt="రాయలసీమ న్యూస్"
                 width={240}
                 height={48}
-                quality={80}
+                sizes="240px"
+                quality={75}
                 className="h-12 w-auto"
                 style={{ height: 48, width: "auto" }}
               />

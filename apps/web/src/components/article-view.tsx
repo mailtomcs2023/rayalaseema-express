@@ -312,6 +312,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                           alt={r.title}
                           width={100}
                           height={70}
+                          sizes="100px"
                           quality={55}
                           style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0 }}
                         />

@@ -122,6 +122,7 @@ export function AboveFold({
                               alt=""
                               width={120}
                               height={120}
+                              sizes="120px"
                               quality={60}
                               loading="lazy"
                               className="af-dist-fallback-img"

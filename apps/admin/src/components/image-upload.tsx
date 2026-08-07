@@ -47,7 +47,28 @@ export function ImageUpload({ value, onChange, onSearchClick, uploadOnly = false
   }, [value]);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Google Discover only builds a large-image card from a source at least
+  // 1200px wide, and Discover is the traffic we are chasing. A narrower hero
+  // silently disqualifies the story, so warn at upload time - while the editor
+  // still has the original and can pick a better frame.
+  const warnIfNarrow = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const probe = new window.Image();
+    probe.onload = () => {
+      if (probe.naturalWidth < 1200) {
+        toast.warning(
+          `This image is ${probe.naturalWidth}px wide. Google Discover needs 1200px or more to show a large card - the story will get a small thumbnail instead.`,
+          { duration: 9000 },
+        );
+      }
+      URL.revokeObjectURL(url);
+    };
+    probe.onerror = () => URL.revokeObjectURL(url);
+    probe.src = url;
+  };
+
   const uploadFile = async (file: File) => {
+    warnIfNarrow(file);
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
