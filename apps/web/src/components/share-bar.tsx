@@ -28,12 +28,12 @@ interface Props {
  *
  * Desktop browsers without Web Share open the WhatsApp web URL as a fallback.
  *
- * STYLING: every rule below lives in the injected <style> block as a class,
+ * STYLING: every rule lives in globals.css (.sb-*) as a class,
  * NOT as inline `style={}`. Earlier the geometry (circle radius, 36px shells,
  * the pill) was inline - and some clients (a CSP without style-src unsafe-inline,
  * or a browser extension like Dark Reader / Stylus that strips inline style
  * attributes) dropped those, collapsing the buttons into flat red bars. Class
- * rules from a <style> element survive that, so the shape is guaranteed.
+ * rules from the stylesheet survive that, so the shape is guaranteed.
  * `!important` defends against downstream global button resets (shadcn base,
  * article-shell CSS) reaching in.
  */
@@ -86,67 +86,6 @@ export function ShareBar({ title, articleUrl, featuredImage: _featuredImage, des
 
   return (
     <div className="rsn-share-row">
-      <style>{`
-        .rsn-share-row {
-          display: flex !important;
-          align-items: center !important;
-          gap: 10px !important;
-          padding: 12px 0 !important;
-          border-bottom: 1px solid #eee !important;
-          /* Keep the Share button + the icon group on ONE line at every width.
-             The spacer shrinks to 0 before anything wraps. */
-          flex-wrap: nowrap !important;
-        }
-        .rsn-share-spacer { flex: 1 1 0 !important; min-width: 0 !important; }
-        .rsn-share-primary {
-          display: inline-flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          gap: 8px !important;
-          padding: 10px 20px !important;
-          background: #E01B1B !important;
-          color: #ffffff !important;
-          border: none !important;
-          border-radius: 999px !important;
-          font-size: 14px !important;
-          font-weight: 700 !important;
-          cursor: pointer !important;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
-          line-height: 1 !important;
-          /* Keep the icon + label on one line - a global article-shell rule
-             must never wrap "Share" under the icon. */
-          white-space: nowrap !important;
-        }
-        .rsn-share-primary:disabled { cursor: wait !important; }
-        /* Pin the icon size + stop a global "svg { width:100% }" rule from
-           ballooning it and shoving the label onto a second line. */
-        .rsn-share-primary svg {
-          width: 16px !important;
-          height: 16px !important;
-          flex: 0 0 auto !important;
-          vertical-align: middle !important;
-          stroke: #ffffff !important;
-        }
-        .rsn-share-pill {
-          width: 36px !important;
-          height: 36px !important;
-          min-width: 36px !important;
-          border-radius: 50% !important;
-          background: #E01B1B !important;
-          border: none !important;
-          padding: 0 !important;
-          display: inline-flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          text-decoration: none !important;
-          flex: 0 0 auto !important;
-          cursor: pointer !important;
-          transition: transform 120ms ease, opacity 120ms ease !important;
-        }
-        .rsn-share-pill:hover { transform: translateY(-1px) !important; }
-        .rsn-share-pill svg { fill: #ffffff !important; stroke: #ffffff !important; }
-        .rsn-share-pill.rsn-share-stroke svg { fill: none !important; stroke: #ffffff !important; }
-      `}</style>
 
       {/* Primary Share - brand-red surface, neutral share-arrow icon.
           Opens the OS share sheet on mobile (which still routes to

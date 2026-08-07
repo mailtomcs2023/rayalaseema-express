@@ -84,10 +84,6 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
         </div>
       </main>
 
-      <style>{`
-        @media (max-width: 768px) { .gallery-cols { column-count: 2 !important; } }
-        @media (max-width: 480px) { .gallery-cols { column-count: 1 !important; } }
-      `}</style>
 
       <SiteFooter config={config} />
     </div>

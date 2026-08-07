@@ -263,28 +263,6 @@ export default function WeatherPage() {
       </main>
       <Footer />
 
-      <style>{`
-        .wx-card {
-          display: block;
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 16px;
-          transition: border-color 0.15s;
-        }
-        .wx-card:hover { border-color: var(--brand); }
-        .wx-link {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 12px;
-          transition: border-color 0.15s;
-        }
-        .wx-link:hover { border-color: var(--brand); }
-      `}</style>
     </div>
   );
 }

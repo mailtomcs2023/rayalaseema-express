@@ -112,13 +112,6 @@ export default async function PreviewPage({
           `,
         }}
       />
-      <style>{`
-        /* Editor preview should not show site-wide chrome (WhatsApp float,
-           push permission). */
-        body :is(.whatsapp-float-root, .push-notif-root) {
-          display: none !important;
-        }
-      `}</style>
     </div>
   );
 }

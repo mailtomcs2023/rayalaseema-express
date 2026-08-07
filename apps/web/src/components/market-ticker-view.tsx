@@ -28,7 +28,7 @@ function renderCricketLine(m: CricketMatch) {
 }
 
 export function MarketTickerView({ data }: { data: TickerData | null }) {
-  // Always render the bar (and its <style>) so the page reserves this strip's
+  // Always render the bar so the page reserves this strip's
   // height even before data arrives. The client <MarketTicker> fetches in a
   // useEffect (~300ms after hydration); returning null until then made the bar
   // pop in and shove the page down (layout shift) on every non-home page.
@@ -123,82 +123,6 @@ export function MarketTickerView({ data }: { data: TickerData | null }) {
         </div>
       </div>
 
-      <style>{`
-        .market-ticker-bar {
-          background: #111827;
-          overflow: hidden;
-          white-space: nowrap;
-          font-family: "Inter", "Noto Sans Telugu", sans-serif;
-          display: flex;
-          align-items: center;
-          min-height: 36px;
-          line-height: 1;
-        }
-        .market-ticker-scroll {
-          overflow-x: auto;
-          overflow-y: hidden;
-          width: 100%;
-          scrollbar-width: none;
-        }
-        .market-ticker-scroll::-webkit-scrollbar { display: none; }
-        .market-ticker-content {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding-left: 14px;
-        }
-        .ticker-section-label {
-          color: #fff;
-          font-size: 10px;
-          font-weight: 800;
-          padding: 2px 8px;
-          border-radius: 3px;
-          flex-shrink: 0;
-          margin-left: 16px;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .ticker-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          margin: 0 8px;
-        }
-        .ticker-name {
-          color: #9ca3af;
-          font-size: 11px;
-          font-weight: 500;
-        }
-        .ticker-value {
-          color: #fff;
-          font-size: 12px;
-          font-weight: 700;
-        }
-        .ticker-text {
-          color: #d1d5db;
-          font-size: 11px;
-        }
-        .ticker-status {
-          color: #fbbf24;
-          font-size: 10px;
-          font-weight: 600;
-          margin-left: 4px;
-        }
-        .ticker-change {
-          font-size: 10px;
-          font-weight: 700;
-          display: inline-flex;
-          align-items: center;
-          gap: 2px;
-        }
-        .ticker-change.up { color: #4ade80; }
-        .ticker-change.down { color: #f87171; }
-        .ticker-divider {
-          color: #374151;
-          margin: 0 4px;
-        }
-      `}</style>
     </div>
   );
 }

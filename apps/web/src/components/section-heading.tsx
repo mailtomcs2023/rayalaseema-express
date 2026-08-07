@@ -59,34 +59,6 @@ export function SectionHeading({
       {Icon ? <Icon className="sh-ribbon-ic" size={18} strokeWidth={2.4} aria-hidden="true" /> : null}
       <span className="sh-ribbon-tx">{title}</span>
 
-      <style>{`
-        .sh-ribbon {
-          position: relative;
-          display: inline-flex;
-          /* Baseline-align: the icon's bottom sits on the Telugu text baseline,
-             so the icon and the visible glyphs share a bottom line (Telugu
-             reserves big descent space, so flex-end would dip the icon below
-             the visible text instead). */
-          align-items: baseline;
-          justify-content: center;
-          gap: 8px;
-          background: var(--brand, #E01B1B);
-          color: #fff;
-          padding: 9px 32px 9px 16px;
-          font-family: var(--font-telugu-heading), sans-serif;
-          font-weight: 800;
-          font-size: 17px;
-          line-height: 1;
-          letter-spacing: 0.01em;
-          border-radius: 4px 0 0 4px;
-          /* pointed right edge - the ribbon "tag" tip */
-          clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 0 100%);
-        }
-        .sh-ribbon-ic { flex-shrink: 0; }
-        .sh-ribbon-tx { display: inline-block; }
-        .sh-ribbon-wrap { position: relative; display: inline-block; }
-        .sh-ribbon-link { text-decoration: none; display: inline-block; }
-      `}</style>
     </span>
   );
 

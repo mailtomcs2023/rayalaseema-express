@@ -122,13 +122,6 @@ export async function TemplateRenderer({
           <SafeBlock block={block} ctx={pageCtx} composites={composites} preview={draft} />
         </Suspense>
       ))}
-      <style>{`
-        @media (max-width: 768px) {
-          .pb-mobile-hide { display: none !important; }
-          .pb-columns-stack { flex-direction: column !important; }
-          .pb-columns-stack > .pb-column { width: 100% !important; }
-        }
-      `}</style>
     </>
   );
 }

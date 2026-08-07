@@ -187,38 +187,6 @@ export function MandiWidget() {
 //   Districts header → MandiStrip    (auto-scrolling mandi prices)
 // =====================================================================
 
-// Shared styles for the static chip strips + the scrolling mandi marquee.
-// Rendered once per strip instance; identical rules so duplicates are inert.
-function HdrStripStyle() {
-  return (
-    <style>{`
-      .hdr-strip { display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-      .hdr-chip {
-        font-family: var(--font-telugu-body), sans-serif;
-        font-size: 12px; font-weight: 700; color: var(--n-600, #4b5563);
-        display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
-      }
-      .hdr-chip-val { font-weight: 800; color: var(--n-900, #111827); }
-      .hdr-chip-ch { font-weight: 700; font-size: 10px; }
-      .hdr-chip-ch.up { color: var(--success, #16a34a); }
-      .hdr-chip-ch.down { color: var(--danger, #dc2626); }
-      .hdr-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-      .hdr-marquee {
-        overflow: hidden; min-width: 0; position: relative;
-        -webkit-mask-image: linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-        mask-image: linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
-      }
-      .hdr-marquee-track {
-        display: inline-flex; gap: 24px; white-space: nowrap;
-        animation: hdr-marq 32s linear infinite; will-change: transform;
-      }
-      .hdr-marquee:hover .hdr-marquee-track { animation-play-state: paused; }
-      @keyframes hdr-marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-      @media (prefers-reduced-motion: reduce) { .hdr-marquee-track { animation: none; } }
-    `}</style>
-  );
-}
-
 function findMetal(bullion: any[], re: RegExp) {
   return bullion.find((b) => re.test(b?.nameEn || ""));
 }
@@ -244,7 +212,6 @@ export function BullionStrip() {
           {it.label} <span className="hdr-chip-val">₹{it.price.toLocaleString()}</span>
         </span>
       ))}
-      <HdrStripStyle />
     </div>
   );
 }
@@ -260,7 +227,6 @@ export function ForexStrip() {
         <span aria-hidden style={{ fontWeight: 800, color: "var(--success, #16a34a)" }}>$</span>
         1 = <span className="hdr-chip-val">₹{usd.price}</span>
       </span>
-      <HdrStripStyle />
     </div>
   );
 }
@@ -288,7 +254,6 @@ export function MandiStrip() {
           </span>
         ))}
       </div>
-      <HdrStripStyle />
     </div>
   );
 }

@@ -94,25 +94,6 @@ export function SearchBar({ open, onClose }: SearchBarProps) {
           </form>
         </div>
       </div>
-      <style>{`
-        .rsn-search-panel {
-          background: #fff;
-          display: grid;
-          grid-template-rows: 0fr;
-          opacity: 0;
-          pointer-events: none;
-          transition: grid-template-rows 450ms cubic-bezier(0.4, 0, 0.2, 1), opacity 250ms ease;
-        }
-        .rsn-search-panel--open {
-          grid-template-rows: 1fr;
-          opacity: 1;
-          pointer-events: auto;
-        }
-        .rsn-search-inner {
-          overflow: hidden;
-          min-height: 0;
-        }
-      `}</style>
     </div>
   );
 }

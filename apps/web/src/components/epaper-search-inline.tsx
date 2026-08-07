@@ -151,7 +151,6 @@ export function EpaperSearchInline() {
           )}
         </div>
       )}
-      <style>{`.ep-search-hit:hover { background: #f9fafb; }`}</style>
     </div>
   );
 }

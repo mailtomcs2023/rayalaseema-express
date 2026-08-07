@@ -237,16 +237,6 @@ export default function HoroscopePage() {
       </main>
       <Footer />
 
-      <style>{`
-        .rashi-tile { transition: border-color 0.15s, box-shadow 0.15s; }
-        .rashi-tile:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
-        @media (max-width: 768px) {
-          .horoscope-layout { flex-direction: column !important; }
-          .horoscope-sidebar { width: 100% !important; }
-          .rashi-pick { grid-template-columns: repeat(4, 1fr) !important; }
-          .rashi-all { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   );
 }
