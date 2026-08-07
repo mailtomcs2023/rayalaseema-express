@@ -120,7 +120,7 @@ export default async function ReporterProfilePage() {
             }}
           >
             {photoUrl ? (
-              <img src={photoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={photoUrl} alt="Your profile photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               initials || "R"
             )}

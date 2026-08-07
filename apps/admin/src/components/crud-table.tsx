@@ -273,7 +273,7 @@ export function CrudTable({ title, apiPath, columns, data, fields }: CrudTablePr
                         val ? (
                           <a href={String(val)} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={String(val)} alt="" style={{ height: 32, width: "auto", borderRadius: 4, verticalAlign: "middle", background: "#f3f4f6" }} />
+                            <img src={String(val)} alt="Row image" style={{ height: 32, width: "auto", borderRadius: 4, verticalAlign: "middle", background: "#f3f4f6" }} />
                           </a>
                         ) : "-"
                       ) : (

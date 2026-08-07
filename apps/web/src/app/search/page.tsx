@@ -185,7 +185,7 @@ export default function SearchPage() {
                   marginBottom: 10, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", transition: "box-shadow 0.15s",
                 }} className="hover:shadow-md">
                   {a.featuredImage && (
-                    <img src={a.featuredImage} alt="" style={{ width: 120, height: 80, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                    <img src={a.featuredImage} alt={a.title} style={{ width: 120, height: 80, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, color: "#fff", background: a.category.color, padding: "1px 6px", borderRadius: 3 }}>

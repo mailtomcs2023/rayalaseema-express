@@ -97,7 +97,7 @@ export default async function BreakingPage() {
                     <>
                       <span className="bn-thumb">
                         {item.image ? (
-                          <img src={item.image} alt="" loading="lazy" />
+                          <img src={item.image} alt={item.title} loading="lazy" />
                         ) : (
                           <span className="bn-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></span>
                         )}

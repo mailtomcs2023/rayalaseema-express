@@ -309,7 +309,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                       {r.featuredImage && (
                         <Image
                           src={r.featuredImage}
-                          alt=""
+                          alt={r.title}
                           width={100}
                           height={70}
                           quality={55}

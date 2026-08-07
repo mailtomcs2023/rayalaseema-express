@@ -180,7 +180,7 @@ export default async function AuthorPage({
                 display: "flex", alignItems: "center", gap: 14, transition: "box-shadow 0.15s",
               }} className="hover:shadow-md">
                 {a.featuredImage && (
-                  <img src={a.featuredImage} alt="" style={{ width: 80, height: 55, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                  <img src={a.featuredImage} alt={a.title} style={{ width: 80, height: 55, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: "#111", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</h3>

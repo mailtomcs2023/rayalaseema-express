@@ -717,7 +717,7 @@ export function AutoFetchModal({ open, onClose, onDone }: Props) {
                           <div style={{ position: "relative", width: 84, height: 56 }}>
                             {a.image_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={a.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6, display: "block" }} />
+                              <img src={a.image_url} alt={a.title || "Article image"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6, display: "block" }} />
                             ) : (
                               <div style={{ width: "100%", height: "100%", background: "#e5e7eb", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#9ca3af" }}>no img</div>
                             )}

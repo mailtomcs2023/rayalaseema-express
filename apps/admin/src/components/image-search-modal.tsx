@@ -484,7 +484,7 @@ export function ImageSearchModal({ open, initialQuery = "", onClose, onPick, con
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={h.thumbUrl}
-                  alt=""
+                  alt={h.title || "Search result image"}
                   style={{ width: "100%", height: 140, objectFit: "cover", display: "block" }}
                   loading="lazy"
                 />
@@ -521,7 +521,7 @@ export function ImageSearchModal({ open, initialQuery = "", onClose, onPick, con
                     <div style={{ height: 140, background: "#000", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                       {isImg ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.blobUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy"
+                        <img src={it.blobUrl} alt={it.title || "Uploaded image"} style={{ width: "100%", height: "100%", objectFit: "cover" }} loading="lazy"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                       ) : (
                         <div style={{ color: "#fff", fontSize: 11, padding: 10, textAlign: "center" }}>{it.mimeType}</div>

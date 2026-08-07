@@ -99,7 +99,11 @@ export function AboveFold({
                         {top.featuredImage ? (
                           <Image
                             src={top.featuredImage}
-                            alt=""
+                            // The headline describes the photo well enough for a
+                            // screen reader, and these are the story's only
+                            // image. alt="" hid eight district lead photos from
+                            // assistive tech and from image search.
+                            alt={top.title}
                             width={400}
                             height={250}
                             sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, 240px"
@@ -110,6 +114,9 @@ export function AboveFold({
                           />
                         ) : (
                           <div className="af-dist-thumb af-dist-fallback">
+                            {/* alt-decorative: brand mark standing in for a
+                                missing photo - it says nothing about the story,
+                                so a screen reader should skip it. */}
                             <Image
                               src="/logo-icon.png"
                               alt=""

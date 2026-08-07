@@ -299,7 +299,7 @@ export default function NewsFeedPage() {
               <div key={a.externalId} style={{ background: "#fff", padding: 14, borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", gap: 12, alignItems: "flex-start" }}>
                 {a.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.imageUrl} alt="" style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
+                  <img src={a.imageUrl} alt={a.title} style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>{a.title}</h3>

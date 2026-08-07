@@ -34,15 +34,19 @@ const securityHeaders = [
 const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   transpilePackages: ["@rayalaseema/ui", "@rayalaseema/db", "@rayalaseema/seo-schema"],
-  // Inline critical CSS into the SSR'd HTML (Next 16). `optimizeCss`
-  // was a Next 14 flag that ran Critters; Next 16 replaced it with
-  // `inlineCss` which uses React 19's built-in stylesheet inlining +
-  // moves the rest of the CSS out of the critical path. PSI's
-  // "Render-blocking requests 1170ms" was the single biggest
-  // remaining LCP gate after AdSense + GTM were deferred.
-  experimental: {
-    inlineCss: true,
-  },
+  // `experimental.inlineCss` is deliberately OFF.
+  //
+  // It was enabled to kill PSI's "Render-blocking requests" finding, and
+  // that made sense while the stylesheet was small. It inlines the WHOLE
+  // stylesheet into every document, so once the component CSS moved into
+  // globals.css (2026-08-06) each page carried ~239 KB of <style> - and
+  // React serialised it into the flight payload a second time, which is
+  // most of why the homepage measured 985 KB.
+  //
+  // Served as a normal stylesheet it is one request, gzipped, cached, and
+  // a 304 on every page after the first - far cheaper on the 4G phones
+  // most of our readers use than re-sending it per page view.
+  experimental: {},
   images: {
     // Modern formats - Next.js negotiates the best one the browser
     // supports. AVIF is ~30% smaller than WebP and ~50% smaller than JPEG

@@ -132,7 +132,7 @@ export default async function ExamResultsPage({ params }: { params: Params }) {
                   </p>
                   {e.headline && <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>{e.headline}</h3>}
                   <div dangerouslySetInnerHTML={{ __html: e.html }} />
-                  {e.image && <img src={e.image} alt="" style={{ width: "100%", borderRadius: 6, marginTop: 8 }} />}
+                  {e.image && <img src={e.image} alt={e.headline || "Result update"} style={{ width: "100%", borderRadius: 6, marginTop: 8 }} />}
                 </li>
               ))}
             </ol>

@@ -109,7 +109,7 @@ export async function ConstituencyView({ districtSlug, constituencySlug }: { dis
               <Link key={article.id} href={articleHref(article as never)} style={{ textDecoration: "none" }}>
                 <div style={{ background: "#fff", borderRadius: 8, overflow: "hidden", border: "1px solid #eee" }}>
                   {article.featuredImage && (
-                    <img src={article.featuredImage} alt="" style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }} />
+                    <img src={article.featuredImage} alt={article.title} style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }} />
                   )}
                   <div style={{ padding: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>

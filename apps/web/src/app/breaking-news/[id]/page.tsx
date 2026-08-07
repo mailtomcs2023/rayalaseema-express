@@ -92,7 +92,7 @@ export default async function BreakingDetailPage({ params }: { params: Promise<{
         <article className="bd-hero">
           <div className="bd-hero-img">
             {item.featuredImage ? (
-              <img src={item.featuredImage} alt="" />
+              <img src={item.featuredImage} alt={item.title} />
             ) : (
               <span className="bd-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" /></span>
             )}
@@ -130,7 +130,7 @@ export default async function BreakingDetailPage({ params }: { params: Promise<{
                 {more.map((m) => (
                   <Link key={m.id} href={`/breaking-news/${m.id}`} className="bd-card">
                     <span className="bd-card-thumb">
-                      {m.image ? <img src={m.image} alt="" loading="lazy" /> : <span className="bd-noimg sm"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></span>}
+                      {m.image ? <img src={m.image} alt={m.title} loading="lazy" /> : <span className="bd-noimg sm"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></span>}
                     </span>
                     <span className="bd-card-body">
                       <span className="bd-card-meta"><span className="bd-card-cat">బ్రేకింగ్</span><span className="bd-card-time">{timeAgo(m.createdAt)}</span></span>

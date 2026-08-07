@@ -186,7 +186,7 @@ export default async function MandalPage({ params }: { params: Params }) {
               <Link key={a.id} href={articleHref(a)} style={{ textDecoration: "none" }}>
                 <div style={{ background: "#fff", borderRadius: 8, overflow: "hidden", border: "1px solid #eee" }}>
                   {a.featuredImage && (
-                    <img src={a.featuredImage} alt="" style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }} loading="lazy" />
+                    <img src={a.featuredImage} alt={a.title} style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }} loading="lazy" />
                   )}
                   <div style={{ padding: 12 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: a.category?.color || "#888", padding: "1px 6px", borderRadius: 3 }}>

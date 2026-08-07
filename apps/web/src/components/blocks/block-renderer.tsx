@@ -193,7 +193,7 @@ export async function BlockRenderer({
     const cfg = block.config as { binding: string; staticUrl?: string; linkToItem?: boolean };
     const src = cfg.binding === "static" ? (cfg.staticUrl ?? "") : resolveBinding(loopItem, cfg.binding);
     if (!src) return preview ? <PreviewPlaceholder id={block.id} type="Image" cls="" note={`bound to ${cfg.binding}`} /> : null;
-    const img = <img src={src} alt="" loading="lazy" style={{ width: "100%", height: "auto", display: "block", borderRadius: 8, aspectRatio: "16 / 10", objectFit: "cover" }} />;
+    const img = <img src={src} alt={typeof loopItem?.title === "string" ? loopItem.title : ""} loading="lazy" style={{ width: "100%", height: "auto", display: "block", borderRadius: 8, aspectRatio: "16 / 10", objectFit: "cover" }} />;
     return (
       <div data-block-id={block.id} data-block-type="Image">
         {cfg.linkToItem && loopItem?.href ? <Link href={loopItem.href}>{img}</Link> : img}

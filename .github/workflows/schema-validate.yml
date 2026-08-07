@@ -28,3 +28,10 @@ jobs:
 
       - name: Run schema generator tests
         run: bun --filter=@rayalaseema/seo-schema test
+
+      # Blocks merges that ship an image with no alt text. jsx-a11y's rule
+      # accepts alt="", which is how eight district lead photos ended up
+      # hidden from screen readers and image search; this check requires an
+      # empty alt to be justified with an "alt-decorative" comment.
+      - name: Check image alt text
+        run: node scripts/check-alt-text.mjs

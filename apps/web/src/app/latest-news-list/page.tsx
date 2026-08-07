@@ -53,7 +53,7 @@ export default async function LatestNewsListPage() {
               <Link key={a.id} href={articleHref(a as never)} className="lnl-card">
                 <span className="lnl-thumb">
                   {a.featuredImage ? (
-                    <img src={a.featuredImage} alt="" loading="lazy" />
+                    <img src={a.featuredImage} alt={a.title} loading="lazy" />
                   ) : (
                     <span className="lnl-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></span>
                   )}

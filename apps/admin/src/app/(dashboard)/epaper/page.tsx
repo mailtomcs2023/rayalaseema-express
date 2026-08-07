@@ -2172,7 +2172,7 @@ function EpaperEditorPage() {
               Drag a rectangle on the image to define the crop. The block will fill itself with this region.
             </p>
             <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
-              <img ref={cropImgRef} src={cropImgUrl} alt=""
+              <img ref={cropImgRef} src={cropImgUrl} alt="Page being cropped"
                 onMouseDown={cropOnDown} onMouseMove={cropOnMove} onMouseUp={cropOnUp}
                 draggable={false}
                 style={{ maxWidth: "100%", maxHeight: "60vh", cursor: "crosshair", userSelect: "none", display: "block" }} />
@@ -3256,7 +3256,7 @@ function EpaperEditorPage() {
                         </span>
                       )}
                       {a.featuredImage ? (
-                        <img src={a.featuredImage} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+                        <img src={a.featuredImage} alt={a.title} style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
                       ) : (
                         <div style={{ width: 46, height: 46, background: "#e5e7eb", borderRadius: 4, flexShrink: 0 }} />
                       )}
