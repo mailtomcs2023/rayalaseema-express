@@ -36,9 +36,23 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
     title: `${metaTitle} | రాయలసీమ న్యూస్`,
     description: metaDescription,
     alternates: { canonical },
+    // A page-level `robots` REPLACES the root layout's default, so the
+    // googleBot directives have to be repeated here - otherwise articles, the
+    // pages that actually go to Discover, are the only ones that lose
+    // max-image-preview:large.
     robots: noindex
       ? { index: false, follow: false }
-      : { index: true, follow: true },
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+            "max-video-preview": -1,
+          },
+        },
     openGraph: {
       title: metaTitle,
       description: metaDescription,

@@ -56,6 +56,24 @@ export const metadata: Metadata = {
   description:
     "Latest Telugu news from Andhra Pradesh's Rayalaseema region - Kurnool, Nandyal, Anantapur, Sri Sathya Sai, Kadapa, Annamayya, Tirupati, Chittoor. Politics, sports, cinema, weather, mandi prices, gold rates, devotional. తాజా రాయలసీమ వార్తలు, రాజకీయాలు, క్రీడలు, సినిమా.",
   manifest: "/manifest.json",
+  // Google Discover only surfaces large-image cards when the page grants
+  // max-image-preview:large. Without it our 1200px article heroes were capped
+  // at a thumbnail, which effectively opted us out of the format that drives
+  // Discover traffic. Same for large previews in Search and News.
+  //
+  // This is a DEFAULT: pages that set their own `robots` (tag, author, search
+  // - all noindex,follow) override it and must stay that way.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   keywords: [
     "telugu news",
     "telugu news today",
