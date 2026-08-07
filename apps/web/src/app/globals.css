@@ -1453,13 +1453,17 @@ h2[style*="color:var(--color-brand)"] {
   margin-top: 5px;
   font-size: 11.5px;
   line-height: 1.3;
-  color: #8a8f98;
+  /* #8a8f98 measured ~3.2:1 on white - below the 4.5:1 WCAG AA floor for
+     text this size. #5f6672 clears it while staying visibly secondary. */
+  color: #5f6672;
 }
 .card-meta-place {
   font-family: var(--font-telugu-body, system-ui), sans-serif;
   font-weight: 700;
   letter-spacing: 0.01em;
-  color: var(--color-brand, #e01b1b);
+  /* The brand red is ~4.4:1 on white - marginal at 11.5px even bold. The
+     darker brand shade clears AA without changing the family. */
+  color: var(--brand-dark, #b91414);
   text-transform: uppercase;
 }
 .card-meta-sep {
@@ -2351,9 +2355,11 @@ button:disabled {
           /* Fixed-width button so the dot row NEVER reflows when the active dot
              changes - only the absolutely-positioned ::after pill animates, so
              neighbouring dots stay put (no jerk on navigation). Height stays
-             24px for a usable tap area. */
-          width: 14px;
-          height: 24px;
+             the tap area; the visible pill is the ::after, so widening the
+             button does not change the look. 14px was under the 24px floor
+             PSI measures for tap targets. */
+          width: 26px;
+          height: 32px;
           padding: 0;
           border: none;
           border-radius: 999px;

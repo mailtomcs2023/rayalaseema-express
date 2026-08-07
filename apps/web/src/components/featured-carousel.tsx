@@ -32,7 +32,22 @@ export interface FeaturedArticle {
   category: { name: string; color?: string; slug: string };
 }
 
-function Slide({ article, priority }: { article: FeaturedArticle; priority?: boolean }) {
+function Slide({
+  article,
+  priority,
+  renderImage = true,
+}: {
+  article: FeaturedArticle;
+  priority?: boolean;
+  /**
+   * False for slides the reader hasn't reached yet. Every slide used to ship
+   * its <Image> - twelve full srcsets in the HTML and again in the flight
+   * payload, competing with the hero for the phone's connection. The
+   * placeholder keeps the same box, so revealing the image later costs no
+   * layout shift.
+   */
+  renderImage?: boolean;
+}) {
   return (
     <div className="af-lead">
       {/* Image link is decorative: the title link below provides the
@@ -41,7 +56,10 @@ function Slide({ article, priority }: { article: FeaturedArticle; priority?: boo
           duplicate from screen readers + tab order, satisfying PSI's
           "Identical links have the same purpose" rule. */}
       <Link href={articleHref(article)} className="af-lead-img" aria-hidden="true" tabIndex={-1}>
-        {article.featuredImage ? (
+        {!renderImage ? (
+          // alt-decorative: stand-in box for a slide that is still off-screen.
+          <div className="af-noimg" />
+        ) : article.featuredImage ? (
           // Slide 0 is the LCP. We DON'T use `priority` because Next 16
           // emits a <link rel="preload"> WITHOUT fetchPriority="high"
           // for priority images, which PSI flagged ("fetchpriority=high
@@ -83,6 +101,10 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
   // Hooks first (Rules of Hooks) - called every render regardless of count.
   const swiperRef = useRef<SwiperClass | null>(null);
   const [active, setActive] = useState(0);
+  // Highest slide index the reader has actually reached. Only slides up to
+  // reached+1 render their image (see <Slide renderImage>); it never shrinks,
+  // so going back doesn't unmount an image that is already downloaded.
+  const [reached, setReached] = useState(0);
 
   if (items.length === 0) return null;
   // One story → plain hero, no carousel chrome or Swiper JS.
@@ -98,6 +120,7 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
     // realIndex maps clones back to the original slide so the counter/dots
     // track the true position in loop mode.
     setActive(s.realIndex);
+    setReached((r) => Math.max(r, s.realIndex));
     s.slides.forEach((slide, i) => {
       if (i === s.activeIndex) slide.removeAttribute("inert");
       else slide.setAttribute("inert", "");
@@ -135,7 +158,10 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
       >
         {items.map((a, i) => (
           <SwiperSlide key={a.id}>
-            <Slide article={a} priority={i === 0} />
+            {/* Mount the current slide's image plus the next one, so the
+                reader never waits on a swipe, and nothing further competes
+                with the hero for bandwidth on first paint. */}
+            <Slide article={a} priority={i === 0} renderImage={i <= reached + 1} />
           </SwiperSlide>
         ))}
       </Swiper>
