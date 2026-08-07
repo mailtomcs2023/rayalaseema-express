@@ -111,10 +111,15 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
                 style={{ height: 48, width: "auto" }}
               />
             </div>
-            <p className="text-sm text-gray-400 font-telugu leading-relaxed mb-4">
-              రాయలసీమ ప్రాంతం నుండి నమ్మకమైన, నిష్పక్షపాతమైన వార్తలు అందించడం మా లక్ష్యం.
-              కర్నూలు, అనంతపురం, కడప, చిత్తూరు జిల్లాల వార్తలు, రాజకీయాలు, క్రీడలు, వ్యాపారం
-              మరియు మరిన్ని విభాగాల్లో తాజా సమాచారం.
+            {/* English "who we are" paragraph. Carries the head terms Google
+                reads (Telugu news / district names / publisher) - the Telugu
+                version of this text said the same thing in a script that
+                contributes nothing to English-query relevance. Admin-editable
+                via SiteConfig `footer_about`; the fallback below ships the
+                same facts so the block is never empty. */}
+            <p className="text-sm text-gray-400 leading-relaxed mb-4">
+              {config.footer_about ||
+                `${config.publisher_brand_name || "Rayalaseema News"} is a Telugu news publication covering the Rayalaseema region of Andhra Pradesh - Kurnool, Nandyal, Anantapur, Sri Sathya Sai, YSR Kadapa, Annamayya, Tirupati and Chittoor districts. We report local politics, crime, agriculture, education, sports, cinema and business in Telugu, with district correspondents on the ground.`}
             </p>
             {/* Brand-aligned social row. All circles share the brand-red
               surface; the SVG inside is white. Used to be a rainbow of
@@ -157,7 +162,9 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
               links are ALL driven by the Menu Builder. Nothing hardcoded. */}
           {columns.map((col, ci) => (
             <div key={ci}>
-              <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider font-telugu">
+              {/* No font-telugu here: footer labels are English keyword anchor
+                  text (see apps/admin/scripts/englishify-footer-menu.ts). */}
+              <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
                 {col.heading}
               </h4>
               <ul className="space-y-2 text-sm">
@@ -166,13 +173,13 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
                     {isExternalHref(link.href) ? (
                       <a
                         href={link.href}
-                        className="hover:text-white transition-colors font-telugu"
+                        className="hover:text-white transition-colors"
                         {...(/^https?:/i.test(link.href) ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                       >
                         {link.name}
                       </a>
                     ) : (
-                      <Link href={link.href} className="hover:text-white transition-colors font-telugu">
+                      <Link href={link.href} className="hover:text-white transition-colors">
                         {link.name}
                       </Link>
                     )}
@@ -184,16 +191,86 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
         </div>
       </div>
 
+      {/* Publisher / contact strip. Every line is SiteConfig-driven and hides
+          when its key is empty, so nothing renders as a blank label. This is
+          the E-E-A-T block Google News + AdSense reviewers look for: who
+          publishes this, where from, and how to reach the desk. */}
+      <div className="border-t border-gray-800">
+        <div className="container-news py-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-gray-400">
+          <div>
+            <h4 className="text-white font-semibold mb-2 text-xs uppercase tracking-wider">Publisher</h4>
+            {config.publisher_legal_name && <p>{config.publisher_legal_name}</p>}
+            {config.contact_address && <p className="mt-1 leading-relaxed">{config.contact_address}</p>}
+            {config.publisher_rni && <p className="mt-1">RNI: {config.publisher_rni}</p>}
+            {config.publisher_gst && <p>GSTIN: {config.publisher_gst}</p>}
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-2 text-xs uppercase tracking-wider">Editorial</h4>
+            {config.editorial_email && (
+              <p>
+                News desk &amp; corrections:{" "}
+                <a href={`mailto:${config.editorial_email}`} className="text-gray-300 hover:text-white">{config.editorial_email}</a>
+              </p>
+            )}
+            {config.contact_email && (
+              <p className="mt-1">
+                General:{" "}
+                <a href={`mailto:${config.contact_email}`} className="text-gray-300 hover:text-white">{config.contact_email}</a>
+              </p>
+            )}
+            <p className="mt-1">
+              <Link href="/corrections-policy" className="text-gray-300 hover:text-white">Report a correction</Link>
+            </p>
+          </div>
+
+          <div>
+            <h4 className="text-white font-semibold mb-2 text-xs uppercase tracking-wider">Advertising</h4>
+            {config.ads_email && (
+              <p>
+                <a href={`mailto:${config.ads_email}`} className="text-gray-300 hover:text-white">{config.ads_email}</a>
+              </p>
+            )}
+            {config.contact_phone && (
+              <p className="mt-1">
+                <a href={`tel:${config.contact_phone.replace(/\s+/g, "")}`} className="text-gray-300 hover:text-white">{config.contact_phone}</a>
+              </p>
+            )}
+            <p className="mt-1">
+              <Link href="/ethics-policy" className="text-gray-300 hover:text-white">Code of Ethics</Link>
+              {" · "}
+              <Link href="/ownership" className="text-gray-300 hover:text-white">Ownership &amp; Funding</Link>
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Bottom Footer */}
       <div className="border-t border-gray-800">
         <div className="container-news py-5 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-          <p className="font-telugu">
-            &copy; {new Date().getFullYear()} రాయలసీమ న్యూస్. సర్వ హక్కులు
-            రిజర్వ్ చేయబడ్డాయి.
+          <p>
+            &copy; {new Date().getFullYear()}{" "}
+            {config.publisher_legal_name || "Medha Publications Private Limited"}. All rights reserved.
           </p>
           <p>
-            Published by <span style={{ color: "#ccc" }}>Medha Publications Pvt Ltd</span> | Developed by <span style={{ color: "#ccc" }}>Medha Cloud Solutions</span>
+            Developed by{" "}
+            {config.developer_url ? (
+              <a href={config.developer_url} target="_blank" rel="noopener noreferrer" style={{ color: "#ccc" }}>
+                {config.developer_name || "Medha Cloud"}
+              </a>
+            ) : (
+              <span style={{ color: "#ccc" }}>{config.developer_name || "Medha Cloud"}</span>
+            )}
           </p>
+        </div>
+        <div className="container-news pb-5 text-[11px] text-gray-600 leading-relaxed">
+          Content on {config.publisher_brand_name || "Rayalaseema News"} is copyright protected. Copying,
+          reproduction or re-use of any content, in whole or in part, without the written consent of{" "}
+          {config.publisher_legal_name || "Medha Publications Private Limited"} is prohibited and legally
+          actionable. This publication follows its published{" "}
+          <Link href="/ethics-policy" className="text-gray-500 hover:text-gray-300 underline">Code of Ethics</Link>{" "}
+          and{" "}
+          <Link href="/corrections-policy" className="text-gray-500 hover:text-gray-300 underline">Corrections Policy</Link>.
         </div>
       </div>
     </footer>

@@ -38,6 +38,22 @@ const sections: { title: string; icon: string; fields: SettingField[] }[] = [
       { key: "contact_email", label: "Contact Email", type: "text", placeholder: "info@rayalaseemanews.com" },
       { key: "contact_phone", label: "Contact Phone", type: "text", placeholder: "+91 ..." },
       { key: "contact_address", label: "Office Address", type: "text", placeholder: "Kurnool, Andhra Pradesh" },
+      { key: "editorial_email", label: "Editorial / Corrections Email", type: "text", placeholder: "editorial@rayalaseemanews.com" },
+      { key: "ads_email", label: "Advertising Email", type: "text", placeholder: "ads@rayalaseemanews.com" },
+    ],
+  },
+  {
+    // Publisher identity shown in the site footer. Google News and AdSense
+    // reviewers look for a named legal entity, a real address and reachable
+    // desks; every field here renders in the footer only when it's filled.
+    title: "Publisher & Legal",
+    icon: "🏛️",
+    fields: [
+      { key: "publisher_legal_name", label: "Legal Entity Name", type: "text", placeholder: "Medha Publications Private Limited" },
+      { key: "publisher_brand_name", label: "Publication Brand Name", type: "text", placeholder: "Rayalaseema News" },
+      { key: "publisher_rni", label: "RNI Registration No.", type: "text", placeholder: "Leave blank until issued" },
+      { key: "publisher_gst", label: "GSTIN", type: "text", placeholder: "Leave blank until issued" },
+      { key: "footer_about", label: "Footer 'About' paragraph (English)", type: "text", placeholder: "Overrides the built-in description" },
     ],
   },
   {
