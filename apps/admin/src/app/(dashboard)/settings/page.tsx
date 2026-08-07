@@ -77,6 +77,10 @@ const sections: { title: string; icon: string; fields: SettingField[] }[] = [
     fields: [
       { key: "google_analytics_id", label: "Google Analytics ID", type: "text", placeholder: "G-XXXXXXXXXX" },
       { key: "google_adsense_id", label: "Google AdSense Publisher ID", type: "text", placeholder: "ca-pub-XXXXXXXXXX" },
+      // The AdSense loader costs ~195 KB of third-party JS on every page and
+      // shows nothing until the account is approved. Set to "true" when
+      // submitting for review (Google must see the tag live) and leave it on.
+      { key: "adsense_enabled", label: "Load AdSense script? (true/false)", type: "text", placeholder: "false until approved - script costs ~195 KB" },
       { key: "google_tag_manager_id", label: "Google Tag Manager ID", type: "text", placeholder: "GTM-XXXXXXX" },
       { key: "meta_keywords", label: "Default Meta Keywords", type: "text", placeholder: "Telugu news, Rayalaseema, Kurnool..." },
       { key: "onesignal_app_id", label: "OneSignal App ID", type: "text", placeholder: "From onesignal.com dashboard" },

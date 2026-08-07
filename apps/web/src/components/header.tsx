@@ -336,20 +336,24 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
                 resized variants. The icon and wordmark are separate
                 <Image>s with classes that show/hide by breakpoint so
                 only one is visible at a time. */}
-              {/* Both logos load lazy explicitly. Next 16 was emitting
-                a phantom `<link rel="preload" href="/logo.png" as="image">`
-                even with no priority prop, then warning that the
-                preloaded asset wasn't used because the wordmark is
-                `hidden` on mobile via md:block. Forcing loading="lazy"
-                makes Next skip the auto-preload heuristic. The masthead
-                logos aren't LCP candidates either way. */}
+              {/* The phone icon is above the fold on the viewport that ~90% of
+                our readers use, so it is `priority` - lazy-loading it put the
+                masthead behind the hero in the request queue and pushed mobile
+                LCP out. `sizes` matters as much as the width prop: without it
+                Next picked a 640w variant for a 48px slot.
+
+                The desktop wordmark stays lazy on purpose: it is `hidden` below
+                md, and marking it priority makes Next emit a preload that the
+                phone never uses (it then warns about exactly that). Desktop LCP
+                is already 0.7s, so it does not need the hint. */}
               <Image
                 src="/logo-icon.png"
                 alt="రాయలసీమ న్యూస్"
                 width={64}
                 height={64}
-                quality={80}
-                loading="lazy"
+                sizes="48px"
+                quality={75}
+                priority
                 className="h-12 w-auto md:hidden"
                 style={{ height: 48, width: "auto" }}
               />
@@ -358,7 +362,8 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
                 alt="రాయలసీమ న్యూస్"
                 width={320}
                 height={66}
-                quality={85}
+                sizes="320px"
+                quality={75}
                 loading="lazy"
                 className="hidden md:block h-16 w-auto"
                 style={{ height: 64, width: "auto" }}

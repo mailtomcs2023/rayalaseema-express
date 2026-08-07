@@ -134,7 +134,7 @@ export function CinemaBand({
                 </div>
                 <div className="cb-grid-thumb">
                   {a.featuredImage ? (
-                    <SmartImg src={a.featuredImage} width={384} alt={a.title} />
+                    <SmartImg src={a.featuredImage} width={256} alt={a.title} />
                   ) : (
                     <div className="cb-noimg cb-noimg-sm"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
                   )}

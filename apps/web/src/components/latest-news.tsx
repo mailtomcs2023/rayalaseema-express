@@ -34,7 +34,7 @@ export function LatestNews({ articles }: { articles: LatestNewsArticle[] }) {
           <Link key={a.id} href={a.href} className="ln-card">
             <span className="ln-thumb">
               {a.featuredImage ? (
-                <SmartImg src={a.featuredImage} width={384} alt={a.title} />
+                <SmartImg src={a.featuredImage} width={256} alt={a.title} />
               ) : (
                 <span className="ln-noimg">RN</span>
               )}

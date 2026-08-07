@@ -101,7 +101,16 @@ export default async function RootLayout({
 }) {
   const config = await getSiteConfig();
   const gaId = config.google_analytics_id;
-  const adsenseId = config.google_adsense_id;
+  // AdSense costs ~195 KB of third-party JS per page load (rum.js +
+  // show_ads_impl), and until the account is approved it renders nothing in
+  // return - pure mobile TBT. So the publisher id alone is not enough to load
+  // it: `adsense_enabled` must also be "true" in Settings.
+  //
+  // Turn it on when submitting for review (Google needs to see the tag on the
+  // live site) and leave it on once approved. ads.txt is served independently
+  // and is unaffected by this flag.
+  const adsenseId =
+    config.adsense_enabled === "true" ? config.google_adsense_id : "";
   const gtmId = config.google_tag_manager_id;
   // Spec #4 H3 (#236) - Bing Webmaster verification meta tag.
   const bingVerify = config.bing_webmaster_id;
@@ -152,6 +161,12 @@ export default async function RootLayout({
   return (
     <html lang="te" className={cn("font-sans", geist.variable, notoTelugu.variable, anekTelugu.variable)} suppressHydrationWarning>
       <head>
+        {/* Every article photo comes from this origin, and the hero image is
+            the LCP element - without a preconnect the browser pays DNS + TLS
+            for it only after parsing the markup. PSI reported "no origins were
+            preconnected" against a 1,481 ms critical path. */}
+        <link rel="preconnect" href="https://rayalaseemamedia.blob.core.windows.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://rayalaseemamedia.blob.core.windows.net" />
         {bingVerify && <meta name="msvalidate.01" content={bingVerify} />}
         {/* JSON-LD structured data - search-engine metadata. A PLAIN
             <script type="application/ld+json"> is the App Router pattern for

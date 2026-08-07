@@ -152,7 +152,7 @@ export function SectionBand({
                 </div>
                 <div className="sb-grid-thumb">
                   {a.featuredImage ? (
-                    <SmartImg src={a.featuredImage} width={384} alt={a.title} />
+                    <SmartImg src={a.featuredImage} width={256} alt={a.title} />
                   ) : (
                     <div className="sb-noimg sb-noimg-sm"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
                   )}
