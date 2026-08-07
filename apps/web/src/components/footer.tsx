@@ -95,7 +95,10 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
     <footer className="bg-gray-900 text-gray-300 mt-16">
       {/* Top Footer */}
       <div className="container-news py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        {/* 6 columns on desktop: brand takes 2, leaving 4 for the nav columns
+            (News / Districts / Sections / About & Policies). Was 5, which left
+            only 3 slots and pushed the 4th column onto its own row. */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-x-6 gap-y-8">
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="mb-4 inline-block">
