@@ -21,18 +21,24 @@ export const articlePayloadSchema = z.object({
   featuredVideo: z.string().trim().max(2048).optional(),
 }).strict();
 
-// VIDEO - YouTube / hosted player. Duration in seconds.
+// VIDEO - YouTube / hosted player.
+//
+// `duration` is OPTIONAL: it is read automatically from an uploaded file, but a
+// pasted YouTube URL has no duration without calling the YouTube API. Requiring
+// it rejected every YouTube post with "Invalid payload shape" unless the editor
+// happened to type a number into the duration box by hand.
 export const videoPayloadSchema = z.object({
   videoUrl: z.string().url(),
-  duration: z.number().int().nonnegative(),
+  duration: z.number().int().nonnegative().optional(),
   thumbnailUrl: z.string().url().optional(),
 }).strict();
 
 // REEL - short vertical clip, similar shape to VIDEO but the URL is typically
-// hosted on Azure Blob (no YouTube embeds).
+// hosted on Azure Blob (no YouTube embeds). Same optional duration for the same
+// reason: pasted URLs can't report one.
 export const reelPayloadSchema = z.object({
   clipUrl: z.string().url(),
-  duration: z.number().int().nonnegative(),
+  duration: z.number().int().nonnegative().optional(),
 }).strict();
 
 // WEB_STORY - swipeable cards. At least one slide required.

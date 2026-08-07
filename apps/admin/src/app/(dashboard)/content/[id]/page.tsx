@@ -801,8 +801,19 @@ export default function ContentEditorPage() {
             target.focus();
           }
         }
-        toast.error(data.error || `Save failed (${res.status})`);
-        setError(data.error || `Save failed (${res.status})`);
+        // "Invalid payload shape" on its own tells the editor nothing about
+        // WHICH field the server rejected - and payload fields (videoUrl,
+        // duration, slides…) have no inline UI to attach the error to. Spell
+        // out the offending fields in the message instead.
+        let message = data.error || `Save failed (${res.status})`;
+        if (data.fieldErrors && typeof data.fieldErrors === "object") {
+          const unmapped = Object.entries(data.fieldErrors)
+            .filter(([k]) => !(FIELD_KEYS as string[]).includes(k))
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? (v as string[]).join(", ") : String(v)}`);
+          if (unmapped.length) message = `${message} — ${unmapped.join("; ")}`;
+        }
+        toast.error(message);
+        setError(message);
       } else {
         setStatus(data.status);
         // Toast message reflects what *changed*, not just the final state:

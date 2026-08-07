@@ -16,6 +16,18 @@ import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 type Payload = Record<string, unknown>;
 
+/**
+ * YouTube watch / share / shorts URL -> its thumbnail.
+ *
+ * hqdefault (not maxresdefault) because YouTube only generates a maxres still
+ * for HD uploads - for anything else that URL 404s, leaving a broken image.
+ * hqdefault exists for every video.
+ */
+function youtubeThumbnail(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg` : null;
+}
+
 export interface ContentPayloadEditorProps {
   type: string;
   payload: Payload;
@@ -26,13 +38,22 @@ export function ContentPayloadEditor({ type, payload, setPayload }: ContentPaylo
   const upd = (patch: Payload) => setPayload({ ...payload, ...patch });
 
   if (type === "VIDEO") {
-    // F2 - VIDEO subform. videoUrl + duration (sec) + optional thumbnail.
+    // F2 - VIDEO subform. videoUrl + optional duration + optional thumbnail.
     return (
       <SectionBox title="Video details">
         <Field label="Video (upload MP4/WebM, or paste a YouTube/hosted URL)">
           <VideoUpload
             value={(payload.videoUrl as string) || ""}
-            onChange={(v, secs) => upd(secs != null ? { videoUrl: v, duration: secs } : { videoUrl: v })}
+            onChange={(v, secs) => {
+              const patch: Payload = { videoUrl: v };
+              if (secs != null) patch.duration = secs;
+              // A YouTube URL already implies its thumbnail; making the editor
+              // hunt for a still and upload it by hand was pure busywork. Only
+              // fills an empty field, so a deliberate override is never lost.
+              const ytThumb = youtubeThumbnail(v);
+              if (ytThumb && !payload.thumbnailUrl) patch.thumbnailUrl = ytThumb;
+              upd(patch);
+            }}
           />
         </Field>
         <Field label="Duration (seconds)">
