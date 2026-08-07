@@ -25,6 +25,13 @@ const VALUES: Record<string, string> = {
   contact_email: "social@rayalaseemanews.com",
   editorial_email: "editorial@rayalaseemanews.com",
   ads_email: "ads@rayalaseemanews.com",
+  // Official handles, confirmed 2026-08-06. Platforms we are NOT on
+  // (WhatsApp channel, Telegram) are left unset on purpose - the footer
+  // hides an icon whose key is empty rather than linking it to "#".
+  facebook_url: "https://facebook.com/rayalaseemanews.tv",
+  instagram_url: "https://instagram.com/rayalaseemanews.tv",
+  twitter_url: "https://x.com/rsnewstv",
+  youtube_url: "https://youtube.com/@RayalaseemaNewsTV",
 };
 
 async function main() {

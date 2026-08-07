@@ -54,6 +54,8 @@ const sections: { title: string; icon: string; fields: SettingField[] }[] = [
       { key: "publisher_rni", label: "RNI Registration No.", type: "text", placeholder: "Leave blank until issued" },
       { key: "publisher_gst", label: "GSTIN", type: "text", placeholder: "Leave blank until issued" },
       { key: "footer_about", label: "Footer 'About' paragraph (English)", type: "text", placeholder: "Overrides the built-in description" },
+      { key: "android_app_url", label: "Android App URL", type: "text", placeholder: "Play Store link (footer hides this until set)" },
+      { key: "ios_app_url", label: "iPhone App URL", type: "text", placeholder: "App Store link (footer hides this until set)" },
     ],
   },
   {
