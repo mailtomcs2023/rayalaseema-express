@@ -18,7 +18,7 @@
 // Mounted in the root layout so it appears on every page automatically.
 
 import { getAdsByPosition } from "@/lib/db-queries";
-import { AdPlaceholder } from "@/components/ad-slots";
+import { DismissibleAnchor } from "@/components/dismissible-anchor";
 
 export async function MobileAnchorSlot({
   config,
@@ -65,9 +65,9 @@ export async function MobileAnchorSlot({
         },
       );
       return (
-        <div className="md:hidden" style={containerStyle}>
+        <DismissibleAnchor containerStyle={containerStyle}>
           <div dangerouslySetInnerHTML={{ __html: rewritten }} />
-        </div>
+        </DismissibleAnchor>
       );
     }
     if (ad.imageUrl) {
@@ -94,9 +94,7 @@ export async function MobileAnchorSlot({
         img
       );
       return (
-        <div className="md:hidden" style={containerStyle}>
-          {wrapped}
-        </div>
+        <DismissibleAnchor containerStyle={containerStyle}>{wrapped}</DismissibleAnchor>
       );
     }
   }
@@ -109,7 +107,7 @@ export async function MobileAnchorSlot({
     config?.adsense_slot_mobile_anchor || config?.adsense_slot_header;
   if (adSenseClient && adSenseSlot) {
     return (
-      <div className="md:hidden" style={containerStyle}>
+      <DismissibleAnchor containerStyle={containerStyle}>
         <ins
           className="adsbygoogle"
           style={{ display: "inline-block", minHeight: 50, width: 320 }}
@@ -117,16 +115,12 @@ export async function MobileAnchorSlot({
           data-ad-slot={adSenseSlot}
           data-ad-format="horizontal"
         />
-      </div>
+      </DismissibleAnchor>
     );
   }
 
-  // No ad + no AdSense → visible placeholder so the slot is still mapped.
-  return (
-    <div className="md:hidden" style={containerStyle}>
-      <div style={{ maxWidth: 320, margin: "0 auto" }}>
-        <AdPlaceholder size="Mobile Anchor · 320 × 100" minHeight={50} />
-      </div>
-    </div>
-  );
+  // No ad and no AdSense slot: render nothing. This used to paint a striped
+  // "Advertisement" placeholder pinned to the bottom of every phone screen -
+  // permanently occupying scarce viewport to advertise nothing.
+  return null;
 }

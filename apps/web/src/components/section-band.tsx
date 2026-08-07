@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BandEmpty } from "@/components/band-empty";
 import { RailAd } from "@/components/rail-ad";
+import { CardMeta } from "@/components/card-meta";
 
 interface BandArticle {
   id: string;
@@ -15,6 +16,8 @@ interface BandArticle {
   slug: string;
   summary?: string | null;
   featuredImage?: string | null;
+  publishedAt?: string | null;
+  dateline?: string | null;
   label?: string | null;
 }
 
@@ -129,6 +132,7 @@ export function SectionBand({
                 <h3 className="sb-lead-title">{viewLead.title}</h3>
               </Link>
               {viewLead.summary && <p className="sb-lead-dek">{viewLead.summary}</p>}
+              <CardMeta dateline={viewLead.dateline} publishedAt={viewLead.publishedAt} />
             </div>
             <Link href={articleHref(viewLead)} className="sb-lead-img" aria-label={viewLead.title}>
               {viewLead.featuredImage ? (
@@ -144,6 +148,7 @@ export function SectionBand({
               <Link key={a.id} href={articleHref(a)} className="sb-grid-item">
                 <div className="sb-grid-text">
                   <h4 className="sb-grid-title">{a.title}</h4>
+                  <CardMeta dateline={a.dateline} publishedAt={a.publishedAt} />
                 </div>
                 <div className="sb-grid-thumb">
                   {a.featuredImage ? (

@@ -10,6 +10,7 @@ import { prisma, AdPosition } from "@rayalaseema/db";
 import type { PageContext } from "./types";
 import { categoryHref, normalizeCategoryHref } from "@/lib/category-href";
 import { articleHref } from "@/lib/article-href";
+import { cardDateline, truncateSummary } from "@/lib/byline";
 import type {
   aboveFoldConfig,
   adBannerMidConfig,
@@ -41,15 +42,19 @@ function toAFArticle(c: {
   featuredImage: string | null;
   publishedAt: Date | null;
   category: { name: string; color: string | null; slug: string } | null;
-  constituency?: { slug: string; district: { slug: string } } | null;
+  constituency?: { slug: string; name?: string | null; district: { slug: string; name?: string | null } } | null;
+  desk?: { name: string | null } | null;
 }) {
   return {
     id: c.id,
     title: c.title,
     slug: c.slug || "",
-    summary: c.summary,
+    summary: truncateSummary(c.summary),
     featuredImage: c.featuredImage,
     publishedAt: teluguTimeAgoIso(c.publishedAt),
+    // Newspaper dateline - the place the story is from. Cards without one
+    // read as wire copy; readers can't tell local reporting from syndicated.
+    dateline: cardDateline(c),
     category: c.category
       ? { name: c.category.name, color: c.category.color || "#E01B1B", slug: c.category.slug }
       : { name: "", color: "#E01B1B", slug: "" },
@@ -65,15 +70,19 @@ function toBandArticle(c: {
   slug: string | null;
   summary: string | null;
   featuredImage: string | null;
+  publishedAt?: Date | null;
   category: { name: string; slug?: string } | null;
-  constituency?: { slug: string; district: { slug: string } } | null;
+  constituency?: { slug: string; name?: string | null; district: { slug: string; name?: string | null } } | null;
+  desk?: { name: string | null } | null;
 }) {
   return {
     id: c.id,
     title: c.title,
     slug: c.slug || "",
-    summary: c.summary,
+    summary: truncateSummary(c.summary),
     featuredImage: c.featuredImage,
+    publishedAt: teluguTimeAgoIso(c.publishedAt ?? null),
+    dateline: cardDateline(c),
     label: c.category?.name || null,
     // For articleHref() -> canonical /telugu-news/<category>/<slug> (or geo).
     category: c.category?.slug ? { slug: c.category.slug } : null,
@@ -146,7 +155,8 @@ export async function fetchAboveFold(
       featured: true,
       viewCount: true,
       category: { select: { name: true, slug: true, color: true } },
-      constituency: { select: { slug: true, district: { select: { slug: true } } } },
+      constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+      desk: { select: { name: true } },
     },
   });
 
@@ -201,7 +211,8 @@ export async function fetchAboveFold(
           featuredImage: true,
           // articleHref() needs constituency.district.slug for the
           // /[district]/[constituency]/<slug>-<id8> canonical URL.
-          constituency: { select: { slug: true, district: { select: { slug: true } } } },
+          constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+      desk: { select: { name: true } },
         },
       });
       return {
@@ -265,7 +276,8 @@ function fetchBandCategoryArticles(slug: string) {
       publishedAt: true,
       viewCount: true,
       category: { select: { name: true, slug: true } },
-      constituency: { select: { slug: true, district: { select: { slug: true } } } },
+      constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+      desk: { select: { name: true } },
     },
   });
 }
@@ -474,7 +486,8 @@ export async function fetchLoopItems(
       featuredImage: true,
       publishedAt: true,
       category: { select: { name: true, slug: true } },
-      constituency: { select: { slug: true, district: { select: { slug: true } } } },
+      constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+      desk: { select: { name: true } },
     },
   });
   return rows.map((r) => ({
@@ -507,7 +520,8 @@ export async function fetchLatestNews(
       featuredImage: true,
       publishedAt: true,
       category: { select: { name: true, slug: true } },
-      constituency: { select: { slug: true, district: { select: { slug: true } } } },
+      constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+      desk: { select: { name: true } },
     },
   });
   return {
@@ -593,7 +607,8 @@ export async function fetchCategoryPair(
           // article's OWN primary category (not col.slug, which may be a
           // cross-listed match) + constituency, so links are canonical.
           category: { select: { slug: true } },
-          constituency: { select: { slug: true, district: { select: { slug: true } } } },
+          constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+      desk: { select: { name: true } },
         },
       });
       const toCol = (a: typeof arts[number]) => ({

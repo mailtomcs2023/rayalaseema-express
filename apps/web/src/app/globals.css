@@ -1441,6 +1441,31 @@ h2[style*="color:var(--color-brand)"] {
   }
 }
 
+/* ===== Card dateline + timestamp (<CardMeta>) - one look everywhere =====
+   "కర్నూలు · 2 hours ago". The place is set in the Telugu UI font (it is a
+   Telugu place name); the timestamp is Latin. Deliberately small and grey so
+   it supports the headline instead of competing with it. */
+.card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: #8a8f98;
+}
+.card-meta-place {
+  font-family: var(--font-telugu-body, system-ui), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--color-brand, #e01b1b);
+  text-transform: uppercase;
+}
+.card-meta-sep {
+  color: #c9ced6;
+}
+
 /* ===== Shared rail/sidebar ad card (<RailAd>) - one look everywhere ===== */
 .rail-ad {
   margin-top: 16px;

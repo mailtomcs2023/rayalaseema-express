@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { RailAd } from "@/components/rail-ad";
+import { CardMeta } from "@/components/card-meta";
 
 interface AFArticle {
   id: string;
@@ -12,6 +13,7 @@ interface AFArticle {
   summary?: string | null;
   featuredImage?: string | null;
   publishedAt?: string | null;
+  dateline?: string | null;
   category: { name: string; color?: string; slug: string };
 }
 
@@ -157,6 +159,7 @@ export function AboveFold({
                 {/* Headline-only rail - category label intentionally omitted; the
                     rail reads as a clean list of latest headlines. */}
                 <h4 className="af-rail-title">{a.title}</h4>
+                <CardMeta dateline={a.dateline} publishedAt={a.publishedAt} />
               </Link>
             ))}
           </div>
@@ -436,6 +439,14 @@ export function AboveFold({
         .af-dist-head { align-items: center; }
         .af-dist-head-mandi { margin-left: auto; min-width: 0; flex: 0 1 auto; max-width: 70%; }
         .af-dist-head-mandi span { color: inherit; }
+        /* On a phone the header stacks, so the scrolling price strip landed
+           between the "రాయలసీమ జిల్లాలు" heading and the first district and
+           broke the reading flow. Commodity prices are a lookup, not a lead
+           story - readers who want them go to /mandi-prices (linked in the
+           footer), so the strip is desktop-only. */
+        @media (max-width: 767px) {
+          .af-dist-head-mandi { display: none; }
+        }
         .af-dist-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);

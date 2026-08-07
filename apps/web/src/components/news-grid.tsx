@@ -1,5 +1,6 @@
 import { articleHref } from "@/lib/article-href";
 import { SmartImg } from "@/components/smart-img";
+import { CardMeta } from "@/components/card-meta";
 import Link from "next/link";
 
 interface NewsGridItem {
@@ -8,6 +9,8 @@ interface NewsGridItem {
   slug: string;
   summary: string;
   featuredImage: string | null;
+  publishedAt?: string | null;
+  dateline?: string | null;
   label?: string;
   isLive?: boolean;
   isAd?: boolean;
@@ -70,6 +73,7 @@ export function NewsGrid({ items }: { items: NewsGridItem[] }) {
               >
                 {item.summary}
               </p>
+              <CardMeta dateline={item.dateline} publishedAt={item.publishedAt} />
             </div>
           </Link>
         </div>

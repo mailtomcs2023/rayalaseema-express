@@ -45,6 +45,43 @@ export function formatRelativeTelugu(d: Date | string | null | undefined): strin
 }
 
 /**
+ * Newspaper dateline for a card: the place the story is from, in Telugu.
+ * Prefers the constituency (most specific), then the district, then the
+ * geographic part of the desk name ("రాయలసీమ న్యూస్ - బనగానపల్లె" → "బనగానపల్లె").
+ * Returns "" when the story has no place, so callers can render the timestamp
+ * alone rather than an empty separator.
+ */
+export function cardDateline(a: {
+  constituency?: { name?: string | null; district?: { name?: string | null } | null } | null;
+  desk?: { name?: string | null } | null;
+}): string {
+  const c = a.constituency;
+  if (c?.name) return c.name;
+  if (c?.district?.name) return c.district.name;
+  const desk = a.desk?.name;
+  if (desk) {
+    const geo = desk.split(" - ")[1];
+    if (geo) return geo.trim();
+  }
+  return "";
+}
+
+/**
+ * Card summaries are a teaser, not the article. Editors write 300-600 char
+ * summaries; rendering them in full put ~218 KB of text on the homepage - and
+ * because React Server Components serialise the tree alongside the HTML, every
+ * one of those characters shipped twice. Cut on a word boundary.
+ */
+export function truncateSummary(s: string | null | undefined, max = 150): string | null {
+  if (!s) return null;
+  const t = s.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd() + "…";
+}
+
+/**
  * Cleans the article body for inline byline injection:
  *  1. Strips any leading <h1>/<h2>/<h3> whose text matches the article title
  *     (AI translation often emits "<h2>{title}</h2>" at the top of the body,

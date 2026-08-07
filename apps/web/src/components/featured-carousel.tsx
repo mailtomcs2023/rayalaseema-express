@@ -12,6 +12,7 @@
 
 import { useRef, useState } from "react";
 import { articleHref } from "@/lib/article-href";
+import { CardMeta } from "@/components/card-meta";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -27,6 +28,7 @@ export interface FeaturedArticle {
   summary?: string | null;
   featuredImage?: string | null;
   publishedAt?: string | null;
+  dateline?: string | null;
   category: { name: string; color?: string; slug: string };
 }
 
@@ -71,6 +73,7 @@ function Slide({ article, priority }: { article: FeaturedArticle; priority?: boo
           </h2>
         </Link>
         {article.summary && <p className="af-lead-dek">{article.summary}</p>}
+        <CardMeta dateline={article.dateline} publishedAt={article.publishedAt} />
       </div>
     </div>
   );
