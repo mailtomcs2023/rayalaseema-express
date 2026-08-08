@@ -32,10 +32,12 @@ interface SmartImgProps {
   imgHeight?: number;
   /** LCP hints, passed through for hero images. */
   fetchPriority?: "high" | "low" | "auto";
+  /** CSS display width, e.g. "120px". Lets the browser pick 1x vs 2x. */
+  sizes?: string;
   decoding?: "async" | "sync" | "auto";
 }
 
-export function SmartImg({ src, alt, width = 640, quality, className, style, loading = "lazy", imgWidth, imgHeight, fetchPriority, decoding }: SmartImgProps) {
+export function SmartImg({ src, alt, width = 640, quality, className, style, loading = "lazy", imgWidth, imgHeight, fetchPriority, decoding, sizes }: SmartImgProps) {
   // 0 = optimizer, 1 = raw original, 2 = logo placeholder.
   const [stage, setStage] = useState(0);
   const raw = (src || "").trim();
@@ -49,6 +51,18 @@ export function SmartImg({ src, alt, width = 640, quality, className, style, loa
         ? raw
         : LOGO;
 
+  // Retina srcset. Without this the card shipped ONE fixed-width file, so on a
+  // DPR2/DPR3 phone a 256px image filling a ~130px slot had to be stretched to
+  // 260-390 device pixels - which is why thumbnails across the site looked
+  // soft. `sizes` tells the browser the CSS width so it can pick the right
+  // candidate; without it the 2x file is always chosen, which is still correct,
+  // just heavier. Only on the optimizer stage: the raw-original and logo
+  // fallbacks have no variants to offer.
+  const srcSet =
+    raw && stage === 0
+      ? `${proxyImg(raw, width, quality)} 1x, ${proxyImg(raw, width * 2, quality)} 2x`
+      : undefined;
+
   // The logo is a small brand mark, not a photo - contain + pad it on a neutral
   // panel so the fallback reads as an intentional placeholder, not a stretched
   // broken image.
@@ -59,6 +73,8 @@ export function SmartImg({ src, alt, width = 640, quality, className, style, loa
   return (
     <img
       src={currentSrc}
+      srcSet={srcSet}
+      sizes={sizes}
       alt={alt}
       loading={loading}
       width={imgWidth}
