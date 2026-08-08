@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gsc": {
+      "command": "node",
+      "args": ["./mcp-gsc/dist/index.js"],
+      "env": {
+        "GSC_KEY_FILE": "D:\\Rayalaseema News final files\\gsc-key.json",
+        "GSC_SITE_URL": "sc-domain:rayalaseemanews.com",
+        "GSC_ALLOW_SITEMAP_WRITE": "true"
+      }
+    }
+  }
+}
