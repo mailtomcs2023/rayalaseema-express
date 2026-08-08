@@ -1,0 +1,504 @@
+/* Styles for components/above-fold.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .af {
+          background: #fff;
+          border: 1px solid var(--paper-edge, rgba(0,0,0,0.06));
+          border-radius: 8px;
+          padding: 16px 18px;
+        }
+        .af-body { display: flex; gap: 24px; }
+        .af-main { flex: 1 1 auto; min-width: 0; }
+        .af-rail {
+          flex: 0 0 290px;
+          border-left: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+          padding-left: 20px;
+          /* Flex column so the last ad can grow to fill the rail down to the
+             main column's height - no overshoot, no empty gap beside it. */
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* category label */
+        .af-cat {
+          /* Block-level chip with fixed 28px height + width:fit-content
+             so the bounding rect axe-core measures matches the visible
+             tap target (inline-flex was reporting a smaller bbox than
+             min-height, keeping the PSI tap-target rule failing even
+             after the chip was visibly 24px+). 12px horizontal padding
+             gives ~12px gap-to-edge on each side. */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: fit-content;
+          height: 28px;
+          padding: 0 12px;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--brand, #E01B1B);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          text-decoration: none;
+          /* 12px gap to the title link below - exceeds PSI's 8px
+             minimum spacing between adjacent interactive elements. */
+          margin-bottom: 12px;
+          border: 1px solid var(--brand, #E01B1B);
+          border-radius: 4px;
+          line-height: 1;
+        }
+        .af-cat:hover { background: var(--brand, #E01B1B); color: #fff; }
+
+        /* LEAD */
+        .af-lead {
+          display: flex;
+          gap: 22px;
+          padding-bottom: 16px;
+          border-bottom: 2px solid var(--n-900, #111827);
+        }
+        .af-lead-img {
+          flex: 1 1 56%;
+          display: block;
+          overflow: hidden;
+          border-radius: 4px;
+          background: var(--n-100, #f3f4f6);
+        }
+        .af-lead-img img {
+          width: 100%;
+          aspect-ratio: 16/10;
+          object-fit: cover;
+          display: block;
+        }
+        .af-noimg {
+          width: 100%;
+          aspect-ratio: 16/10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--n-100, #f3f4f6);
+        }
+        .af-noimg img { width: 22%; max-width: 96px; height: auto; object-fit: contain; opacity: 0.5; }
+        .af-lead-text { flex: 1 1 44%; min-width: 0; padding-top: 4px; }
+        .af-lead-link {
+          /* Block link wrapping the H2: display:block makes the full
+             title row the tap target, padding-block ensures the click
+             box height clears WCAG 2.5.8 24px even on narrow viewports
+             where the title wraps tight. */
+          display: block;
+          padding-block: 2px;
+          text-decoration: none;
+        }
+        .af-lead-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 26px;
+          font-weight: 800;
+          /* Telugu's tall top vowel marks overflow a tight line box and get
+             clipped on the first line. 1.5 gives each line enough headroom. */
+          line-height: 1.5;
+          color: var(--n-900, #111827);
+          margin: 0 0 10px;
+        }
+        .af-lead-link:hover .af-lead-title { color: var(--brand-dark, #B91414); }
+        .af-lead-dek {
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 14px;
+          line-height: 1.6;
+          color: var(--n-600, #4b5563);
+          margin: 0;
+          /* Cap the excerpt at 3 lines so the card height stays stable
+             regardless of how long the dek is. */
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 3;
+          line-clamp: 3;
+          overflow: hidden;
+        }
+
+        /* HERO CAROUSEL (Swiper, manual nav). The carousel wrapper owns the
+           bottom rule so slides don't each draw one; arrows + dots themed to
+           brand red; dots sit in normal flow below the slide (no overlap). */
+        .af-carousel {
+          position: relative;
+          padding-bottom: 16px;
+          border-bottom: 2px solid var(--n-900, #111827);
+        }
+        .af-carousel .af-lead { border-bottom: none; padding-bottom: 0; }
+        /* Clip a 1px hairline off the right edge of the slider viewport.
+           Swiper rounds each slide's width down on fractional container widths,
+           leaving a sub-pixel gap at the right where the NEXT slide's image
+           leaks through as a thin vertical line. roundLengths shrinks it but
+           can't fully remove it; clipping that hairline does (the active slide
+           only loses 1px of its empty right margin, which is invisible). */
+        .af-carousel .swiper { clip-path: inset(0 1px 0 0); }
+
+        /* Custom lucide arrow buttons (SVG ships in SSR HTML - no flash). */
+        .af-nav {
+          position: absolute;
+          top: 38%;
+          transform: translateY(-50%);
+          z-index: 3;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          /* Bumped 38 -> 44 for PSI's tap-target/spacing rule:
+             carousel arrows sit close to the slide edge + image, and
+             at 38 PSI flagged them as too small once spacing was
+             accounted for. 44 hits Apple's 44pt HIG + WCAG AAA. */
+          width: 44px;
+          height: 44px;
+          border: none;
+          border-radius: 999px;
+          color: #fff;
+          background: var(--brand, #E01B1B);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+          cursor: pointer;
+          transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+        }
+        .af-nav:not([aria-disabled="true"]):hover { background: var(--brand-dark, #B91414); }
+        .af-nav:not([aria-disabled="true"]):active { transform: translateY(-50%) scale(0.94); }
+        .af-nav-prev { left: 8px; }
+        .af-nav-next { right: 8px; }
+        .af-nav[aria-disabled="true"] {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+
+        /* Slide counter pill (current / total), top-right of the hero. */
+        .af-carousel-count {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 3;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          /* Asymmetric vertical padding (5px top / 2px bottom) optically
+             centers the digits - Noto Sans Telugu's large descent reserve
+             otherwise leaves them sitting high in the pill. */
+          padding: 5px 10px 2px;
+          border-radius: 999px;
+          background: rgba(17, 24, 39, 0.78);
+          color: #fff;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1;
+          letter-spacing: 0.02em;
+          backdrop-filter: blur(2px);
+        }
+        .af-carousel-count-sep { opacity: 0.6; margin: 0 1px; }
+
+        /* Custom dots - server-rendered (in HTML from first paint, no flash)
+           and in normal flow so they reserve their own height (no layout
+           shift when the page settles). */
+        .af-dots {
+          display: flex;
+          justify-content: center;
+          gap: 0px;
+          margin-top: 12px;
+        }
+        .af-dot {
+          /* Fixed-width button so the dot row NEVER reflows when the active dot
+             changes - only the absolutely-positioned ::after pill animates, so
+             neighbouring dots stay put (no jerk on navigation). Height stays
+             the tap area; the visible pill is the ::after, so widening the
+             button does not change the look. 14px was under the 24px floor
+             PSI measures for tap targets. */
+          width: 26px;
+          height: 32px;
+          padding: 0;
+          border: none;
+          border-radius: 999px;
+          background: transparent;
+          cursor: pointer;
+          position: relative;
+        }
+        .af-dot::after {
+          content: "";
+          position: absolute;
+          /* Inactive: fixed 8x8 circle, centered. The active pill grows in width
+             only (overflowing the 14px button symmetrically), which is layout-
+             neutral, so the grow/shrink is smooth and doesn't shift siblings. */
+          top: 50%;
+          left: 50%;
+          width: 8px;
+          height: 8px;
+          transform: translate(-50%, -50%);
+          border-radius: 999px;
+          background: var(--n-300, #d1d5db);
+          transition: background 0.15s ease, width 0.2s ease;
+        }
+        .af-dot:hover::after { background: var(--n-400, #9ca3af); }
+        /* Active: bar widens into an elongated brand-red pill (button unchanged). */
+        .af-dot-active::after {
+          width: 18px;
+          background: var(--brand, #E01B1B);
+        }
+
+        /* DISTRICT GRID */
+        .af-dist-head, .af-rail-head {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--n-900, #111827);
+          padding: 14px 0 8px;
+          margin-bottom: 8px;
+          border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.12));
+          display: flex; align-items: baseline; gap: 6px;
+        }
+        .af-dist-head span, .af-rail-head span { color: var(--brand, #E01B1B); }
+        /* District header carries the mandi strip on the right - center-align
+           (override the shared baseline) and let the marquee fill the gap. */
+        .af-dist-head { align-items: center; }
+        .af-dist-head-mandi { margin-left: auto; min-width: 0; flex: 0 1 auto; max-width: 70%; }
+        .af-dist-head-mandi span { color: inherit; }
+        /* On a phone the header stacks, so the scrolling price strip landed
+           between the "రాయలసీమ జిల్లాలు" heading and the first district and
+           broke the reading flow. Commodity prices are a lookup, not a lead
+           story - readers who want them go to /mandi-prices (linked in the
+           footer), so the strip is desktop-only. */
+        @media (max-width: 767px) {
+          .af-dist-head-mandi { display: none; }
+        }
+        .af-dist-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0;
+        }
+        .af-dist-cell {
+          padding: 12px 14px;
+          border-right: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+          border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+        }
+        .af-dist-cell:nth-child(4n) { border-right: none; padding-right: 0; }
+        .af-dist-cell:nth-child(4n+1) { padding-left: 0; }
+        .af-dist-cell:nth-child(n+5) { border-bottom: none; }
+        .af-dist-name {
+          display: block;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--brand, #E01B1B);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          text-decoration: none;
+          margin-bottom: 6px;
+        }
+        .af-dist-lead { text-decoration: none; display: block; }
+        .af-dist-thumb {
+          display: block;
+          width: 100%;
+          aspect-ratio: 16/10;
+          object-fit: cover;
+          border-radius: 4px;
+          margin-bottom: 6px;
+          background: var(--n-100, #f3f4f6);
+          transition: transform 0.25s ease;
+        }
+        .af-dist-lead:hover .af-dist-thumb { transform: scale(1.02); }
+        /* Logo fallback when article has no featuredImage - soft gradient,
+           subtle inset shadow, square brand icon at low opacity. */
+        .af-dist-fallback {
+          background: linear-gradient(135deg, #f8f9fa 0%, #eef0f2 60%, #e5e7eb 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -1px 2px rgba(0,0,0,0.05);
+        }
+        .af-dist-fallback-img {
+          width: 40%;
+          max-width: 60px;
+          height: auto;
+          opacity: 0.55;
+          filter: grayscale(15%) drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+        }
+        .af-dist-lead h3 {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 1.35;
+          color: var(--n-900, #111827);
+          margin: 0 0 6px;
+        }
+        .af-dist-lead:hover h3 { color: var(--brand-dark, #B91414); }
+        .af-dist-sub {
+          /* flex so the bullet prefix sits next to the headline as a
+             clear separator - without it the supporting headlines blurred
+             into a paragraph that looked like a single excerpt under the
+             lead story. */
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 12.5px;
+          font-weight: 600;
+          line-height: 1.42;
+          color: var(--n-700, #374151);
+          text-decoration: none;
+          padding: 7px 0;
+          border-top: 1px solid #e5e7eb;
+          margin-top: 6px;
+        }
+        .af-dist-sub:hover { color: var(--brand-dark, #B91414); }
+        /* Bullet glyph stays the brand-red even when the headline text is
+           grey, so the reader's eye snaps to it as a list marker. */
+        .af-dist-sub::before {
+          content: "▸";
+          color: var(--brand, #E01B1B);
+          font-size: 11px;
+          line-height: 1.42;
+          flex-shrink: 0;
+        }
+        .af-dist-sub:hover::before {
+          color: var(--brand-dark, #B91414);
+        }
+        .af-dist-empty {
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 12px;
+          color: var(--n-500, #6b7280);
+          font-style: italic;
+        }
+
+        /* RAIL - breaking */
+        .af-breaking {
+          background: var(--brand-soft, #FFF1F1);
+          border: 1px solid var(--brand, #E01B1B);
+          border-radius: 6px;
+          padding: 10px 12px;
+          margin-bottom: 14px;
+        }
+        .af-breaking-head {
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 12px;
+          font-weight: 800;
+          color: var(--brand, #E01B1B);
+          letter-spacing: 0.05em;
+          margin-bottom: 6px;
+        }
+        .af-breaking-item {
+          display: block;
+          text-decoration: none;
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.4;
+          color: var(--n-900, #111827);
+          padding: 5px 0;
+          border-top: 1px solid rgba(224,27,27,0.2);
+          transition: color var(--dur-fast, 0.15s) var(--ease, ease);
+        }
+        .af-breaking-item:first-of-type { border-top: none; }
+        .af-breaking-item:hover { color: var(--brand-dark, #B91414); }
+
+        /* RAIL - latest news card (boxed block, matches site card chrome) */
+        .af-latest {
+          background: #fff;
+          border: 1px solid var(--paper-edge, rgba(0,0,0,0.1));
+          border-radius: 8px;
+          padding: 4px 14px 8px;
+          box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));
+        }
+        .af-rail-head { border-bottom: 2px solid var(--n-900, #111827); }
+        /* Inside the card the head's own top padding is the card's top breathing
+           room; trim the default rail spacing so it sits tight to the box edge. */
+        .af-latest .af-rail-head { padding-top: 10px; margin-bottom: 4px; }
+        .af-latest .af-rail-item:last-child { border-bottom: none; padding-bottom: 4px; }
+        .af-rail-item {
+          display: block;
+          text-decoration: none;
+          padding: 11px 0;
+          border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+        }
+        .af-rail-item:last-child { border-bottom: none; }
+        .af-rail-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 15px; font-weight: 700;
+          line-height: 1.35;
+          color: var(--n-900, #111827);
+          margin: 0;
+          transition: color var(--dur-fast, 0.15s) var(--ease, ease);
+        }
+        .af-rail-item:hover .af-rail-title,
+        .af-rail-item:focus-visible .af-rail-title {
+          color: var(--brand-dark, #B91414);
+        }
+
+        /* RAIL - most-read card (boxed numbered list, matches the latest card).
+           Sits between the two 300x250 ad slots; each ad keeps its own 16px
+           top margin from globals.css so the stack spaces evenly. */
+        .af-mostread {
+          margin-top: 16px;
+          background: #fff;
+          border: 1px solid var(--paper-edge, rgba(0,0,0,0.1));
+          border-radius: 8px;
+          padding: 4px 14px 8px;
+          box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04));
+        }
+        .af-mostread .af-rail-head { padding-top: 10px; margin-bottom: 4px; }
+        .af-mr-item {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          text-decoration: none;
+          padding: 9px 0;
+          border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+        }
+        .af-mr-item:last-child { border-bottom: none; padding-bottom: 4px; }
+        .af-mr-num {
+          font-family: var(--font-telugu-heading), sans-serif;
+          font-size: 20px;
+          font-weight: 800;
+          color: var(--brand, #E01B1B);
+          line-height: 1.1;
+          flex-shrink: 0;
+          min-width: 22px;
+          font-variant-numeric: tabular-nums;
+        }
+        .af-mr-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 1.35;
+          color: var(--n-900, #111827);
+          margin: 0;
+          transition: color var(--dur-fast, 0.15s) var(--ease, ease);
+        }
+        .af-mr-item:hover .af-mr-title,
+        .af-mr-item:focus-visible .af-mr-title {
+          color: var(--brand-dark, #B91414);
+        }
+
+        @media (max-width: 1024px) {
+          .af-rail { flex-basis: 250px; }
+          .af-lead-title { font-size: 22px; }
+          .af-dist-grid { grid-template-columns: repeat(2, 1fr); }
+          .af-dist-cell:nth-child(4n) { border-right: 1px solid var(--paper-edge, rgba(0,0,0,0.08)); }
+          .af-dist-cell:nth-child(2n) { border-right: none; padding-right: 0; }
+          .af-dist-cell:nth-child(2n+1) { padding-left: 0; }
+          .af-dist-cell:nth-child(n+5) { border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.08)); }
+          .af-dist-cell:nth-child(n+7) { border-bottom: none; }
+        }
+        @media (max-width: 768px) {
+          .af-body { flex-direction: column; gap: 16px; }
+          .af-rail {
+            flex-basis: auto; border-left: none;
+            border-top: 1px solid var(--paper-edge, rgba(0,0,0,0.08));
+            padding-left: 0; padding-top: 12px;
+          }
+          .af-lead { flex-direction: column; gap: 12px; }
+          .af-lead-text, .af-lead-img { flex-basis: auto; }
+          .af-lead-title { font-size: 21px; }
+          .af-dist-grid { grid-template-columns: 1fr; }
+          .af-dist-cell {
+            border-right: none !important;
+            padding-left: 0 !important; padding-right: 0 !important;
+            border-bottom: 1px solid var(--paper-edge, rgba(0,0,0,0.08)) !important;
+          }
+        }
+      

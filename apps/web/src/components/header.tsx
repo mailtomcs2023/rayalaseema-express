@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/header.css";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";

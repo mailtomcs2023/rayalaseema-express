@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/news-slider.css";
 import { useState, useEffect, useCallback } from "react";
 import { SmartImg } from "@/components/smart-img";
 import Link from "next/link";

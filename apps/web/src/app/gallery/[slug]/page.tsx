@@ -4,6 +4,7 @@
 // with a fullscreen toggle for immersive reading. Crawlers see the
 // full <noscript> masonry grid with every <img> + caption so the
 // photos stay SEO-indexable and reachable for users with JS off.
+import "@/styles/route-gallery-slug-page.css";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";

@@ -3,6 +3,7 @@
 // width, so it works full-bleed or inside a Columns block. Data comes from
 // fetchLatestNews; this component is presentational.
 
+import "@/styles/latest-news.css";
 import Link from "next/link";
 import { SmartImg } from "@/components/smart-img";
 

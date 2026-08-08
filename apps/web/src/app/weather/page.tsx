@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/route-weather-page.css";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CloudSun, Lightbulb, LayoutGrid } from "lucide-react";

@@ -1,0 +1,17 @@
+/* Styles for app/horoscope/page.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .rashi-tile { transition: border-color 0.15s, box-shadow 0.15s; }
+        .rashi-tile:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        @media (max-width: 768px) {
+          .horoscope-layout { flex-direction: column !important; }
+          .horoscope-sidebar { width: 100% !important; }
+          .rashi-pick { grid-template-columns: repeat(4, 1fr) !important; }
+          .rashi-all { grid-template-columns: 1fr !important; }
+        }
+      

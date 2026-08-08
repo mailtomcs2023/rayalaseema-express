@@ -1,0 +1,83 @@
+/* Styles for components/market-ticker-view.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .market-ticker-bar {
+          background: #111827;
+          overflow: hidden;
+          white-space: nowrap;
+          font-family: "Inter", "Noto Sans Telugu", sans-serif;
+          display: flex;
+          align-items: center;
+          min-height: 36px;
+          line-height: 1;
+        }
+        .market-ticker-scroll {
+          overflow-x: auto;
+          overflow-y: hidden;
+          width: 100%;
+          scrollbar-width: none;
+        }
+        .market-ticker-scroll::-webkit-scrollbar { display: none; }
+        .market-ticker-content {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding-left: 14px;
+        }
+        .ticker-section-label {
+          color: #fff;
+          font-size: 10px;
+          font-weight: 800;
+          padding: 2px 8px;
+          border-radius: 3px;
+          flex-shrink: 0;
+          margin-left: 16px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .ticker-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          margin: 0 8px;
+        }
+        .ticker-name {
+          color: #9ca3af;
+          font-size: 11px;
+          font-weight: 500;
+        }
+        .ticker-value {
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .ticker-text {
+          color: #d1d5db;
+          font-size: 11px;
+        }
+        .ticker-status {
+          color: #fbbf24;
+          font-size: 10px;
+          font-weight: 600;
+          margin-left: 4px;
+        }
+        .ticker-change {
+          font-size: 10px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+        }
+        .ticker-change.up { color: #4ade80; }
+        .ticker-change.down { color: #f87171; }
+        .ticker-divider {
+          color: #374151;
+          margin: 0 4px;
+        }
+      

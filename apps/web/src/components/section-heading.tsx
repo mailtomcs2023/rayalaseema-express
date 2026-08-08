@@ -1,3 +1,4 @@
+import "@/styles/section-heading.css";
 import type { LucideIcon } from "lucide-react";
 import {
   Landmark, Trophy, Clapperboard, Briefcase, Flag, Globe, ShieldAlert,

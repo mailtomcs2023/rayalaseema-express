@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/video-grid.css";
 import { useState } from "react";
 import Link from "next/link";
 import type { VideoItem } from "./video-section";

@@ -3,6 +3,7 @@
 // HTML (no flash), refreshed via the source's 30-min cache. Renders nothing
 // if the source is unreachable, so it never shows a broken/empty card.
 
+import "@/styles/today-gold-rate.css";
 import { getApGoldRates, formatRateTimestamp } from "@/lib/lalithaa-rates";
 
 const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;

@@ -1,0 +1,14 @@
+/* Styles for components/blocks/template-renderer.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        @media (max-width: 768px) {
+          .pb-mobile-hide { display: none !important; }
+          .pb-columns-stack { flex-direction: column !important; }
+          .pb-columns-stack > .pb-column { width: 100% !important; }
+        }
+      

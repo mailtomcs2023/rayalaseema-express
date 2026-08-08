@@ -8,6 +8,7 @@
 // template's draftLayout instead of the published layout. The public entry
 // points never set this.
 
+import "@/styles/template-renderer.css";
 import { Suspense } from "react";
 import { prisma, layoutSchema, resolveAssignment } from "@rayalaseema/db";
 import type { PageContext } from "./types";

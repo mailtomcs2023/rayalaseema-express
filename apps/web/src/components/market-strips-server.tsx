@@ -42,6 +42,7 @@ function findMetal(bullion: any[], re: RegExp) {
 }
 
 // ===== MANDI STRIP (Districts header) - auto-scrolling marquee =====
+import "@/styles/market-strips-server.css";
 export async function MandiStrip() {
   const data = await getTickers();
   const items = (data?.mandi ?? []).slice(0, 12).filter((m: any) => m?.commodity && m?.price != null);

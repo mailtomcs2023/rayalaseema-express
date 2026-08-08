@@ -1,0 +1,121 @@
+/* Styles for app/not-found.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .rsn-404-digit {
+          font-family: var(--font-telugu-heading), sans-serif;
+          font-size: clamp(96px, 20vw, 168px);
+          font-weight: 900;
+          color: #111827;
+          -webkit-text-stroke: 0;
+          background: linear-gradient(180deg, #1f2937 0%, #374151 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        .rsn-pin-wrap {
+          position: relative;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          margin: 0 -2px;
+          cursor: pointer;
+        }
+        /* Hover the pin → the heart beats (emotional centerpiece). */
+        .rsn-heart { transform-box: fill-box; transform-origin: center; }
+        .rsn-pin-wrap:hover .rsn-heart { animation: rsnBeat 0.65s ease-in-out infinite; }
+        .rsn-pin-wrap:hover .rsn-pin { filter: drop-shadow(0 16px 22px rgba(224,27,27,0.45)); }
+        @keyframes rsnBeat {
+          0%, 100% { transform: scale(1); }
+          25% { transform: scale(1.22); }
+          45% { transform: scale(0.96); }
+          65% { transform: scale(1.12); }
+        }
+        .rsn-pin {
+          filter: drop-shadow(0 12px 16px rgba(224,27,27,0.30));
+          animation: rsnFloat 3.2s ease-in-out infinite;
+          transform-origin: center bottom;
+        }
+        .rsn-pin-shadow {
+          position: absolute;
+          bottom: -2px;
+          width: 46px;
+          height: 9px;
+          border-radius: 50%;
+          background: rgba(17,24,39,0.18);
+          filter: blur(3px);
+          animation: rsnShadow 3.2s ease-in-out infinite;
+        }
+        @keyframes rsnFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes rsnShadow {
+          0%, 100% { transform: scaleX(1); opacity: 0.18; }
+          50% { transform: scaleX(0.78); opacity: 0.1; }
+        }
+        .rsn-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-family: var(--font-telugu-body, inherit);
+          font-weight: 700;
+          font-size: 14px;
+          padding: 12px 24px;
+          border-radius: 999px !important;
+          text-decoration: none !important;
+          cursor: pointer;
+          transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+          white-space: nowrap;
+        }
+        .rsn-btn::before { content: none !important; display: none !important; }
+        .rsn-btn-primary {
+          background: linear-gradient(180deg, var(--brand, #E01B1B) 0%, var(--brand-dark, #B91414) 100%) !important;
+          color: #fff !important;
+          box-shadow: 0 10px 22px rgba(224, 27, 27, 0.32);
+        }
+        .rsn-btn svg { transition: transform 0.2s ease; }
+        .rsn-btn-primary svg { fill: #fff !important; color: #fff !important; }
+        .rsn-btn-primary:hover {
+          transform: translateY(-3px);
+          filter: brightness(1.07);
+          box-shadow: 0 16px 30px rgba(224, 27, 27, 0.42);
+        }
+        .rsn-btn-primary:active { transform: translateY(-1px); }
+        .rsn-btn-primary:hover svg { transform: scale(1.14); }
+        .rsn-btn-secondary {
+          background: #fff !important;
+          color: #374151 !important;
+          border: 1px solid #e5e7eb !important;
+        }
+        .rsn-btn-secondary svg { stroke: currentColor !important; fill: none !important; }
+        .rsn-btn-secondary:hover {
+          border-color: var(--brand, #E01B1B) !important;
+          color: var(--brand, #E01B1B) !important;
+          background: var(--brand-soft, #FFF1F1) !important;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 22px rgba(224, 27, 27, 0.16);
+        }
+        .rsn-btn-secondary:active { transform: translateY(-1px); }
+        .rsn-btn-secondary:hover svg { transform: rotate(-12deg) scale(1.1); }
+
+        .rsn-chip {
+          transition: transform 0.18s ease, color 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+        }
+        .rsn-chip:hover {
+          color: var(--brand, #E01B1B) !important;
+          border-color: var(--brand, #E01B1B) !important;
+          background: var(--brand-soft, #FFF1F1) !important;
+          transform: translateY(-3px) scale(1.05);
+          box-shadow: 0 8px 16px rgba(224, 27, 27, 0.18);
+        }
+        .rsn-chip:active { transform: translateY(-1px) scale(1.02); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .rsn-pin, .rsn-pin-shadow, .rsn-heart { animation: none !important; }
+        }
+      

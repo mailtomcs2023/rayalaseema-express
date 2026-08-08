@@ -1,3 +1,4 @@
+import "@/styles/above-fold.css";
 import { articleHref } from "@/lib/article-href";
 import { MandiStrip } from "@/components/market-strips-server";
 import Link from "next/link";

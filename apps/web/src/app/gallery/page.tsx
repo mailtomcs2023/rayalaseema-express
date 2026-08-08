@@ -5,6 +5,7 @@
 // Was 404 until 2026-06-04 because only /gallery/[slug] existed. The
 // header nav, the homepage "ఫోటో గ్యాలరీ" SectionShell "more →" link,
 // and the in-component thumb links all pointed here.
+import "@/styles/route-gallery-page.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";

@@ -8,6 +8,7 @@
 // Polish in H1 (#171): hide the global chrome (WhatsApp float / cookie
 // banner) when this page renders inside the editor frame.
 
+import "@/styles/route-page-builder-preview-id-page.css";
 import { prisma } from "@rayalaseema/db";
 import { TemplateRenderer } from "@/components/blocks/template-renderer";
 import { Suspense } from "react";

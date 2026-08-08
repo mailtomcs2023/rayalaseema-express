@@ -1,0 +1,101 @@
+/* Styles for app/breaking-news/[id]/page.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        /* Hero */
+        .bd-hero {
+          display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px;
+          background: #fff; border: 1px solid #eef0f2; border-radius: 14px; padding: 16px;
+          align-items: start;
+        }
+        @media (max-width: 760px) { .bd-hero { grid-template-columns: 1fr; gap: 14px; } }
+        .bd-hero-img {
+          width: 100%; border-radius: 10px; overflow: hidden; background: #f3f4f6;
+          aspect-ratio: 16 / 10; display: block;
+        }
+        .bd-hero-img > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bd-noimg {
+          width: 100%; height: 100%; min-height: 120px; display: flex; align-items: center; justify-content: center;
+          background: #f8fafc;
+        }
+        .bd-noimg img { width: 50%; max-width: 110px; height: auto; object-fit: contain; opacity: 0.6; }
+        .bd-noimg.sm { min-height: 0; }
+        .bd-noimg.sm img { width: 46px; }
+        .bd-hero-body { min-width: 0; }
+        .bd-daterow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .bd-date {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 12.5px; color: #64748b; font-weight: 600;
+        }
+        .bd-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 24px; font-weight: 800; line-height: 1.4; color: var(--brand, #E01B1B);
+          margin: 4px 0 10px;
+        }
+        .bd-summary {
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 15.5px; line-height: 1.9; color: #1f2937;
+        }
+        .bd-cta { margin-top: 18px; }
+
+        /* Below grid */
+        .bd-layout {
+          display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px;
+          margin-top: 24px; align-items: start;
+        }
+        @media (max-width: 880px) { .bd-layout { grid-template-columns: 1fr; } }
+
+        .bd-sec-h, .bd-trend-h {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 18px; font-weight: 800; color: #0f172a;
+          padding-bottom: 10px; margin: 0 0 12px; border-bottom: 2px solid var(--brand, #E01B1B);
+          display: flex; align-items: baseline; gap: 8px;
+        }
+        .bd-sec-h span, .bd-trend-h span { font-size: 12px; font-weight: 600; color: #94a3b8; }
+
+        /* More breaking cards (thumb left, title right) */
+        .bd-more-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (max-width: 560px) { .bd-more-list { grid-template-columns: 1fr; } }
+        .bd-card {
+          display: flex; gap: 12px; padding: 10px;
+          background: #fff; border: 1px solid #eef0f2; border-radius: 10px;
+          text-decoration: none; transition: border-color 0.15s;
+        }
+        .bd-card:hover { border-color: #d1d5db; }
+        .bd-card-thumb {
+          flex: 0 0 104px; width: 104px; height: 72px; border-radius: 8px;
+          overflow: hidden; background: #f3f4f6; display: block;
+        }
+        .bd-card-thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bd-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+        .bd-card-meta { display: flex; align-items: center; gap: 8px; }
+        .bd-card-cat { font-size: 10px; font-weight: 800; color: var(--brand, #E01B1B); text-transform: uppercase; letter-spacing: 0.04em; }
+        .bd-card-time { font-size: 11px; font-weight: 600; color: #9ca3af; }
+        .bd-card-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14px; font-weight: 700; line-height: 1.6; color: #111827;
+          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .bd-card:hover .bd-card-title { color: var(--brand-dark, #B91414); }
+
+        /* Trending rail */
+        .bd-rail { position: sticky; top: 16px; }
+        @media (max-width: 880px) { .bd-rail { position: static; } }
+        .bd-trend { background: #fff; border: 1px solid #eef0f2; border-radius: 12px; padding: 16px; }
+        .bd-trend-list { list-style: none; margin: 0; padding: 0; }
+        .bd-trend-row { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid #f1f5f9; text-decoration: none; }
+        .bd-trend-list li:last-child .bd-trend-row { border-bottom: none; }
+        .bd-trend-num { flex-shrink: 0; width: 26px; text-align: center; font-family: system-ui, sans-serif; font-size: 18px; font-weight: 900; line-height: 1.4; color: #e2e8f0; }
+        .bd-trend-num.is-top { color: var(--brand, #E01B1B); }
+        .bd-trend-title {
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 13.5px; font-weight: 600; line-height: 1.6; color: #334155;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .bd-trend-row:hover .bd-trend-title { color: var(--brand, #E01B1B); }
+        .bd-empty { font-size: 13px; color: #94a3b8; padding: 8px 0; }
+      

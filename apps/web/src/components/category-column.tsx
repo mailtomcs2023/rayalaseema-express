@@ -1,3 +1,4 @@
+import "@/styles/category-column.css";
 import { articleHref } from "@/lib/article-href";
 import { SmartImg } from "@/components/smart-img";
 import { categoryHref } from "@/lib/category-href";

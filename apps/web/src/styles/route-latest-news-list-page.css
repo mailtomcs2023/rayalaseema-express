@@ -1,0 +1,39 @@
+/* Styles for app/latest-news-list/page.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .lnl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (max-width: 640px) { .lnl-grid { grid-template-columns: 1fr; } }
+        .lnl-card {
+          display: flex; gap: 12px; padding: 10px;
+          background: #fff; border: 1px solid #eef0f2; border-radius: 10px;
+          text-decoration: none; transition: border-color 0.15s;
+        }
+        .lnl-card:hover { border-color: #d1d5db; }
+        .lnl-thumb {
+          flex: 0 0 116px; width: 116px; height: 80px; border-radius: 8px;
+          overflow: hidden; background: #f3f4f6; display: block;
+        }
+        .lnl-thumb > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .lnl-noimg {
+          width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+          background: #f8fafc;
+        }
+        .lnl-noimg img { width: 52px; height: auto; object-fit: contain; opacity: 0.6; }
+        .lnl-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+        .lnl-meta { display: flex; align-items: center; gap: 8px; }
+        .lnl-cat {
+          font-size: 10px; font-weight: 800; color: var(--brand, #E01B1B);
+          text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .lnl-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14.5px; font-weight: 700; line-height: 1.7; color: #111827;
+          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .lnl-card:hover .lnl-title { color: var(--brand-dark, #B91414); }
+      

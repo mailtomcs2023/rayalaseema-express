@@ -1,0 +1,119 @@
+/* Styles for components/header.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .mobile-menu-slide {
+          animation: slideFromBottom 0.3s ease-out;
+        }
+        @keyframes slideFromBottom {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+
+        /* === Masthead center AdSense slot (Eenadu-style) === */
+        .masthead-ad-slot {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          max-width: 728px;
+          min-height: 90px;
+          /* Lock the slot to the 90px leaderboard height so an off-ratio
+             creative (e.g. a 728x120 hiring banner pasted as htmlContent,
+             which has no inline height cap) can't stretch the masthead and
+             "sag" below the logo line. */
+          max-height: 90px;
+        }
+        /* Scale ANY ad payload - <img>, pasted HTML banner, or AdSense <ins> -
+           down to the slot height, preserving aspect ratio (no squash). */
+        .masthead-ad-slot img,
+        .masthead-ad-slot ins {
+          /* !important so an inline height on admin-pasted ad markup (which we
+             don't control) can't defeat the cap. */
+          max-height: 90px !important;
+          width: auto !important;
+          max-width: 100%;
+          object-fit: contain;
+        }
+        .masthead-ad-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 3px;
+          width: 100%;
+          max-width: 728px;
+          height: 90px;
+          font-family: var(--font-sans, system-ui);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.12em;
+          color: #b0b6bf;
+          background: repeating-linear-gradient(45deg, #fafbfc 0 10px, #f4f5f7 10px 20px);
+          border: 1px dashed #d8dde3;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+        .masthead-ad-placeholder-size {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          color: #c4c9d1;
+          text-transform: none;
+        }
+
+        /* === Masthead right quick-tiles (Latest / Breaking / E-PAPER) === */
+        .masthead-tile {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+          /* Equal width for the top-row tiles (Latest + Breaking), sized just to
+             the longer label so neither tile is inflated. Height stays natural
+             (both have the same icon + 1-line label). E-PAPER overrides to 100%. */
+          width: 74px;
+          padding: 4px 10px;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          text-decoration: none;
+          transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        }
+        .masthead-tile:hover {
+          background: #f9fafb;
+          border-color: #d1d5db;
+          transform: translateY(-1px);
+        }
+        .masthead-tile-label {
+          font-family: var(--font-sans, system-ui);
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--n-800, #1f2937);
+          letter-spacing: 0.02em;
+        }
+        .masthead-tile-breaking .masthead-tile-label {
+          color: var(--brand, #E01B1B);
+        }
+        .masthead-tile-breaking { border-color: #fecaca; background: #fff5f5; }
+        .masthead-tile-breaking:hover { background: #fff1f1; border-color: #f87171; }
+        .masthead-tile-epaper {
+          flex-direction: row;
+          gap: 6px;
+          padding: 6px 14px;
+          width: 100%;
+          height: auto;
+          background: var(--brand, #E01B1B);
+          color: #fff;
+          border-color: var(--brand-dark, #B91414);
+          font-weight: 800;
+        }
+        .masthead-tile-epaper:hover {
+          background: var(--brand-dark, #B91414);
+          border-color: var(--brand-dark, #B91414);
+        }
+      

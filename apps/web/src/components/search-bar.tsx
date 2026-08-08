@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/search-bar.css";
 import { useEffect, useId, useRef } from "react";
 import { SearchIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/section-band.css";
 import { articleHref } from "@/lib/article-href";
 import { SmartImg } from "@/components/smart-img";
 import { normalizeCategoryHref } from "@/lib/category-href";

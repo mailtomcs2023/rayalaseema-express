@@ -4,6 +4,7 @@
 // look (e.g. the జిల్లా వార్తలు / district-news category) render identical markup
 // instead of duplicating ~150 lines of JSX + inline styles.
 
+import "@/styles/section-hub.css";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";

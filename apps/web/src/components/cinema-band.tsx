@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/cinema-band.css";
 import { articleHref } from "@/lib/article-href";
 import { SmartImg } from "@/components/smart-img";
 import Link from "next/link";

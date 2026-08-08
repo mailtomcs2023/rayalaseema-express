@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/epaper-viewer.css";
 import React, { useState, useRef, useEffect } from "react";
 import { articleHref } from "@/lib/article-href";
 import { Button } from "@/components/ui/button";

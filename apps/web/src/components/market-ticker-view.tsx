@@ -3,6 +3,7 @@
 // Used by:
 //   - MarketTickerServer (server-side fetch + render, zero flash on first paint)
 //   - MarketTicker (legacy client-side fetch, fallback for pages not yet migrated)
+import "@/styles/market-ticker-view.css";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 export interface CricketMatch {

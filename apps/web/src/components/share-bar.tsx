@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/share-bar.css";
 import { useState } from "react";
 
 interface Props {

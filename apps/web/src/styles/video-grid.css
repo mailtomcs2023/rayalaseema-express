@@ -1,0 +1,99 @@
+/* Styles for components/video-grid.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .vg {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px 16px;
+        }
+        .vg-empty {
+          font-family: var(--font-telugu-body), sans-serif;
+          color: var(--n-500, #6b7280);
+          padding: 40px 0;
+          text-align: center;
+        }
+        .vg-item { min-width: 0; }
+        .vg-frame {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 16/9;
+          border-radius: 6px;
+          overflow: hidden;
+          background: #000;
+        }
+        .vg-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+        .vg-thumb {
+          position: relative;
+          display: block;
+          width: 100%;
+          padding: 0; border: 0;
+          cursor: pointer;
+          border-radius: 6px;
+          overflow: hidden;
+          background: #000;
+        }
+        .vg-thumb img {
+          width: 100%;
+          aspect-ratio: 16/9;
+          object-fit: cover;
+          display: block;
+        }
+        .vg-play {
+          position: absolute;
+          top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          width: 48px; height: 34px;
+          border-radius: 8px;
+          background: var(--brand, #E01B1B);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+          transition: transform 0.15s ease;
+        }
+        .vg-play svg { margin-left: 2px; }
+        .vg-thumb:hover .vg-play { transform: translate(-50%, -50%) scale(1.12); }
+        .vg-dur {
+          position: absolute;
+          bottom: 6px; right: 6px;
+          background: rgba(0,0,0,0.85);
+          color: #fff;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 11px; font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 3px;
+        }
+        .vg-meta { padding-top: 8px; }
+        .vg-cat {
+          display: inline-block;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 10px; font-weight: 800;
+          color: var(--brand, #E01B1B);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 4px;
+        }
+        .vg-title {
+          display: block;
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 15px; font-weight: 700;
+          line-height: 1.35;
+          color: var(--n-900, #111827);
+          text-decoration: none;
+        }
+        .vg-title:hover { color: var(--brand-dark, #B91414); }
+        .vg-views {
+          display: block;
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 12px;
+          color: var(--n-500, #6b7280);
+          margin-top: 4px;
+        }
+
+        @media (max-width: 1024px) { .vg { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 768px)  { .vg { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px)  { .vg { grid-template-columns: 1fr; } }
+      

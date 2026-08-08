@@ -4,6 +4,7 @@
 // otherwise it's a headline-only alert. Layout: a list of alerts on the left
 // with a sticky Trending rail on the right (same shape as the section hubs).
 
+import "@/styles/route-breaking-news-page.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";

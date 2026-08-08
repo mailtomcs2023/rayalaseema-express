@@ -3,6 +3,7 @@
 // summary + share on the right. Below: a "మరిన్ని" (more breaking) list on the
 // left and a sticky Trending rail on the right.
 
+import "@/styles/route-breaking-news-id-page.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";

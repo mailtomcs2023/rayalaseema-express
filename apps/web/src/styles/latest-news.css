@@ -1,0 +1,38 @@
+/* Styles for components/latest-news.tsx.
+ *
+ * Imported by that component so Next ships it only on routes that render
+ * it. These used to sit in an inline <style> tag (re-sent per render), then
+ * briefly in globals.css (downloaded on every route, including article
+ * pages that use none of it). Plain CSS, not a module: the class names are
+ * referenced as string literals in the markup.
+ */
+        .ln-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+        .ln-card {
+          display: flex; gap: 12px; padding: 10px;
+          background: #fff; border: 1px solid #eef0f2; border-radius: 10px;
+          text-decoration: none; transition: border-color 0.15s;
+        }
+        .ln-card:hover { border-color: #d1d5db; }
+        .ln-thumb {
+          flex: 0 0 104px; width: 104px; height: 74px; border-radius: 8px;
+          overflow: hidden; background: #f3f4f6; display: block;
+        }
+        .ln-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ln-noimg {
+          width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+          font-family: var(--font-telugu-heading), serif; font-weight: 800; font-size: 16px; color: #cbd5e1;
+        }
+        .ln-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+        .ln-meta { display: flex; align-items: center; gap: 8px; }
+        .ln-cat {
+          font-size: 10px; font-weight: 800; color: var(--brand, #E01B1B);
+          text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .ln-time { font-size: 11px; color: #9aa3af; font-weight: 600; }
+        .ln-title {
+          font-family: var(--font-telugu-heading), serif;
+          font-size: 14px; font-weight: 700; line-height: 1.45; color: #111827;
+          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .ln-card:hover .ln-title { color: var(--brand-dark, #B91414); }
+      

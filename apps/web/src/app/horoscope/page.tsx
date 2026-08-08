@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/route-horoscope-page.css";
 import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
 import { Header } from "@/components/header";

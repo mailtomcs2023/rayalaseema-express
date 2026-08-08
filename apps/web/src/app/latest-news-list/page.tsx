@@ -2,6 +2,7 @@
 // published articles, newest first, with thumbnails + timestamps. The masthead
 // "Latest" tile links here. Links go through articleHref (canonical /telugu-news/).
 
+import "@/styles/route-latest-news-list-page.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";

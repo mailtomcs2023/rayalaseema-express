@@ -1,3 +1,4 @@
+import "@/styles/route-not-found.css";
 import Link from "next/link";
 import type { Metadata } from "next";
 

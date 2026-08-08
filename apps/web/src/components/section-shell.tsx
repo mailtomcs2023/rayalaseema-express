@@ -1,3 +1,4 @@
+import "@/styles/section-shell.css";
 import Link from "next/link";
 
 /**

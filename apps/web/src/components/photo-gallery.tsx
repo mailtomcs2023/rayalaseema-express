@@ -1,3 +1,4 @@
+import "@/styles/photo-gallery.css";
 import Link from "next/link";
 import { SectionShell } from "./section-shell";
 import { ClampedTitle } from "./clamped-title";

@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/epaper-search-inline.css";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";

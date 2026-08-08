@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/video-section.css";
 import { useState } from "react";
 import Link from "next/link";
 
