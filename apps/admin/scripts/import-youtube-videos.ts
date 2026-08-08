@@ -19,7 +19,9 @@ import { readFileSync } from "node:fs";
 import { prisma, stripYouTubeBoilerplate, youtubeSummary, ContentType, ArticleStatus } from "@rayalaseema/db";
 import { teluguTitleToSlug } from "@rayalaseema/nlp";
 
-const DEFAULT_FILE = "D:/Rayalaseema News final files/YOUTUBE_EXPORT.json";
+// Vendored next to the script so the import can run on the server (the deploy
+// carries it), not just on the machine that happens to hold the export.
+const DEFAULT_FILE = new URL("../data/youtube-export.json", import.meta.url).pathname;
 
 type ExportItem = {
   type: "video" | "short";
