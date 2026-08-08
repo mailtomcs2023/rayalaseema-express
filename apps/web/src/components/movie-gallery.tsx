@@ -97,7 +97,7 @@ export function TrendingReels({ items }: { items: { id: string; title: string; i
         <div style={{ padding: "8px 8px 0" }}>
           <span className="section-tab">
             <svg width="14" height="14" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            <span className="section-label">RE రీల్స్</span>
+            <span className="section-label">RSN రీల్స్</span>
           </span>
         </div>
 
@@ -202,9 +202,9 @@ function ReelsViewer({
         <img src={reel.image} alt={reel.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 40%, rgba(0,0,0,0.3) 100%)" }} />
 
-        {/* Top bar: close + RE logo */}
+        {/* Top bar: close + RSN logo */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
-          <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>RE రీల్స్</span>
+          <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>RSN రీల్స్</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer" }}>
             <svg width="24" height="24" fill="none" stroke="#fff" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -233,9 +233,9 @@ function ReelsViewer({
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 60, padding: "16px 14px", zIndex: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--color-brand)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 11, fontWeight: 900 }}>RE</span>
+              <span style={{ color: "#fff", fontSize: 11, fontWeight: 900 }}>RSN</span>
             </div>
-            <span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>RE News</span>
+            <span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>RSN News</span>
           </div>
           <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1.5 }}>
             {reel.title}

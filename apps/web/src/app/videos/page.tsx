@@ -55,7 +55,7 @@ export default async function VideosPage() {
               margin: 0,
             }}
           >
-            RE వీడియోలు
+            RSN వీడియోలు
           </h1>
           <p
             style={{

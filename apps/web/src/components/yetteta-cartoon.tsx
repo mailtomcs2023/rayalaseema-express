@@ -74,7 +74,7 @@ export function YettetaCartoon({ items }: { items: { id: string; title: string; 
           fontSize: "var(--fs-tiny)",
           color: "#999",
         }}>
-          కార్టూనిస్ట్: RE స్పెషల్
+          కార్టూనిస్ట్: RSN స్పెషల్
         </div>
       </div>
 

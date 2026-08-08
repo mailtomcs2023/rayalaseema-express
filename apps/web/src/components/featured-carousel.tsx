@@ -166,25 +166,21 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
         ))}
       </Swiper>
 
-      {/* Custom controls: in the SSR HTML (no flash) and wired straight to the
-          Swiper instance, so they work on the very first click. */}
-      <button
-        type="button"
-        className="af-nav af-nav-prev"
-        aria-label="మునుపటి స్లైడ్"
-        // Loop mode: arrows wrap around, so they're never disabled.
-        onClick={() => swiperRef.current?.slidePrev()}
-      >
-        <ChevronLeft size={22} strokeWidth={2.75} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className="af-nav af-nav-next"
-        aria-label="తదుపరి స్లైడ్"
-        onClick={() => swiperRef.current?.slideNext()}
-      >
-        <ChevronRight size={22} strokeWidth={2.75} aria-hidden="true" />
-      </button>
+      {/* Controls sit in one row BELOW the slide rather than floating over it.
+          Overlaid arrows landed on top of the photo (covering faces in a news
+          picture) and on top of the summary text on the right, which is the
+          content the reader is there for. In the SSR HTML and wired straight
+          to the Swiper instance, so they work on the very first click. */}
+      <div className="af-carousel-controls">
+        <button
+          type="button"
+          className="af-nav af-nav-prev"
+          aria-label="మునుపటి స్లైడ్"
+          // Loop mode: arrows wrap around, so they're never disabled.
+          onClick={() => swiperRef.current?.slidePrev()}
+        >
+          <ChevronLeft size={20} strokeWidth={2.75} aria-hidden="true" />
+        </button>
 
       <div className="af-dots" role="tablist" aria-label="స్లైడ్‌లు">
         {items.map((a, i) => (
@@ -199,6 +195,16 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
             onClick={() => swiperRef.current?.slideToLoop(i)}
           />
         ))}
+      </div>
+
+        <button
+          type="button"
+          className="af-nav af-nav-next"
+          aria-label="తదుపరి స్లైడ్"
+          onClick={() => swiperRef.current?.slideNext()}
+        >
+          <ChevronRight size={20} strokeWidth={2.75} aria-hidden="true" />
+        </button>
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ export function VideoWidget({ videos }: { videos: VideoItem[] }) {
       <div style={{ padding: "8px 8px 0" }}>
         <span className="section-tab">
           <svg width="14" height="14" fill="#fff" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          <span className="section-label">RE వీడియోలు</span>
+          <span className="section-label">RSN వీడియోలు</span>
         </span>
       </div>
 
@@ -73,7 +73,7 @@ export function VideoWidget({ videos }: { videos: VideoItem[] }) {
                 {video.title}
               </p>
               <p style={{ fontSize: 11, color: "#888", marginTop: 3 }}>
-                RE News • 2.5K views
+                RSN News
               </p>
             </div>
           </a>

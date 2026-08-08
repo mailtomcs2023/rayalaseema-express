@@ -63,9 +63,15 @@ export const metadata: Metadata = {
   //
   // This is a DEFAULT: pages that set their own `robots` (tag, author, search
   // - all noindex,follow) override it and must stay that way.
+  // Declared on BOTH the generic robots tag and the googlebot one. Google
+  // prefers the googlebot tag, but the directives are only visible to other
+  // crawlers - and to anyone auditing the page - if `robots` carries them too.
   robots: {
     index: true,
     follow: true,
+    "max-image-preview": "large",
+    "max-snippet": -1,
+    "max-video-preview": -1,
     googleBot: {
       index: true,
       follow: true,

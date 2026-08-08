@@ -137,32 +137,28 @@
         .af-carousel .swiper { clip-path: inset(0 1px 0 0); }
 
         /* Custom lucide arrow buttons (SVG ships in SSR HTML - no flash). */
+        /* Arrows live in the control row under the slide (see
+           .af-carousel-controls), not floating over it. Overlaid, the prev
+           arrow sat on the photo - covering faces in a news picture - and the
+           next arrow sat on the summary text. */
         .af-nav {
-          position: absolute;
-          top: 38%;
-          transform: translateY(-50%);
-          z-index: 3;
+          flex: 0 0 auto;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          /* Bumped 38 -> 44 for PSI's tap-target/spacing rule:
-             carousel arrows sit close to the slide edge + image, and
-             at 38 PSI flagged them as too small once spacing was
-             accounted for. 44 hits Apple's 44pt HIG + WCAG AAA. */
+          /* 44px meets Apple's HIG minimum and WCAG AAA for tap targets. */
           width: 44px;
           height: 44px;
           border: none;
           border-radius: 999px;
           color: #fff;
           background: var(--brand, #E01B1B);
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
           cursor: pointer;
           transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
         }
         .af-nav:not([aria-disabled="true"]):hover { background: var(--brand-dark, #B91414); }
-        .af-nav:not([aria-disabled="true"]):active { transform: translateY(-50%) scale(0.94); }
-        .af-nav-prev { left: 8px; }
-        .af-nav-next { right: 8px; }
+        .af-nav:not([aria-disabled="true"]):active { transform: scale(0.94); }
         .af-nav[aria-disabled="true"] {
           opacity: 0.35;
           cursor: not-allowed;
@@ -196,11 +192,20 @@
         /* Custom dots - server-rendered (in HTML from first paint, no flash)
            and in normal flow so they reserve their own height (no layout
            shift when the page settles). */
+        .af-carousel-controls {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          margin-top: 10px;
+        }
         .af-dots {
           display: flex;
           justify-content: center;
           gap: 0px;
-          margin-top: 12px;
+          /* Spacing now comes from .af-carousel-controls. */
+          margin-top: 0;
+          flex-wrap: wrap;
         }
         .af-dot {
           /* Fixed-width button so the dot row NEVER reflows when the active dot

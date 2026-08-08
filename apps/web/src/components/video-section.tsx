@@ -50,7 +50,7 @@ export function VideoSection({ videos }: { videos: VideoItem[] }) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M8 5v14l11-7z" />
           </svg>
-          RE వీడియోలు
+          RSN వీడియోలు
         </span>
         <Link href="/videos" className="vs-all">అన్నీ చూడండి →</Link>
       </div>
