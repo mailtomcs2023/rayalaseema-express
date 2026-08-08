@@ -27,6 +27,10 @@ function rewriteHtmlImgs(html: string, targetWidth: number, targetHeight: number
     (_match, before, quote, srcUrl, after) => {
       // q=80: ad creatives are brand assets full of small text and logos, and
       // they are one image per page - not the place to save 5 KB.
+      //
+      // targetWidth MUST be one of Next's deviceSizes/imageSizes. The optimizer
+      // 400s on any other value, which silently blanks the ad - w=1456 did
+      // exactly that to the 970x250 hiring banner.
       const optimised = `/_next/image?url=${encodeURIComponent(srcUrl)}&w=${targetWidth}&q=80`;
       // Inject default width/height only when admin's snippet doesn't
       // already declare them (preserves the admin's intended aspect
@@ -45,16 +49,16 @@ function DbAdRenderer({ ad }: { ad?: DbAd | null }) {
   // Next image optimiser before they hit the reader's network.
   if (ad.htmlContent) {
     return (
-      <div className="db-ad" dangerouslySetInnerHTML={{ __html: rewriteHtmlImgs(ad.htmlContent, 1456, 180) }} />
+      <div className="db-ad" dangerouslySetInnerHTML={{ __html: rewriteHtmlImgs(ad.htmlContent, 1200, 180) }} />
     );
   }
   if (ad.imageUrl) {
-    // 1456 = 2x a 728 leaderboard, so a large creative still gets a retina
-    // variant. The optimiser never upscales past the source, so asking for
-    // more than the creative has costs nothing.
+    // 1200 is the largest allowed width that comfortably covers our widest
+    // creative (970). The optimiser never upscales past the source, so a 728
+    // or 970 banner is returned at its own size, not stretched.
     const img = (
       <img
-        src={`/_next/image?url=${encodeURIComponent(ad.imageUrl)}&w=1456&q=80`}
+        src={`/_next/image?url=${encodeURIComponent(ad.imageUrl)}&w=1200&q=80`}
         alt={ad.name}
         loading="lazy"
         decoding="async"
