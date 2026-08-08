@@ -1696,3 +1696,19 @@ button:disabled {
   height: auto;
   border-radius: 4px;
 }
+
+/* Footer contact links (phone / email).
+   Lighthouse flagged the tel: link as a tap target too small: it was an inline
+   run of text a few pixels tall. Inline-flex with a 48px min height gives the
+   full WCAG target without changing how the line reads. */
+.footer-contact-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: #d1d5db;
+  text-decoration: none;
+}
+.footer-contact-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}

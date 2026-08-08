@@ -30,7 +30,17 @@ export function CardMeta({
       {place && <span className="card-meta-place">{place}</span>}
       {place && when && <span className="card-meta-sep">·</span>}
       {when && (
-        <time dateTime={publishedAt ? new Date(publishedAt).toISOString() : undefined}>
+        // suppressHydrationWarning because the text is relative to Date.now():
+        // the server renders "3 hours ago" and the client, milliseconds-to-
+        // minutes later, can compute "4 hours ago". React logged that as
+        // hydration error #418 on every card carrying a timestamp, which cost
+        // us the Best Practices score. The timestamp itself is deterministic -
+        // only the phrasing drifts - so tolerating the difference is correct
+        // here; the machine-readable dateTime never changes.
+        <time
+          dateTime={publishedAt ? new Date(publishedAt).toISOString() : undefined}
+          suppressHydrationWarning
+        >
           {when}
         </time>
       )}

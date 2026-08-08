@@ -3,6 +3,7 @@
 import "@/styles/video-section.css";
 import { useState } from "react";
 import Link from "next/link";
+import { SmartImg } from "@/components/smart-img";
 
 export interface VideoItem {
   id: string;
@@ -73,7 +74,20 @@ export function VideoSection({ videos }: { videos: VideoItem[] }) {
               onClick={() => heroYt && setPlayingId(hero.id)}
               aria-label={`Play: ${hero.title}`}
             >
-              <img src={hero.thumbnail} alt={hero.title} />
+              {/* Through the optimizer: this was a raw <img> pulling a ~295 KB
+                  maxresdefault straight from i.ytimg.com, which Lighthouse
+                  counted three times over (offscreen, oversized, wrong
+                  format). SmartImg routes it via /_next/image with a retina
+                  srcset, so it arrives as a sized AVIF instead. */}
+              <SmartImg
+                src={hero.thumbnail}
+                alt={hero.title}
+                width={640}
+                sizes="(max-width: 768px) 100vw, 620px"
+                imgWidth={620}
+                imgHeight={349}
+                loading="lazy"
+              />
               <span className="vs-play vs-play-lg" aria-hidden="true">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
               </span>
@@ -108,7 +122,15 @@ export function VideoSection({ videos }: { videos: VideoItem[] }) {
                     onClick={() => vid && setPlayingId(v.id)}
                     aria-label={`Play: ${v.title}`}
                   >
-                    <img src={v.thumbnail} alt={v.title} />
+                    <SmartImg
+                      src={v.thumbnail}
+                      alt={v.title}
+                      width={256}
+                      sizes="160px"
+                      imgWidth={160}
+                      imgHeight={90}
+                      loading="lazy"
+                    />
                     <span className="vs-play" aria-hidden="true">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
                     </span>

@@ -98,13 +98,14 @@ export function AboveFold({
                     <>
                       <Link href={articleHref(top)} className="af-dist-lead">
                         {top.featuredImage ? (
+                          /* alt-decorative: the <h3> directly below carries the
+                             same headline, so repeating it in alt makes a screen
+                             reader announce the story twice (Lighthouse flags it
+                             as image-redundant-alt). The link takes its
+                             accessible name from that heading. */
                           <Image
                             src={top.featuredImage}
-                            // The headline describes the photo well enough for a
-                            // screen reader, and these are the story's only
-                            // image. alt="" hid eight district lead photos from
-                            // assistive tech and from image search.
-                            alt={top.title}
+                            alt=""
                             width={400}
                             height={250}
                             sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, 240px"

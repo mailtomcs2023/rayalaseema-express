@@ -1,5 +1,7 @@
 "use client";
 
+import { SmartImg } from "@/components/smart-img";
+
 interface VideoItem {
   id: string;
   title: string;
@@ -63,7 +65,16 @@ export function VideoWidget({ videos }: { videos: VideoItem[] }) {
             style={{ display: "flex", gap: 8, padding: "6px 0", borderBottom: "1px solid #f3f4f6", textDecoration: "none" }}
           >
             <div style={{ position: "relative", width: 100, flexShrink: 0, borderRadius: 4, overflow: "hidden" }}>
-              <img src={video.thumbnail} alt={video.title} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }} />
+              <SmartImg
+                src={video.thumbnail}
+                alt={video.title}
+                width={384}
+                sizes="(max-width: 768px) 100vw, 300px"
+                imgWidth={300}
+                imgHeight={169}
+                loading="lazy"
+                style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", display: "block" }}
+              />
               <span style={{ position: "absolute", bottom: 2, right: 2, background: "rgba(0,0,0,0.8)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 2 }}>
                 8:20
               </span>

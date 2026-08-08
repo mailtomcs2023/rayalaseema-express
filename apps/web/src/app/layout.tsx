@@ -4,6 +4,7 @@ import { getSiteConfig } from "@/lib/db-queries";
 import { buildNewsMediaOrganizationSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
 import { DeferredFooterClients } from "@/components/deferred-footer-clients";
 import { MobileAnchorSlot } from "@/components/mobile-anchor-slot";
+import { DeferredAnalytics } from "@/components/deferred-analytics";
 import "./globals.css";
 import { Geist, Noto_Sans_Telugu, Anek_Telugu } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -240,21 +241,11 @@ export default async function RootLayout({
             crossOrigin="anonymous"
           />
         )}
-        {gtmId && (
-          // GTM also deferred to idle - analytics has no business
-          // blocking first paint. Anything that GTM needs to fire on
-          // page load still gets the gtm.js event (delayed but
-          // delivered). If a future tag requires synchronous data
-          // layer pushes, bump back to afterInteractive.
-          <Script id="gtm" strategy="lazyOnload">
-            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
-          </Script>
-        )}
-        {clarityId && (
-          <Script id="clarity" strategy="lazyOnload">
-            {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${clarityId}");`}
-          </Script>
-        )}
+        {/* GTM + Clarity load on the reader's first interaction, not on page
+            load. lazyOnload still ran them inside the Lighthouse trace, where
+            GTM alone cost 485 ms of blocking time - most of a 1,270 ms TBT.
+            See DeferredAnalytics for the trade-off. */}
+        <DeferredAnalytics gtmId={gtmId} clarityId={clarityId} />
         {/* Direct GA4 gtag.js loader removed (was 157 KB second copy
           of the tag-manager runtime). GTM container above already
           fires GA4 page_view via the GA4 tag configured in the GTM

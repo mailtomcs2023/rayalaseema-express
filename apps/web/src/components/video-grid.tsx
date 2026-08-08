@@ -3,6 +3,7 @@
 import "@/styles/video-grid.css";
 import { useState } from "react";
 import Link from "next/link";
+import { SmartImg } from "@/components/smart-img";
 import type { VideoItem } from "./video-section";
 
 function ytId(url: string | null): string | null {
@@ -48,7 +49,15 @@ export function VideoGrid({ videos }: { videos: VideoItem[] }) {
                 onClick={() => vid && setPlayingId(v.id)}
                 aria-label={`Play: ${v.title}`}
               >
-                <img src={v.thumbnail} alt={v.title} loading="lazy" />
+                <SmartImg
+                  src={v.thumbnail}
+                  alt={v.title}
+                  width={384}
+                  sizes="(max-width: 640px) 90vw, 300px"
+                  imgWidth={300}
+                  imgHeight={169}
+                  loading="lazy"
+                />
                 <span className="vg-play" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z" /></svg>
                 </span>

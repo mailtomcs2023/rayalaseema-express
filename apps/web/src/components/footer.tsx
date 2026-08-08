@@ -233,13 +233,13 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
             {config.editorial_email && (
               <p>
                 News desk &amp; corrections:{" "}
-                <a href={`mailto:${config.editorial_email}`} className="text-gray-300 hover:text-white">{config.editorial_email}</a>
+                <a href={`mailto:${config.editorial_email}`} className="footer-contact-link">{config.editorial_email}</a>
               </p>
             )}
             {config.contact_email && (
               <p className="mt-1">
                 General:{" "}
-                <a href={`mailto:${config.contact_email}`} className="text-gray-300 hover:text-white">{config.contact_email}</a>
+                <a href={`mailto:${config.contact_email}`} className="footer-contact-link">{config.contact_email}</a>
               </p>
             )}
             <p className="mt-1">
@@ -251,12 +251,12 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
             <h4 className="text-white font-semibold mb-2 text-xs uppercase tracking-wider">Advertising</h4>
             {config.ads_email && (
               <p>
-                <a href={`mailto:${config.ads_email}`} className="text-gray-300 hover:text-white">{config.ads_email}</a>
+                <a href={`mailto:${config.ads_email}`} className="footer-contact-link">{config.ads_email}</a>
               </p>
             )}
             {config.contact_phone && (
               <p className="mt-1">
-                <a href={`tel:${config.contact_phone.replace(/\s+/g, "")}`} className="text-gray-300 hover:text-white">{config.contact_phone}</a>
+                <a href={`tel:${config.contact_phone.replace(/\s+/g, "")}`} className="footer-contact-link">{config.contact_phone}</a>
               </p>
             )}
             <p className="mt-1">
