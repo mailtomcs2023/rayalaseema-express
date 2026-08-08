@@ -69,9 +69,18 @@ export function currentMonth(now = new Date()): string {
  * sitemap.xml was replaced by dated shards.
  */
 export async function listArticleMonths(): Promise<SitemapMonth[]> {
+  // The double AT TIME ZONE is required, not redundant. Prisma maps DateTime to
+  // `timestamp WITHOUT time zone`, and on a naive timestamp a single
+  // `AT TIME ZONE 'Asia/Kolkata'` runs backwards: it treats the stored value as
+  // already being IST and returns a timestamptz, which to_char() then renders
+  // in the session TimeZone. That made bucketing depend on the server's
+  // timezone - correct on an IST dev box, off by 5:30 on the UTC production VM,
+  // which filed 1 Aug 05:26 UTC articles into the July shard. Interpreting as
+  // UTC first and converting to IST second yields a naive IST wall-clock
+  // timestamp that renders identically everywhere.
   const rows = await prisma.$queryRaw<MonthRow[]>`
     SELECT
-      to_char(COALESCE("publishedAt", "createdAt") AT TIME ZONE ${BUCKET_TZ}, 'YYYY-MM') AS month,
+      to_char(COALESCE("publishedAt", "createdAt") AT TIME ZONE 'UTC' AT TIME ZONE ${BUCKET_TZ}, 'YYYY-MM') AS month,
       COUNT(*) AS count,
       MAX(COALESCE("publishedAt", "createdAt")) AS newest_published,
       GREATEST(MAX(COALESCE("publishedAt", "createdAt")), MAX("updatedAt")) AS newest_touched
