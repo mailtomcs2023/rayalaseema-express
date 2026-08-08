@@ -1,0 +1,11 @@
+{
+  "name": "mcp-psi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server exposing Google PageSpeed Insights for rayalaseemanews.com",
+  "bin": { "mcp-psi": "src/index.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

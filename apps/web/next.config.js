@@ -34,19 +34,21 @@ const securityHeaders = [
 const nextConfig = {
   typescript: { ignoreBuildErrors: true },
   transpilePackages: ["@rayalaseema/ui", "@rayalaseema/db", "@rayalaseema/seo-schema"],
-  // `experimental.inlineCss` is deliberately OFF.
+  // inlineCss is ON, and it only works because the CSS is route-split.
   //
-  // It was enabled to kill PSI's "Render-blocking requests" finding, and
-  // that made sense while the stylesheet was small. It inlines the WHOLE
-  // stylesheet into every document, so once the component CSS moved into
-  // globals.css (2026-08-06) each page carried ~239 KB of <style> - and
-  // React serialised it into the flight payload a second time, which is
-  // most of why the homepage measured 985 KB.
+  // History, because the two changes look contradictory: this was turned OFF
+  // on 2026-08-06 when every component's CSS lived in one globals.css - back
+  // then inlining meant ~239 KB of <style> in every document, serialised again
+  // into the flight payload. Splitting the CSS per component (2026-08-08)
+  // fixed the size but created a new problem: PSI measured SIX separate
+  // render-blocking stylesheet requests, 740 ms of savings, and a 2,663 ms
+  // longest chain. On a high-latency 4G connection the round trips cost far
+  // more than the bytes - LCP was 4.7 s with ~3.3 s of it pure render delay.
   //
-  // Served as a normal stylesheet it is one request, gzipped, cached, and
-  // a 304 on every page after the first - far cheaper on the 4G phones
-  // most of our readers use than re-sending it per page view.
-  experimental: {},
+  // With the CSS split, each route now inlines only its own small slice, so
+  // inlining costs a few KB of HTML (brotli'd) and removes every blocking
+  // request. The two changes are complements, not opposites.
+  experimental: { inlineCss: true },
   images: {
     // Modern formats - Next.js negotiates the best one the browser
     // supports. AVIF is ~30% smaller than WebP and ~50% smaller than JPEG

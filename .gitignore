@@ -67,3 +67,8 @@ gsc-key.json
 # GSC MCP server build output + local quota ledger / inspection cache
 mcp-gsc/dist/
 mcp-gsc/.cache/
+
+# Local API keys / service-account files - never commit
+*.key.json
+gsc-key.json
+.env.gsc
