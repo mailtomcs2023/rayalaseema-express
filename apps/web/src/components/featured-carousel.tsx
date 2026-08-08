@@ -1,208 +1,114 @@
 "use client";
 
-// Manual-navigation hero carousel of editor-"featured" stories, built on
-// Swiper. Arrows + dots + swipe + keyboard, NO autoplay (manual only, by
-// product decision). Each slide reuses the global `.af-lead` styles from
-// above-fold.tsx so a slide is visually identical to the old single hero.
+// Hero for the homepage above-fold block.
 //
-// SSR-safe: Swiper server-renders the slide markup, so the lead story and its
-// image ship in the HTML (SEO + LCP). Only the first slide's image is eager
-// (`priority`); the rest lazy-load. Falls back to a plain hero (no Swiper
-// chrome/JS) when there is only one featured story.
+// The carousel is PROGRESSIVE. On first paint this renders slide 0 as plain
+// markup - the LCP element, with nothing to hydrate beyond a couple of event
+// listeners. Swiper (~155 KB) is dynamically imported and mounted only when
+// the reader actually engages with the hero.
+//
+// Why: Swiper wrapped the LCP element and laid out twelve slides on load. On a
+// throttled phone that dominated the main thread - Style & Layout 3,762 ms,
+// TBT 1,180 ms - so the hero image could not paint until Swiper was done, and
+// LCP sat at 5.5 s even though the image itself was correctly preloaded and
+// marked fetchPriority="high" (all three Lighthouse LCP-discovery audits were
+// already passing).
+//
+// No stories are dropped: every slide is still reachable, the arrows/dots are
+// server-rendered, and the first interaction with any of them hands over to
+// the real carousel at the same slide.
 
-import { useRef, useState } from "react";
-import { articleHref } from "@/lib/article-href";
-import { CardMeta } from "@/components/card-meta";
-import Link from "next/link";
-import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { Swiper as SwiperClass } from "swiper";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Keyboard, A11y } from "swiper/modules";
-import "swiper/css";
+import { FeaturedSlide, type FeaturedArticle } from "@/components/featured-slide";
 
-export interface FeaturedArticle {
-  id: string;
-  title: string;
-  slug: string;
-  summary?: string | null;
-  featuredImage?: string | null;
-  publishedAt?: string | null;
-  dateline?: string | null;
-  category: { name: string; color?: string; slug: string };
-}
+export type { FeaturedArticle };
 
-function Slide({
-  article,
-  priority,
-  renderImage = true,
-}: {
-  article: FeaturedArticle;
-  priority?: boolean;
-  /**
-   * False for slides the reader hasn't reached yet. Every slide used to ship
-   * its <Image> - twelve full srcsets in the HTML and again in the flight
-   * payload, competing with the hero for the phone's connection. The
-   * placeholder keeps the same box, so revealing the image later costs no
-   * layout shift.
-   */
-  renderImage?: boolean;
-}) {
-  return (
-    <div className="af-lead">
-      {/* Image link is decorative: the title link below provides the
-          same destination + accessible name. aria-hidden + tabIndex=-1
-          keeps the click target for sighted users but hides the
-          duplicate from screen readers + tab order, satisfying PSI's
-          "Identical links have the same purpose" rule. */}
-      <Link href={articleHref(article)} className="af-lead-img" aria-hidden="true" tabIndex={-1}>
-        {!renderImage ? (
-          // alt-decorative: stand-in box for a slide that is still off-screen.
-          <div className="af-noimg" />
-        ) : article.featuredImage ? (
-          // Slide 0 is the LCP. We DON'T use `priority` because Next 16
-          // emits a <link rel="preload"> WITHOUT fetchPriority="high"
-          // for priority images, which PSI flagged ("fetchpriority=high
-          // should be applied to the image preload request"). Instead,
-          // AboveFold emits the preload tag manually with the right
-          // fetchPriority + matching imageSrcSet, and we set
-          // loading="eager" + fetchPriority="high" on the <img> so it
-          // matches the preload + skips the lazy-load PSI flag.
-          <Image
-            src={article.featuredImage}
-            alt={article.title}
-            width={1200}
-            height={750}
-            sizes="(max-width: 768px) 100vw, 680px"
-            quality={60}
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : "auto"}
-          />
-        ) : (
-          <div className="af-noimg"><img src="/logo-icon.png" alt="రాయలసీమ న్యూస్" loading="lazy" /></div>
-        )}
-      </Link>
-      <div className="af-lead-text">
-        <Link href={articleHref(article)} className="af-lead-link" aria-label={article.title}>
-          {/* Cut the visible headline at 80 chars (…) so the hero stays tidy;
-              the full title is kept on the link's aria-label for a11y/SEO. */}
-          <h2 className="af-lead-title" title={article.title}>
-            {article.title.length > 80 ? `${article.title.slice(0, 80).trimEnd()}…` : article.title}
-          </h2>
-        </Link>
-        {article.summary && <p className="af-lead-dek">{article.summary}</p>}
-        <CardMeta dateline={article.dateline} publishedAt={article.publishedAt} />
-      </div>
-    </div>
-  );
-}
+const FeaturedSwiper = dynamic(() => import("@/components/featured-swiper"), {
+  ssr: false,
+  // The static hero stays on screen until the deck is ready, so there is no
+  // blank frame and no layout shift during the handover.
+  loading: () => null,
+});
 
 export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
-  // Hooks first (Rules of Hooks) - called every render regardless of count.
-  const swiperRef = useRef<SwiperClass | null>(null);
-  const [active, setActive] = useState(0);
-  // Highest slide index the reader has actually reached. Only slides up to
-  // reached+1 render their image (see <Slide renderImage>); it never shrinks,
-  // so going back doesn't unmount an image that is already downloaded.
-  const [reached, setReached] = useState(0);
+  const [enhanced, setEnhanced] = useState(false);
+  const [index, setIndex] = useState(0);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const enhance = useCallback(() => setEnhanced(true), []);
+
+  // Arm on the first real engagement with the hero: a touch, a pointer press,
+  // or keyboard focus moving into it. Pointer *movement* is deliberately not a
+  // trigger - a reader scrolling past should not pay for Swiper.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || enhanced) return;
+    const opts = { once: true, passive: true } as const;
+    el.addEventListener("pointerdown", enhance, opts);
+    el.addEventListener("touchstart", enhance, opts);
+    el.addEventListener("focusin", enhance, opts);
+    return () => {
+      el.removeEventListener("pointerdown", enhance);
+      el.removeEventListener("touchstart", enhance);
+      el.removeEventListener("focusin", enhance);
+    };
+  }, [enhance, enhanced]);
 
   if (items.length === 0) return null;
-  // One story → plain hero, no carousel chrome or Swiper JS.
-  if (items.length === 1) return <Slide article={items[0]} priority />;
+  // One story: a plain hero, never a carousel.
+  if (items.length === 1) return <FeaturedSlide article={items[0]} priority />;
 
-  // Keep our custom controls in sync with the Swiper instance + flip
-  // `inert` on non-active slides. Swiper's A11y module sets
-  // aria-hidden="true" on inactive slides but does NOT remove their
-  // <a> from the focus order, which triggers PSI's
-  // "aria-hidden contains focusable descendents" rule. inert solves
-  // both (focus order + a11y tree) without a DOM rerender.
-  const sync = (s: SwiperClass) => {
-    // realIndex maps clones back to the original slide so the counter/dots
-    // track the true position in loop mode.
-    setActive(s.realIndex);
-    setReached((r) => Math.max(r, s.realIndex));
-    s.slides.forEach((slide, i) => {
-      if (i === s.activeIndex) slide.removeAttribute("inert");
-      else slide.setAttribute("inert", "");
-    });
+  if (enhanced) return <FeaturedSwiper items={items} startIndex={index} />;
+
+  // Static hero + real controls. Clicking a control both mounts Swiper and
+  // tells it which slide to open on, so the first click is never swallowed.
+  const go = (next: number) => {
+    setIndex((next + items.length) % items.length);
+    enhance();
   };
 
   return (
-    <div className="af-carousel">
-      <Swiper
-        // No Navigation/Pagination modules: those bind arrows only after init
-        // (clicks dead until a re-init) and generate dots client-side (flash on
-        // load). We drive our own server-rendered controls off the instance.
-        modules={[Keyboard, A11y]}
-        onSwiper={(s) => { swiperRef.current = s; sync(s); }}
-        onSlideChange={sync}
-        keyboard={{ enabled: true }}
-        loop={true}
-        slidesPerView={1}
-        spaceBetween={0}
-        // Round slide widths to whole pixels. Without this, a fractional
-        // container width makes each slide ~1px too narrow, so the next slide
-        // peeks through as a thin vertical sliver on the right edge.
-        roundLengths={true}
-        // autoHeight removed: Swiper reads getBoundingClientRect on
-        // every slide for it, which PSI attributed to the home page's
-        // 37ms forced reflow. Slides already share a stable layout
-        // (image aspect-ratio 16/10 + capped title lines via CSS),
-        // so the default flex-stretch behaviour keeps every slide the
-        // same height without measuring the DOM.
-      >
-        {items.map((a, i) => (
-          <SwiperSlide key={a.id}>
-            {/* Mount the current slide's image plus the next one, so the
-                reader never waits on a swipe, and nothing further competes
-                with the hero for bandwidth on first paint. */}
-            <Slide article={a} priority={i === 0} renderImage={i <= reached + 1} />
-          </SwiperSlide>
-        ))}
-      </Swiper>
+    <div className="af-carousel" ref={rootRef}>
+      <FeaturedSlide article={items[index]} priority={index === 0} />
 
-      {/* Controls sit in one row BELOW the slide rather than floating over it.
-          Overlaid arrows landed on top of the photo (covering faces in a news
-          picture) and on top of the summary text on the right, which is the
-          content the reader is there for. In the SSR HTML and wired straight
-          to the Swiper instance, so they work on the very first click. */}
       <div className="af-carousel-controls">
         <button
           type="button"
           className="af-nav af-nav-prev"
           aria-label="మునుపటి స్లైడ్"
-          // Loop mode: arrows wrap around, so they're never disabled.
-          onClick={() => swiperRef.current?.slidePrev()}
+          onClick={() => go(index - 1)}
         >
           <ChevronLeft size={20} strokeWidth={2.75} aria-hidden="true" />
         </button>
 
-        {/* Slide counter, so readers know more stories exist. It used to float
-            at the slide's top-right, where it sat on top of the headline. */}
         <span className="af-carousel-count">
-          {active + 1}<span className="af-carousel-count-sep">/</span>{items.length}
+          {index + 1}
+          <span className="af-carousel-count-sep">/</span>
+          {items.length}
         </span>
 
-      <div className="af-dots" role="tablist" aria-label="స్లైడ్‌లు">
-        {items.map((a, i) => (
-          <button
-            key={a.id}
-            type="button"
-            role="tab"
-            className={`af-dot${i === active ? " af-dot-active" : ""}`}
-            aria-label={`స్లైడ్ ${i + 1}`}
-            aria-selected={i === active}
-            tabIndex={i === active ? 0 : -1}
-            onClick={() => swiperRef.current?.slideToLoop(i)}
-          />
-        ))}
-      </div>
+        <div className="af-dots" role="tablist" aria-label="స్లైడ్‌లు">
+          {items.map((a, i) => (
+            <button
+              key={a.id}
+              type="button"
+              role="tab"
+              className={`af-dot${i === index ? " af-dot-active" : ""}`}
+              aria-label={`స్లైడ్ ${i + 1}`}
+              aria-selected={i === index}
+              tabIndex={i === index ? 0 : -1}
+              onClick={() => go(i)}
+            />
+          ))}
+        </div>
 
         <button
           type="button"
           className="af-nav af-nav-next"
           aria-label="తదుపరి స్లైడ్"
-          onClick={() => swiperRef.current?.slideNext()}
+          onClick={() => go(index + 1)}
         >
           <ChevronRight size={20} strokeWidth={2.75} aria-hidden="true" />
         </button>
