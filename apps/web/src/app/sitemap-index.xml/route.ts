@@ -21,6 +21,9 @@ export async function GET() {
   const sitemaps = [
     { loc: `${siteUrl}/sitemap.xml`, lastmod: now },
     { loc: `${siteUrl}/news-sitemap.xml`, lastmod: now },
+    // Google's video sitemap extension - the only way a video page's
+    // thumbnail, player and duration reach the Videos tab reliably.
+    { loc: `${siteUrl}/video-sitemap.xml`, lastmod: now },
     { loc: `${siteUrl}/rss/all.xml`, lastmod: now },
   ];
 

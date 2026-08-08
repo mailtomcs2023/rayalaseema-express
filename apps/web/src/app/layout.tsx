@@ -191,6 +191,12 @@ export default async function RootLayout({
             preconnected" against a 1,481 ms critical path. */}
         <link rel="preconnect" href="https://rayalaseemamedia.blob.core.windows.net" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://rayalaseemamedia.blob.core.windows.net" />
+        {/* Video thumbnails come from YouTube's still host. The player itself
+            is only fetched if the reader presses play (see YouTubeFacade), but
+            the stills load immediately on the video pages and in the homepage
+            strip. */}
+        <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
         {bingVerify && <meta name="msvalidate.01" content={bingVerify} />}
         {/* JSON-LD structured data - search-engine metadata. A PLAIN
             <script type="application/ld+json"> is the App Router pattern for

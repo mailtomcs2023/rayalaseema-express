@@ -1,0 +1,93 @@
+/* Styles for the video listing routes (/videos, /videos/bulletins,
+ * /videos/shorts). Imported by those pages so Next ships it only there.
+ * Plain CSS, not a module: class names are string literals in the JSX.
+ */
+
+.vidx {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 18px 12px 48px;
+}
+
+.vidx-title {
+  font-family: var(--font-telugu-heading), serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--n-900, #111827);
+  margin: 0 0 4px;
+}
+.vidx-intro {
+  font-family: var(--font-telugu-body), sans-serif;
+  font-size: 14px;
+  color: #5f6672;
+  margin: 0 0 16px;
+}
+
+.vidx-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--paper-edge, rgba(0, 0, 0, 0.08));
+}
+.vidx-tab {
+  display: inline-flex;
+  align-items: center;
+  /* 40px tall so the tabs are a comfortable tap target on a phone. */
+  min-height: 40px;
+  padding: 0 15px;
+  border-radius: 999px;
+  background: var(--n-100, #f3f4f6);
+  font-family: var(--font-telugu-body), sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--n-700, #374151);
+  text-decoration: none;
+}
+.vidx-tab:hover {
+  background: #e8eaee;
+}
+.vidx-tab--active {
+  background: var(--brand, #e01b1b);
+  color: #fff;
+}
+
+.vidx-empty {
+  font-family: var(--font-telugu-body), sans-serif;
+  font-size: 14px;
+  color: #5f6672;
+  padding: 30px 0;
+}
+
+.vidx-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 32px;
+  font-family: var(--font-telugu-body), sans-serif;
+  font-size: 13.5px;
+  color: #5f6672;
+}
+.vidx-pager a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--paper-edge, rgba(0, 0, 0, 0.12));
+  color: var(--n-800, #1f2937);
+  font-weight: 700;
+  text-decoration: none;
+}
+.vidx-pager a:hover {
+  border-color: var(--brand, #e01b1b);
+  color: var(--brand-dark, #b91414);
+}
+
+@media (max-width: 640px) {
+  .vidx-title {
+    font-size: 22px;
+  }
+}

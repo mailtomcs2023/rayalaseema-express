@@ -1,41 +1,27 @@
-// Spec #1 A1C (#189) - legacy /videos/[slug] route reads Content where
-// type=VIDEO. The newer canonical path is /video/[slug] (D1 #111); this
-// page stays for backward-compat with any links that point at /videos/...
+// Canonical video page. Reads Content (type=VIDEO for bulletins, REEL for
+// shorts) - the standalone Video model was dropped in Spec #1 A1C #189.
+//
+// The page is deliberately NOT just an embed. It carries the desk's Telugu
+// story text, a dateline, links out to related articles and to other videos,
+// and VideoObject JSON-LD. An embed-only page is thin content, and we are
+// still recovering from a Google indexing penalty caused by exactly that class
+// of page.
+
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@rayalaseema/db";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { VideoGrid } from "@/components/video-grid";
+import { YouTubeFacade } from "@/components/youtube-facade";
+import { VideoCardGrid } from "@/components/video-card-grid";
 import { getSiteConfig } from "@/lib/db-queries";
+import { articleHref } from "@/lib/article-href";
+import { getVideoBySlug, getVideos, getRelatedArticlesForVideo, videoHref } from "@/lib/video-queries";
+import { buildVideoObjectSchema, buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
+import { formatRelativeTelugu } from "@/lib/byline";
+import "@/styles/video-page.css";
 
-function ytId(url: string | null): string | null {
-  if (!url) return null;
-  const m = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
-  );
-  return m ? m[1] : null;
-}
-
-async function getVideoBySlug(slug: string) {
-  const row = await prisma.content.findUnique({
-    where: { slug },
-    include: { category: { select: { name: true } } },
-  });
-  if (!row || row.type !== "VIDEO" || row.status !== "PUBLISHED") return null;
-  const p = (row.payload as Record<string, unknown> | null) || {};
-  return {
-    id: row.id,
-    title: row.title,
-    slug: row.slug || "",
-    description: row.summary,
-    thumbnailUrl: (p.thumbnailUrl as string) || row.featuredImage || "",
-    videoUrl: (p.videoUrl as string) || null,
-    views: row.viewCount,
-    categoryId: row.categoryId,
-    category: row.category,
-  };
-}
+const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export async function generateMetadata({
   params,
@@ -44,112 +30,150 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const video = await getVideoBySlug(slug);
-  if (!video) return { title: "వీడియో దొరకలేదు | రాయలసీమ న్యూస్" };
+  if (!video) return { title: "వీడియో దొరకలేదు" };
+
+  // summary is built from the stripped story text at import time, so the
+  // YouTube links/hashtag block can never reach the meta description.
+  const description = (video.summary || video.body).replace(/\s+/g, " ").trim().slice(0, 160);
+  const canonical = `${SITE_URL}${videoHref(video.slug)}`;
+
   return {
-    title: `${video.title} | రాయలసీమ న్యూస్`,
-    description: video.description?.substring(0, 160) || video.title,
+    title: video.title,
+    description,
+    alternates: { canonical },
     openGraph: {
       title: video.title,
-      images: video.thumbnailUrl ? [video.thumbnailUrl] : [],
+      description,
+      url: canonical,
       type: "video.other",
+      locale: "te_IN",
+      images: video.thumbnail ? [{ url: video.thumbnail }] : undefined,
     },
   };
 }
 
-export default async function VideoPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function VideoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [config, video] = await Promise.all([getSiteConfig(), getVideoBySlug(slug)]);
   if (!video) notFound();
-  const vid = ytId(video.videoUrl);
 
-  // Related - same category, else latest. Shape the rows to VideoGrid's expected shape.
-  const relatedRaw = await prisma.content.findMany({
-    where: {
-      type: "VIDEO",
-      status: "PUBLISHED",
-      slug: { not: slug },
-      ...(video.categoryId ? { categoryId: video.categoryId } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 8,
-    include: { category: { select: { name: true } } },
-  });
-  const related = relatedRaw.map((v) => {
-    const p = (v.payload as Record<string, unknown> | null) || {};
-    const seconds = typeof p.duration === "number" ? p.duration : 0;
-    const mm = Math.floor(seconds / 60);
-    const ss = String(seconds % 60).padStart(2, "0");
-    return {
-      id: v.id,
-      title: v.title,
-      slug: v.slug || "",
-      thumbnail: (p.thumbnailUrl as string) || v.featuredImage || "",
-      videoUrl: (p.videoUrl as string) || null,
-      duration: seconds > 0 ? `${mm}:${ss}` : null,
-      views: v.viewCount,
-      category: v.category?.name || null,
-    };
+  const [relatedVideos, relatedArticles] = await Promise.all([
+    getVideos({ kind: video.isShort ? "short" : "video", take: 3, excludeSlug: slug }),
+    getRelatedArticlesForVideo({
+      categoryId: video.categoryId,
+      constituencyId: video.constituencyId,
+      take: 5,
+    }),
+  ]);
+
+  const canonical = `${SITE_URL}${videoHref(video.slug)}`;
+  const place = video.constituency?.name || video.constituency?.district?.name || null;
+
+  const videoLd = video.videoId
+    ? buildVideoObjectSchema({
+        title: video.title,
+        description: video.summary || video.body,
+        videoId: video.videoId,
+        publishedAt: video.publishedAt || new Date(),
+        pageUrl: canonical,
+        thumbnailUrl: video.thumbnail,
+        durationSeconds: video.durationSeconds,
+        publisher: {
+          name: config.publisher_brand_name || "Rayalaseema News",
+          logoUrl: `${SITE_URL}/logo.png`,
+          siteUrl: SITE_URL,
+        },
+      })
+    : null;
+
+  const breadcrumbLd = buildBreadcrumbListSchema({
+    items: [
+      { name: "Home", url: SITE_URL },
+      { name: "Videos", url: `${SITE_URL}/videos` },
+      ...(video.isShort ? [{ name: "Shorts", url: `${SITE_URL}/videos/shorts` }] : []),
+      { name: video.title },
+    ],
   });
 
   return (
     <div className="min-h-screen" style={{ background: "#fff" }}>
+      {videoLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(videoLd) }} />
+      )}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
+
       <SiteHeader config={config} breakingNews={[]} />
-      <main style={{ maxWidth: 980, margin: "0 auto", padding: "18px 12px 48px" }}>
-        <div
-          style={{
-            position: "relative", width: "100%", aspectRatio: "16/9",
-            borderRadius: 8, overflow: "hidden", background: "#000",
-          }}
-        >
-          {vid ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${vid}?rel=0`}
-              title={video.title}
-              allow="accelerated-fullscreen; autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
-            />
-          ) : (
-            <img
-              src={video.thumbnailUrl}
-              alt={video.title}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          )}
-        </div>
 
-        <div style={{ padding: "16px 0", borderBottom: "1px solid var(--paper-edge, rgba(0,0,0,0.08))" }}>
-          {video.category && (
-            <span style={{ fontFamily: "var(--font-telugu-body), sans-serif", fontSize: 11, fontWeight: 800, color: "var(--brand, #E01B1B)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              {video.category.name}
-            </span>
+      <main className="vp">
+        <nav className="vp-crumbs">
+          <Link href="/">హోమ్</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/videos">వీడియోలు</Link>
+          {video.isShort && (
+            <>
+              <span aria-hidden="true">/</span>
+              <Link href="/videos/shorts">షార్ట్స్</Link>
+            </>
           )}
-          <h1 style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 24, fontWeight: 800, lineHeight: 1.3, color: "var(--n-900, #111827)", margin: "6px 0 8px" }}>
-            {video.title}
-          </h1>
-          <span style={{ fontFamily: "var(--font-telugu-body), sans-serif", fontSize: 13, color: "var(--n-500, #6b7280)" }}>
-            {video.views.toLocaleString("en-IN")} వీక్షణలు
-          </span>
-          {video.description && (
-            <p style={{ fontFamily: "var(--font-telugu-body), sans-serif", fontSize: 15, lineHeight: 1.7, color: "var(--n-700, #374151)", marginTop: 12, whiteSpace: "pre-line" }}>
-              {video.description}
-            </p>
-          )}
-        </div>
+        </nav>
 
-        {related.length > 0 && (
-          <section style={{ marginTop: 24 }}>
-            <h2 style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 18, fontWeight: 800, color: "var(--n-900, #111827)", marginBottom: 16 }}>
-              మరిన్ని వీడియోలు
-            </h2>
-            <VideoGrid videos={related} />
+        <h1 className="vp-title">{video.title}</h1>
+
+        <p className="vp-meta">
+          {place && <span className="vp-place">{place}</span>}
+          {place && video.publishedAt && <span className="vp-sep">·</span>}
+          {video.publishedAt && (
+            <time dateTime={video.publishedAt.toISOString()}>
+              {video.publishedAt.toLocaleDateString("te-IN", {
+                day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata",
+              })}
+              {" · "}
+              {formatRelativeTelugu(video.publishedAt)}
+            </time>
+          )}
+        </p>
+
+        {video.videoId ? (
+          <YouTubeFacade
+            videoId={video.videoId}
+            title={video.title}
+            thumbnail={video.thumbnail}
+            vertical={video.isShort}
+            priority
+          />
+        ) : null}
+
+        {/* The story, in Telugu. Without this the page is an embed and nothing
+            more - which is the thin-content pattern we are recovering from. */}
+        {video.body && (
+          <div className="vp-body">
+            {video.body.split(/\n{2,}/).map((para, i) => (
+              <p key={i}>{para}</p>
+            ))}
+          </div>
+        )}
+
+        {relatedArticles.length > 0 && (
+          <section className="vp-section">
+            <h2 className="vp-h2">సంబంధిత వార్తలు</h2>
+            <ul className="vp-links">
+              {relatedArticles.map((a) => (
+                <li key={a.id}>
+                  <Link href={articleHref(a as never)}>{a.title}</Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {relatedVideos.length > 0 && (
+          <section className="vp-section">
+            <h2 className="vp-h2">మరిన్ని వీడియోలు</h2>
+            <VideoCardGrid items={relatedVideos} />
           </section>
         )}
       </main>
+
       <SiteFooter config={config} />
     </div>
   );

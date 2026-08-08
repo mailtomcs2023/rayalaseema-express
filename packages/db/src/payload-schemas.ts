@@ -31,6 +31,10 @@ export const videoPayloadSchema = z.object({
   videoUrl: z.string().url(),
   duration: z.number().int().nonnegative().optional(),
   thumbnailUrl: z.string().url().optional(),
+  // YouTube's 11-char id, stored separately from videoUrl so the import can
+  // find an existing row without parsing URLs, and so the player/schema
+  // generators don't each re-derive it.
+  videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/).optional(),
 }).strict();
 
 // REEL - short vertical clip, similar shape to VIDEO but the URL is typically
@@ -39,6 +43,10 @@ export const videoPayloadSchema = z.object({
 export const reelPayloadSchema = z.object({
   clipUrl: z.string().url(),
   duration: z.number().int().nonnegative().optional(),
+  thumbnailUrl: z.string().url().optional(),
+  // Set for YouTube Shorts imported from the channel; empty for clips hosted
+  // on our own Blob storage.
+  videoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/).optional(),
 }).strict();
 
 // WEB_STORY - swipeable cards. At least one slide required.

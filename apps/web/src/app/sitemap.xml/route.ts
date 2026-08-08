@@ -32,7 +32,7 @@ export async function GET() {
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
   const now = new Date().toISOString();
 
-  const [articles, categories, districts, constituencies] = await Promise.all([
+  const [articles, categories, districts, constituencies, videos] = await Promise.all([
     prisma.content.findMany({
       where: { type: "ARTICLE", status: "PUBLISHED" },
       select: {
@@ -52,6 +52,14 @@ export async function GET() {
       where: { active: true },
       select: { slug: true, district: { select: { slug: true } } },
       orderBy: { acNumber: "asc" },
+    }),
+    // Video + shorts pages (Content type=VIDEO | REEL), all served at
+    // /videos/<slug>. Listed here as ordinary pages; the <video:video>
+    // metadata lives in /video-sitemap.xml.
+    prisma.content.findMany({
+      where: { type: { in: ["VIDEO", "REEL"] }, status: "PUBLISHED", slug: { not: null } },
+      select: { slug: true, updatedAt: true },
+      orderBy: { publishedAt: "desc" },
     }),
   ]);
 
@@ -82,6 +90,14 @@ export async function GET() {
     if (!a.category?.slug && !a.constituency?.slug) continue;
     urls.push(`  <url><loc>${siteUrl}${articleHref(a)}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`);
   }
+  // Section hub + one entry per video page.
+  urls.push(`  <url><loc>${siteUrl}/videos</loc><changefreq>daily</changefreq><priority>0.7</priority></url>`);
+  urls.push(`  <url><loc>${siteUrl}/videos/bulletins</loc><changefreq>daily</changefreq><priority>0.6</priority></url>`);
+  urls.push(`  <url><loc>${siteUrl}/videos/shorts</loc><changefreq>daily</changefreq><priority>0.6</priority></url>`);
+  for (const v of videos) {
+    urls.push(`  <url><loc>${siteUrl}/videos/${v.slug}</loc><lastmod>${v.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`);
+  }
+
   for (const slug of TRUST_PAGES) {
     urls.push(`  <url><loc>${siteUrl}/${slug}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`);
   }

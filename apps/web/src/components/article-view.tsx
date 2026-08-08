@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@rayalaseema/ui";
 import { SiteHeader } from "@/components/site-header";
+import { SidebarShorts } from "@/components/sidebar-shorts";
 import { SiteFooter } from "@/components/site-footer";
 import { TTSButton } from "@/components/tts-button";
 import { CommentsSection } from "@/components/comments-section";
@@ -353,6 +354,10 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 </Link>
               ))}
             </div>
+
+            {/* Latest shorts - links into /videos/<slug>, no player. Gives the
+                video section an entry point from every article. */}
+            <SidebarShorts take={3} />
           </aside>
         </div>
       </main>

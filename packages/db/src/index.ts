@@ -83,4 +83,5 @@ export * from "./taxonomy-input-schemas";
 export * from "./menu-schemas";
 export * from "./page-builder-schemas";
 export * from "./page-builder-pattern";
+export * from "./youtube-description";
 export default prisma;

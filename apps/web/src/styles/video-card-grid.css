@@ -1,0 +1,89 @@
+/* Styles for components/video-card-grid.tsx.
+ *
+ * Imported by that component so Next ships it only on the video routes.
+ * Plain CSS, not a module: class names are string literals in the JSX.
+ */
+
+.vcg {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+}
+.vcg--vertical {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+
+.vcg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.vcg-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--n-100, #f3f4f6);
+}
+.vcg--vertical .vcg-thumb {
+  aspect-ratio: 9 / 16;
+}
+
+.vcg-img {
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+.vcg-card:hover .vcg-img {
+  transform: scale(1.03);
+}
+
+.vcg-noimg {
+  position: absolute;
+  inset: 0;
+  background: var(--n-100, #f3f4f6) url("/logo-icon.png") center / 38% no-repeat;
+}
+
+/* Play badge, so a card reads as video at a glance without loading a player. */
+.vcg-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.78);
+}
+.vcg-play::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent #fff;
+}
+
+.vcg-text {
+  display: flex;
+  flex-direction: column;
+}
+.vcg-title {
+  font-family: var(--font-telugu-heading), serif;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--n-900, #111827);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.vcg-card:hover .vcg-title {
+  color: var(--brand, #e01b1b);
+}

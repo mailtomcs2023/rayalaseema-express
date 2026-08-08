@@ -19,3 +19,5 @@ export type { BreadcrumbItem } from "./breadcrumb-list";
 export { buildPersonSchema } from "./person";
 export { buildMovieReviewSchema } from "./movie-review";
 export { buildLiveBlogPostingSchema } from "./live-blog";
+export { buildVideoObjectSchema } from "./video-object";
+export type { VideoObjectInput } from "./video-object";
