@@ -136,6 +136,21 @@ const nextConfig = {
       { source: "/((?!page-builder/preview).*)", headers: securityHeaders },
     ];
   },
+  async rewrites() {
+    return [
+      // Monthly sitemap shards are served at literal file names
+      // (/sitemap-2026-08.xml) because that is what a sitemap index should
+      // reference. The App Router cannot express a dynamic segment inside a
+      // partial file name (`sitemap-[month].xml` is not a valid segment), so
+      // the public path is rewritten onto a normal dynamic route. The inline
+      // \d{4}-\d{2} constraint keeps this from swallowing /sitemap-sections.xml
+      // or /sitemap-index.xml, which are real routes of their own.
+      {
+        source: "/sitemap-:month(\\d{4}-\\d{2}).xml",
+        destination: "/api/sitemap-month/:month",
+      },
+    ];
+  },
   async redirects() {
     // Categories moved from /category/<slug> to bare root slugs (Eenadu-style:
     // /business, /sports). Permanent (308) redirect preserves SEO equity for
@@ -153,6 +168,11 @@ const nextConfig = {
       { source: "/privacy-policy", destination: "/privacy", permanent: true },
       { source: "/about-us", destination: "/about", permanent: true },
       { source: "/contact-us", destination: "/contact", permanent: true },
+      // The flat 4,000-URL /sitemap.xml was replaced by /sitemap-sections.xml
+      // plus the monthly shards. Anything still referencing the old path -
+      // external directories, aggregators, a stale GSC submission - is sent to
+      // the index, which Google and Bing both follow for sitemap URLs.
+      { source: "/sitemap.xml", destination: "/sitemap-index.xml", permanent: true },
     ];
   },
 };

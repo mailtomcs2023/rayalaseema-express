@@ -72,12 +72,11 @@ export default function robots(): MetadataRoute.Robots {
       // Kagi Sherpa, etc.) via the wildcard rule above which permits them.
       ...AI_TRAINING_BOTS.map((bot) => ({ userAgent: bot, disallow: "/" })),
     ],
-    // Submit the index - Bing + GSC follow it to the per-purpose sitemaps.
-    sitemap: [
-      `${siteUrl}/sitemap-index.xml`,
-      `${siteUrl}/sitemap.xml`,
-      `${siteUrl}/news-sitemap.xml`,
-    ],
+    // The index only. It references the section sitemap, every monthly article
+    // shard, news, video and RSS - so listing children here as well would just
+    // invite crawlers to fetch the same URLs by two routes and would keep the
+    // retired flat /sitemap.xml alive as a discovery path.
+    sitemap: [`${siteUrl}/sitemap-index.xml`],
     host: siteUrl,
   };
 }

@@ -24,7 +24,10 @@ const RESERVED_DISTRICT_SLUGS = new Set<string>([
   "constituency", "contact", "district", "epaper", "gallery", "horoscope",
   "mandal", "masthead", "news", "news-sitemap.xml", "ownership", "page-builder",
   "privacy", "reel", "robots.txt", "rss", "search", "sitemap.xml",
-  "sitemap-index.xml", "story", "tag", "terms", "video", "videos", "weather",
+  // Every /sitemap-*.xml path is reserved: the index, the section shard, and
+  // the rewritten monthly shards (/sitemap-YYYY-MM.xml).
+  "sitemap-index.xml", "sitemap-sections.xml",
+  "story", "tag", "terms", "video", "videos", "weather",
   "well-known", "ethics-policy", "corrections-policy", "editorial-standards",
   "diversity-policy", "mission", "feedback-policy",
 ]);
