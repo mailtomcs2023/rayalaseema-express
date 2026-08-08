@@ -25,7 +25,9 @@ function rewriteHtmlImgs(html: string, targetWidth: number, targetHeight: number
   if (!html || !html.includes("<img")) return html;
   return html.replace(/<img\b([^>]*?)\bsrc=(["'])(https?:\/\/[^"']+)\2([^>]*)>/gi,
     (_match, before, quote, srcUrl, after) => {
-      const optimised = `/_next/image?url=${encodeURIComponent(srcUrl)}&w=${targetWidth}&q=60`;
+      // q=80: ad creatives are brand assets full of small text and logos, and
+      // they are one image per page - not the place to save 5 KB.
+      const optimised = `/_next/image?url=${encodeURIComponent(srcUrl)}&w=${targetWidth}&q=80`;
       // Inject default width/height only when admin's snippet doesn't
       // already declare them (preserves the admin's intended aspect
       // ratio while still reserving a slot for CLS).
@@ -42,21 +44,25 @@ function DbAdRenderer({ ad }: { ad?: DbAd | null }) {
   // We additionally rewrite any embedded <img> URLs to flow through the
   // Next image optimiser before they hit the reader's network.
   if (ad.htmlContent) {
-    return <div dangerouslySetInnerHTML={{ __html: rewriteHtmlImgs(ad.htmlContent, 1200, 250) }} />;
+    return (
+      <div className="db-ad" dangerouslySetInnerHTML={{ __html: rewriteHtmlImgs(ad.htmlContent, 1456, 180) }} />
+    );
   }
   if (ad.imageUrl) {
-    // imageUrl path now goes through next/image too - matches the
-    // masthead-ad-slot pattern. Width 1200 is the upper bound; sizes
-    // attribute lets the optimiser pick the right variant per viewport.
+    // 1456 = 2x a 728 leaderboard, so a large creative still gets a retina
+    // variant. The optimiser never upscales past the source, so asking for
+    // more than the creative has costs nothing.
     const img = (
       <img
-        src={`/_next/image?url=${encodeURIComponent(ad.imageUrl)}&w=1200&q=60`}
+        src={`/_next/image?url=${encodeURIComponent(ad.imageUrl)}&w=1456&q=80`}
         alt={ad.name}
-        width={1200}
-        height={250}
         loading="lazy"
         decoding="async"
-        style={{ width: "100%", height: "auto", display: "block", borderRadius: 4 }}
+        // NOT width:100%. A 728x90 leaderboard stretched to a ~1200px column
+        // is upscaled by the browser and looks pixelated - which is exactly
+        // what the masthead avoids with its max-height/width:auto cap. Render
+        // at natural size, shrink only when the column is narrower.
+        style={{ maxWidth: "100%", height: "auto", display: "block", margin: "0 auto", borderRadius: 4 }}
       />
     );
     return ad.linkUrl ? <a href={ad.linkUrl} target="_blank" rel="noopener noreferrer">{img}</a> : img;

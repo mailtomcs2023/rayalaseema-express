@@ -8,7 +8,9 @@
 // Only PUBLISHED rows with a YouTube id appear - a video entry with no player
 // is invalid and gets the whole sitemap flagged in GSC.
 
-export const revalidate = 900;
+// 300s, matching sitemap.xml. At 900 the copy Next prerendered at build time
+// (when no videos existed yet) stayed served long enough to look broken.
+export const revalidate = 300;
 
 import { prisma } from "@rayalaseema/db";
 

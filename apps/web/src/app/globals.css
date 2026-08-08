@@ -1682,3 +1682,17 @@ button:not(:disabled),
 button:disabled {
   cursor: not-allowed;
 }
+
+/* Admin-pasted ad HTML (BANNER_MID / IN_FEED / LEADERBOARD tiles).
+   A pasted 728x90 creative was being stretched to the full column width and
+   upscaled by the browser - the same mistake the masthead slot avoids by
+   capping height and letting width follow. Cap at natural size and centre. */
+.db-ad {
+  display: flex;
+  justify-content: center;
+}
+.db-ad img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
