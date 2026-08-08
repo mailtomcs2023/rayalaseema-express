@@ -164,30 +164,25 @@
           cursor: not-allowed;
         }
 
-        /* Slide counter pill (current / total), top-right of the hero. */
+        /* Slide counter, in the control row under the slide. It used to be
+           absolutely positioned at the slide's top-right, where it overlapped
+           the headline - the first thing a reader needs to read. */
         .af-carousel-count {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          z-index: 3;
+          flex: 0 0 auto;
           display: inline-flex;
           align-items: center;
           gap: 3px;
-          /* Asymmetric vertical padding (5px top / 2px bottom) optically
-             centers the digits - Noto Sans Telugu's large descent reserve
-             otherwise leaves them sitting high in the pill. */
-          padding: 5px 10px 2px;
+          padding: 3px 9px;
           border-radius: 999px;
-          background: rgba(17, 24, 39, 0.78);
-          color: #fff;
+          background: var(--n-100, #f3f4f6);
+          color: var(--n-700, #374151);
           font-family: var(--font-telugu-body), sans-serif;
           font-size: 12px;
           font-weight: 700;
-          line-height: 1;
+          line-height: 1.4;
           letter-spacing: 0.02em;
-          backdrop-filter: blur(2px);
         }
-        .af-carousel-count-sep { opacity: 0.6; margin: 0 1px; }
+        .af-carousel-count-sep { opacity: 0.55; margin: 0 1px; }
 
         /* Custom dots - server-rendered (in HTML from first paint, no flash)
            and in normal flow so they reserve their own height (no layout

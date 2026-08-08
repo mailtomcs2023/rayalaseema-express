@@ -129,11 +129,6 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
 
   return (
     <div className="af-carousel">
-      {/* Slide counter (current / total) so readers know more stories exist. */}
-      <span className="af-carousel-count">
-        {active + 1}<span className="af-carousel-count-sep">/</span>{items.length}
-      </span>
-
       <Swiper
         // No Navigation/Pagination modules: those bind arrows only after init
         // (clicks dead until a re-init) and generate dots client-side (flash on
@@ -181,6 +176,12 @@ export function FeaturedCarousel({ items }: { items: FeaturedArticle[] }) {
         >
           <ChevronLeft size={20} strokeWidth={2.75} aria-hidden="true" />
         </button>
+
+        {/* Slide counter, so readers know more stories exist. It used to float
+            at the slide's top-right, where it sat on top of the headline. */}
+        <span className="af-carousel-count">
+          {active + 1}<span className="af-carousel-count-sep">/</span>{items.length}
+        </span>
 
       <div className="af-dots" role="tablist" aria-label="స్లైడ్‌లు">
         {items.map((a, i) => (
