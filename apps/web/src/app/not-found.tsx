@@ -50,6 +50,10 @@ export default function NotFound() {
           alt="రాయలసీమ న్యూస్"
           width={272}
           height={56}
+          // lazy stops Next emitting an HL preload hint for this img into
+          // every page's flight payload - the 404 logo has no business in the
+          // homepage's critical path at all.
+          loading="lazy"
           style={{ height: 56, width: "auto" }}
         />
       </Link>
