@@ -16,6 +16,7 @@ import { articleHref } from "@/lib/article-href";
 import { constituencyHref } from "@/lib/constituency-href";
 import { OlderStoriesLink } from "@/components/older-stories-link";
 import { HUB_PAGE_SIZE, constituencyWhere, getHubPageCount } from "@/lib/hub-pagination";
+import { metaTitle, metaDescription } from "@/lib/meta-text";
 
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
@@ -26,10 +27,14 @@ export async function buildConstituencyMetadata(districtSlug: string, constituen
   });
   if (!constituency) return { title: "Constituency not found" };
   const url = `${SITE_URL}${constituencyHref(constituency.district.slug, constituency.slug)}`;
-  const title = `${constituency.nameEn} Constituency News - ${constituency.name} వార్తలు`;
-  const description = `${constituency.nameEn} (${constituency.name}) నియోజకవర్గం నుండి తాజా వార్తలు, రాజకీయాలు, MLA, అభివృద్ధి కార్యక్రమాలు. ${constituency.district.nameEn} district. Latest political + civic news from Rayalaseema News.`;
+  // metaTitle/metaDescription keep long constituency names (Thamballapalle,
+  // Anantapur Urban) inside the SERP window; short names keep the suffix.
+  const title = metaTitle(`${constituency.nameEn} Constituency News - ${constituency.name} వార్తలు`);
+  const description = metaDescription(
+    `${constituency.nameEn} (${constituency.name}) నియోజకవర్గం తాజా వార్తలు, రాజకీయాలు, MLA, అభివృద్ధి. ${constituency.district.nameEn} district news from Rayalaseema News.`,
+  );
   return {
-    title,
+    title: { absolute: title },
     description,
     keywords: [
       `${constituency.nameEn} constituency`,
