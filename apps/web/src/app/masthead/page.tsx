@@ -16,7 +16,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Masthead | రాయలసీమ న్యూస్",
+  title: "Masthead",
   description:
     "Editorial team and leadership of Rayalaseema News - Editor-in-Chief, desk leads, and editorial staff covering Rayalaseema regional news.",
   alternates: { canonical: `${SITE_URL}/masthead` },

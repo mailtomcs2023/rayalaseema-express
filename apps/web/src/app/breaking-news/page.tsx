@@ -20,7 +20,7 @@ export const revalidate = 30;
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "బ్రేకింగ్ న్యూస్ | Breaking News - Rayalaseema News",
+  title: "బ్రేకింగ్ న్యూస్ | Breaking News",
   description:
     "రాయలసీమ న్యూస్ తాజా బ్రేకింగ్ న్యూస్ అప్‌డేట్‌లు - రాయలసీమ, ఆంధ్రప్రదేశ్, జాతీయ ముఖ్యాంశాలు.",
   alternates: { canonical: `${SITE_URL}/breaking-news` },

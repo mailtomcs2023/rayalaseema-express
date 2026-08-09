@@ -8,7 +8,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Our Mission | రాయలసీమ న్యూస్",
+  title: "Our Mission",
   description:
     "Why Rayalaseema News exists - our mission to deliver hyper-local Telugu news for the eight districts of the Rayalaseema region.",
   alternates: { canonical: `${SITE_URL}/mission` },

@@ -9,6 +9,7 @@ import { prisma } from "@rayalaseema/db";
 import { getSiteConfig, getTrendingArticles } from "@/lib/db-queries";
 import { districtHref } from "@/lib/district-href";
 import { SectionHub } from "@/lib/section-hub";
+import { metaTitle } from "@/lib/meta-text";
 import { OlderStoriesLink } from "@/components/older-stories-link";
 import { HUB_PAGE_SIZE, districtWhere, getHubPageCount } from "@/lib/hub-pagination";
 
@@ -22,10 +23,13 @@ export async function buildDistrictMetadata(slug: string): Promise<Metadata> {
   const url = `${siteUrl()}${districtHref(slug)}`;
   // Head term "${nameEn} news" leads (search volume target), Telugu mirror
   // for native readers, brand suffix appended by layout.tsx title.template.
-  const title = `${district.nameEn} News Today - ${district.name} తాజా వార్తలు`;
+  // metaTitle appends the brand suffix when it fits; paired with `absolute`
+  // below so the root template doesn't append a second one (Sri Sathya Sai
+  // was 73ch with the double treatment).
+  const title = metaTitle(`${district.nameEn} News Today - ${district.name} తాజా వార్తలు`);
   const description = `${district.nameEn} (${district.name}) జిల్లా నుండి తాజా వార్తలు, రాజకీయాలు, క్రీడలు, వాతావరణం, ధరలు. Latest ${district.nameEn} news in Telugu from Rayalaseema News.`;
   return {
-    title,
+    title: { absolute: title },
     description,
     keywords: [
       `${district.nameEn} news`,

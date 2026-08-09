@@ -16,9 +16,11 @@ export const revalidate = 600;
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Devotional news - Tirumala, Tirupati, AP temples | Rayalaseema News",
+  // absolute: the title carries its own suffix; the root template must not
+  // append a second "| Rayalaseema News".
+  title: { absolute: "Devotional news - Tirumala, Tirupati, AP temples | Rayalaseema News" },
   description:
-    "TTD news, seva booking updates, festival schedules, and devotional stories from across Andhra Pradesh's temple towns. Tirumala, Tirupati, Srisailam, Kanipakam and more.",
+    "TTD news, seva bookings, festival schedules and devotional stories from AP temple towns - Tirumala, Tirupati, Srisailam, Kanipakam. భక్తి వార్తలు.",
   alternates: { canonical: `${SITE_URL}/devotional` },
   openGraph: {
     title: "Devotional news | రాయలసీమ న్యూస్ - భక్తి",

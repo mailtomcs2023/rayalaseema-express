@@ -36,7 +36,9 @@ export async function buildCategoryMetadata(slug: string): Promise<Metadata> {
   // category actually is. cat.description still wins when the admin set it.
   const nameEn = cat.nameEn || cat.name;
   return {
-    title: metaTitle(`${nameEn} News in Telugu - ${cat.name} వార్తలు`),
+    // absolute - metaTitle() handles the suffix; the root template must not
+    // append a second one.
+    title: { absolute: metaTitle(`${nameEn} News in Telugu - ${cat.name} వార్తలు`) },
     description: metaDescription(
       cat.description ||
         `${cat.name} (${nameEn}) తాజా వార్తలు, విశ్లేషణలు, ప్రత్యేక కథనాలు. Latest ${nameEn} news in Telugu from Rayalaseema News - రాయలసీమ న్యూస్.`,

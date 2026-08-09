@@ -9,7 +9,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Feedback Policy | రాయలసీమ న్యూస్",
+  title: "Feedback Policy",
   description:
     "How Rayalaseema News handles reader feedback - channels, response timelines, and escalation paths.",
   alternates: { canonical: `${SITE_URL}/feedback-policy` },

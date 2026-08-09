@@ -12,7 +12,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Ownership & Funding | రాయలసీమ న్యూస్",
+  title: "Ownership & Funding",
   description:
     "Who owns Rayalaseema News, how we are funded, and which related properties we operate.",
   alternates: { canonical: `${SITE_URL}/ownership` },

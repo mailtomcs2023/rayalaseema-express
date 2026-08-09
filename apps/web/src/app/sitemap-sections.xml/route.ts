@@ -132,7 +132,12 @@ export async function GET() {
   // threshold, CANDIDATE, REJECTED) is noindex,follow and stays out of the
   // sitemap - only crawlable via inbound article links.
   const [approvedTags, thresholdConfig] = await Promise.all([
-    prisma.tag.findMany({ where: { status: "APPROVED" }, select: { slug: true, id: true, articleCount: true } }),
+    // kind != OTHER mirrors isTagIndexable: OTHER = never positively
+    // identified as a real topic, stays out of the sitemap (and noindex).
+    prisma.tag.findMany({
+      where: { status: "APPROVED", kind: { not: "OTHER" } },
+      select: { slug: true, id: true, articleCount: true },
+    }),
     prisma.siteConfig.findUnique({ where: { key: "topic_index_threshold" } }),
   ]);
   const parsedThreshold = thresholdConfig ? parseInt(thresholdConfig.value, 10) : NaN;

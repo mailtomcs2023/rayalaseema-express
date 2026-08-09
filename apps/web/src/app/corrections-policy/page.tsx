@@ -13,7 +13,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Corrections Policy | రాయలసీమ న్యూస్",
+  title: "Corrections Policy",
   description:
     "How Rayalaseema News handles factual errors - corrections process, timelines, and how to request a correction.",
   alternates: { canonical: `${SITE_URL}/corrections-policy` },

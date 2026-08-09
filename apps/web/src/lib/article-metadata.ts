@@ -40,7 +40,11 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
   const canonical = `${siteUrl}${articleHref(article)}`;
   const noindex = article.status !== "PUBLISHED";
   return {
-    title: pageTitle,
+    // absolute: metaTitle() already manages the brand suffix (adds it when it
+    // fits, drops it for long Telugu headlines). Without absolute the root
+    // layout's "%s | Rayalaseema News" template re-appends it, pushing every
+    // article title back over the SERP window - the exact defect being fixed.
+    title: { absolute: pageTitle },
     description: pageDescription,
     alternates: { canonical },
     // A page-level `robots` REPLACES the root layout's default, so the

@@ -11,7 +11,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Editorial Standards | రాయలసీమ న్యూస్",
+  title: "Editorial Standards",
   description:
     "Editorial standards at Rayalaseema News - fact-checking, attribution, embargoes, off-the-record handling, and bilingual translation rules.",
   alternates: { canonical: `${SITE_URL}/editorial-standards` },

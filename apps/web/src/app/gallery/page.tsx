@@ -17,7 +17,7 @@ const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 const PAGE_SIZE = 24;
 
 export const metadata: Metadata = {
-  title: "ఫోటో గ్యాలరీ | రాయలసీమ న్యూస్",
+  title: "ఫోటో గ్యాలరీ",
   description: "రాయలసీమ ప్రాంత తాజా ఫోటో గ్యాలరీలు - రాజకీయాలు, క్రీడలు, సాంస్కృతిక కార్యక్రమాలు, వార్తలు.",
   alternates: { canonical: `${SITE_URL}/gallery` },
   openGraph: {

@@ -2,7 +2,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
 export const metadata = {
-  title: "Terms of Service | Rayalaseema News",
+  title: "Terms of Service",
   description:
     "Terms of use for rayalaseemanews.com - content licensing, acceptable use, comments policy and liability for the Rayalaseema News Telugu news service.",
   alternates: { canonical: "/terms" },

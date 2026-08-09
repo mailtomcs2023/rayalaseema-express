@@ -8,7 +8,7 @@ import { listArchiveMonths, monthLabel } from "@/lib/archive";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "వార్తల ఆర్కైవ్ | Rayalaseema News",
+  title: "వార్తల ఆర్కైవ్",
   description:
     "రాయలసీమ న్యూస్ పూర్తి వార్తల ఆర్కైవ్ - నెలవారీగా అన్ని కథనాలు, అన్ని జిల్లాల వార్తలు ఒకే చోట. Complete Rayalaseema News archive by month - all Telugu news articles.",
   alternates: { canonical: "/archive" },

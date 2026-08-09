@@ -13,7 +13,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Ethics Policy | రాయలసీమ న్యూస్",
+  title: "Ethics Policy",
   description:
     "Rayalaseema News ethics policy - sourcing standards, conflict of interest, anonymous sources, gifts, and paid content disclosure.",
   alternates: { canonical: `${SITE_URL}/ethics-policy` },

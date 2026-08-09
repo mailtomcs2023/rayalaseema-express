@@ -10,7 +10,7 @@ import { EpaperDatePicker } from "@/components/epaper-date-picker";
 import { getSiteConfig } from "@/lib/db-queries";
 
 export const metadata: Metadata = {
-  title: "ఈ-పేపర్ | రాయలసీమ న్యూస్",
+  title: "ఈ-పేపర్",
   description: "రాయలసీమ న్యూస్ ఈ-పేపర్ - ప్రధాన + జిల్లా ఎడిషన్లు.",
 };
 

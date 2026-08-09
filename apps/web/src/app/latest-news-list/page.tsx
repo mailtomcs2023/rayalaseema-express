@@ -15,7 +15,7 @@ export const revalidate = 60; // refresh the feed every minute
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "తాజా వార్తలు | Latest News - Rayalaseema News",
+  title: "తాజా వార్తలు | Latest News",
   description:
     "రాయలసీమ న్యూస్ తాజా వార్తలు - రాయలసీమ, ఆంధ్రప్రదేశ్, జాతీయ, అంతర్జాతీయ, క్రీడలు, సినిమా తాజా అప్‌డేట్‌లు.",
   alternates: { canonical: `${SITE_URL}/latest-news-list` },

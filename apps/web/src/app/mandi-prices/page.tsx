@@ -14,7 +14,7 @@ export const revalidate = 1800; // 30 min - mandi prices update once or twice a 
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Today's mandi prices - Rayalaseema News",
+  title: "Today's mandi prices",
   description:
     "Latest commodity prices from Andhra Pradesh mandis. Chilli, cotton, turmeric, paddy, groundnut, maize, tomato, onion rates from major Rayalaseema markets. Updated daily.",
   alternates: { canonical: `${SITE_URL}/mandi-prices` },

@@ -8,7 +8,7 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Diversity Policy | రాయలసీమ న్యూస్",
+  title: "Diversity Policy",
   description:
     "Rayalaseema News diversity policy - coverage diversity, hiring practices, and our commitment to representation across the 8 districts.",
   alternates: { canonical: `${SITE_URL}/diversity-policy` },

@@ -18,7 +18,7 @@ export const revalidate = 600; // 10 min - rates only update a few times a day
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
 export const metadata: Metadata = {
-  title: "Gold rate today in Andhra Pradesh - Rayalaseema News",
+  title: "Gold rate today in Andhra Pradesh",
   description:
     "Today's gold and silver rates in Hyderabad, Vijayawada, Tirupati, Kurnool, Anantapuramu, Kadapa, Nellore, Chittoor. 22K + 24K gold + silver per gram. Updated daily.",
   alternates: { canonical: `${SITE_URL}/gold-rate` },

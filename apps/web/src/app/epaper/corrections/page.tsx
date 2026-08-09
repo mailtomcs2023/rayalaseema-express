@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { getSiteConfig } from "@/lib/db-queries";
 
 export const metadata: Metadata = {
-  title: "సవరణలు & ఉపసంహరణలు | రాయలసీమ న్యూస్",
+  title: "సవరణలు & ఉపసంహరణలు",
   description: "Published ePaper editions that were retracted, with the reason on record.",
 };
 

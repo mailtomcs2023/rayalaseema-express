@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "404 - పేజీ కనిపించలేదు | రాయలసీమ న్యూస్",
+  title: "404 - పేజీ కనిపించలేదు",
   description: "మీరు వెతుకుతున్న పేజీ కనిపించలేదు. రాయలసీమ న్యూస్ హోమ్‌కి తిరిగి వెళ్ళండి.",
   robots: { index: false, follow: true },
 };
