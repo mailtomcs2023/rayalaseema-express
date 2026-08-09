@@ -39,8 +39,10 @@ const locs = (xml) => [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m)
 async function resolveKey() {
   const envKey = process.env.INDEXNOW_KEY?.trim();
   if (!envKey) throw new Error("INDEXNOW_KEY is not set");
-  const res = await fetch(`${ORIGIN}/.well-known/${envKey}.txt`);
-  if (!res.ok) throw new Error(`key file not live: ${ORIGIN}/.well-known/${envKey}.txt -> ${res.status}`);
+  // Root location: IndexNow scopes a key to its own directory and below, so a
+  // key served only at /.well-known/ rejects every article URL with 422.
+  const res = await fetch(`${ORIGIN}/${envKey}.txt`);
+  if (!res.ok) throw new Error(`key file not live: ${ORIGIN}/${envKey}.txt -> ${res.status}`);
   const served = (await res.text()).trim();
   if (served !== envKey) throw new Error(`key file serves "${served}", expected "${envKey}"`);
   return envKey;

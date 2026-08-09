@@ -63,7 +63,10 @@ export async function pingIndexNow(urls: string[]): Promise<void> {
   const body = {
     host,
     key,
-    keyLocation: `https://${host}/.well-known/${key}.txt`,
+    // Root, not /.well-known/. IndexNow scopes a key to the directory it is
+    // served from and below, so a key at /.well-known/ only authorises
+    // /.well-known/* and every article submission is rejected with 422.
+    keyLocation: `https://${host}/${key}.txt`,
     urlList: urls.slice(0, 10000),
   };
   try {

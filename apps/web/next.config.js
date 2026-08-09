@@ -151,6 +151,19 @@ const nextConfig = {
         source: "/sitemap-:month(\\d{4}-\\d{2}).xml",
         destination: "/api/sitemap-month/:month",
       },
+      // IndexNow key file at the site ROOT.
+      //
+      // The protocol scopes a key to the directory it is served from and
+      // everything beneath it. Serving it only at /.well-known/<key>.txt
+      // therefore authorises just /.well-known/* - submitting article URLs
+      // returned 422 "One or more URLs are not related to your site verified
+      // through the keylocation parameter" for every batch. Serving the same
+      // key at / authorises the whole site. The .well-known path keeps working
+      // via its own route; this is an additional, broader location.
+      {
+        source: "/:key([0-9a-f]{32}).txt",
+        destination: "/.well-known/:key",
+      },
     ];
   },
   async redirects() {
