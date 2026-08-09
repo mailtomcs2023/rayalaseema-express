@@ -16,7 +16,7 @@ import type { Prisma } from "@prisma/client";
 
 /** Page 1 sizes match what the existing hub components already render, so
  *  page 2 starts exactly where the hub visually stops. */
-export const HUB_PAGE_SIZE = { category: 30, district: 30, constituency: 20, tag: 30 } as const;
+export const HUB_PAGE_SIZE = { category: 30, district: 30, constituency: 20 } as const;
 
 export const HUB_ARTICLE_SELECT = {
   id: true,
@@ -64,11 +64,6 @@ export function districtWhere(
 /** Constituency hub: the denormalized primary constituency, as ConstituencyView uses. */
 export function constituencyWhere(constituencyId: string): Prisma.ContentWhereInput {
   return { ...BASE, constituencyId };
-}
-
-/** Tag hub: articles joined to this tag via the ContentTag table (Spec #1 #189). */
-export function tagWhere(tagId: string): Prisma.ContentWhereInput {
-  return { ...BASE, tags: { some: { tagId } } };
 }
 
 /**

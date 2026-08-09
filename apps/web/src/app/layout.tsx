@@ -6,7 +6,7 @@ import { DeferredFooterClients } from "@/components/deferred-footer-clients";
 import { MobileAnchorSlot } from "@/components/mobile-anchor-slot";
 import { DeferredAnalytics } from "@/components/deferred-analytics";
 import "./globals.css";
-import { Geist, Noto_Sans_Telugu } from "next/font/google";
+import { Geist, Noto_Sans_Telugu, Anek_Telugu } from "next/font/google";
 import { cn } from "@/lib/utils";
 
 // Spec #4 E5 (#224) - fonts via next/font/google. Self-hosts the woff2
@@ -43,11 +43,18 @@ const notoTelugu = Noto_Sans_Telugu({
   display: "swap",
   preload: false,
 });
-// Headlines use Noto too (2026-08-09). Anek Telugu was the headline face,
-// but it is a 151 KB download no phone ships, while Noto IS Android's
-// built-in Telugu font - so the heavier Noto weights give near-identical
-// headlines for zero additional bytes. Decision made off a side-by-side
-// specimen of live RSN headlines in both faces.
+// Headline font (#229). Anek Telugu - modern, clean sans-serif with a wide
+// weight range, used for headlines via --font-telugu-heading. Replaced
+// Noto Serif Telugu (2026-06-02). Anek's weight axis tops out at 800; the
+// 900-weight headline sizes (telugu-2xl/3xl) fall back to 800.
+// Same preload reasoning as Noto above. Headlines swap from the system Telugu
+// fallback a beat later; that beat is what buys the hero its bandwidth.
+const anekTelugu = Anek_Telugu({
+  subsets: ["telugu", "latin"],
+  variable: "--font-anek-telugu",
+  display: "swap",
+  preload: false,
+});
 
 export const viewport: Viewport = {
   themeColor: "#E01B1B",
@@ -193,7 +200,7 @@ export default async function RootLayout({
     },
   });
   return (
-    <html lang="te" className={cn("font-sans", geist.variable, notoTelugu.variable)} suppressHydrationWarning>
+    <html lang="te" className={cn("font-sans", geist.variable, notoTelugu.variable, anekTelugu.variable)} suppressHydrationWarning>
       <head>
         {/* No preconnects, deliberately. The ones that used to sit here
             (blob storage, i.ytimg.com) date from when the browser fetched

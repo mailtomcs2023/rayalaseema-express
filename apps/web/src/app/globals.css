@@ -2,7 +2,7 @@
    Fonts are now self-hosted via next/font/google in apps/web/src/app/layout.tsx; the
    render-blocking @import to fonts.googleapis.com (PSI flagged ~750ms blocking
    on every page) is removed - tokens below resolve via --font-noto-telugu /
-   --font-noto-telugu which next/font sets on the <html> element. */
+   --font-anek-telugu which next/font sets on the <html> element. */
 
 /* ===== Nova preset (pristine shadcn v4 block) ================================ */
 @import "tailwindcss";
@@ -175,7 +175,7 @@
   --color-accent-700: #b45309;
 
   --font-telugu: var(--font-noto-telugu), "Noto Sans Telugu", sans-serif;
-  --font-heading: var(--font-noto-telugu), "Noto Sans Telugu", sans-serif;
+  --font-heading: var(--font-anek-telugu), "Noto Sans Telugu", sans-serif;
   --font-body: var(--font-noto-telugu), "Noto Sans Telugu", sans-serif;
 }
 
@@ -260,7 +260,7 @@
   /* Map the semantic tokens onto the next/font self-hosted families (set on
      <html> via layout.tsx). Literal names are graceful fallbacks only. */
   --font-telugu-body: var(--font-noto-telugu), "Noto Sans Telugu", sans-serif;
-  --font-telugu-heading: var(--font-noto-telugu), "Noto Sans Telugu", sans-serif;
+  --font-telugu-heading: var(--font-anek-telugu), "Noto Sans Telugu", sans-serif;
   --font-latin: "Noto Sans Telugu", "Helvetica Neue", Arial, sans-serif;
 
   /* ====== LEGACY ALIASES (kept for backward compat - gradually drop) ====== */
@@ -331,7 +331,7 @@
     letter-spacing: 0.02em !important;
   }
 
-  /* Headings - Noto Sans Telugu heavy weights (Anek retired 2026-08-09: 151 KB download vs Android's built-in Noto) */
+  /* Headings - Anek Telugu (modern sans) for headline clarity, sitewide */
   h1,
   h2,
   h3,

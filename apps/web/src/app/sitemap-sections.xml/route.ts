@@ -6,12 +6,9 @@
 // URLs whose lastmod churn forced a full re-read every time.
 //
 // Contents: home, district hubs, constituency hubs, category hubs, the video
-// section pages and their individual video pages, approved topic hubs past
-// the indexing threshold, and the trust pages.
+// section pages and their individual video pages, and the trust pages.
 // Article URLs live in the /sitemap-YYYY-MM.xml shards.
-// Tag pages below the threshold (or CANDIDATE/REJECTED) stay noindex,follow
-// and are deliberately absent - see the 2026-08 de-indexing incident comment
-// in apps/web/src/app/tag/[slug]/page.tsx. Author pages are noindex,follow too.
+// Tag and author pages are noindex,follow and are deliberately absent.
 
 import { prisma } from "@rayalaseema/db";
 import { escXml } from "@/lib/sitemap-months";
@@ -22,10 +19,7 @@ import {
   constituencyWhere,
   districtWhere,
   getHubPageCount,
-  tagWhere,
 } from "@/lib/hub-pagination";
-
-const DEFAULT_TOPIC_INDEX_THRESHOLD = 10;
 
 export const revalidate = 3600;
 
@@ -127,28 +121,6 @@ export async function GET() {
   for (const c of categoryPages) pushPages(`/${c.slug}`, c.pages);
   for (const d of districtPages) pushPages(`/${d.slug}`, d.pages);
   for (const c of constituencyPages) pushPages(`/${c.path}`, c.pages);
-
-  // Approved topic hubs past the indexing threshold. Everything else (below
-  // threshold, CANDIDATE, REJECTED) is noindex,follow and stays out of the
-  // sitemap - only crawlable via inbound article links.
-  const [approvedTags, thresholdConfig] = await Promise.all([
-    prisma.tag.findMany({ where: { status: "APPROVED" }, select: { slug: true, id: true, articleCount: true } }),
-    prisma.siteConfig.findUnique({ where: { key: "topic_index_threshold" } }),
-  ]);
-  const parsedThreshold = thresholdConfig ? parseInt(thresholdConfig.value, 10) : NaN;
-  const topicThreshold = Number.isFinite(parsedThreshold) ? parsedThreshold : DEFAULT_TOPIC_INDEX_THRESHOLD;
-  const indexableTags = approvedTags.filter((t) => t.articleCount >= topicThreshold);
-
-  for (const t of indexableTags) {
-    urls.push(`  <url><loc>${escXml(`${siteUrl}/tag/${t.slug}`)}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
-  }
-  const tagPages = await Promise.all(
-    indexableTags.map(async (t) => ({
-      slug: t.slug,
-      pages: await getHubPageCount(tagWhere(t.id), HUB_PAGE_SIZE.tag),
-    })),
-  );
-  for (const t of tagPages) pushPages(`/tag/${t.slug}`, t.pages);
 
   // Archive index + every month page + every pagination page. These are the
   // pages that make the back catalogue reachable, so Google needs them in the
