@@ -23,27 +23,37 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swa
 // --font-telugu-body token onto it. (Previously both next/font AND globals.css
 // defined --font-telugu-body, and the literal-string version silently shadowed
 // the real self-hosted font.)
-// VARIABLE font - no `weight` array. With six static weights, next/font
-// preloaded a separate woff2 per weight per subset: 359 KB of fonts fetched
-// at highest priority in the same window as the 14 KB LCP hero image. On the
-// simulated 1.6 Mbps mobile connection that is ~1.8 s of bandwidth spent
-// before the hero can finish - PSI's "resource load delay" was exactly this.
-// The variable file carries wght 100-900 in one request per subset.
+// preload:false is the load-bearing setting on both Telugu fonts, so the
+// reasoning in full: these are variable fonts (next/font collapses any weight
+// list to the same variable file - removing the weight array changed no
+// hashes), and the Telugu subsets are inherently heavy: 136 KB Noto + 120 KB
+// Anek + latins = 359 KB. As <head> preloads they were fetched at highest
+// priority in the same window as the 14 KB LCP hero image - on Lighthouse's
+// 1.6 Mbps mobile profile that is ~1.8 s of bandwidth ahead of the hero, and
+// PSI's "resource load delay" phase showed exactly that.
+//
+// Unpreloaded, the fonts are requested when CSS resolves them - still early,
+// but no longer ahead of the hero. display:swap paints text immediately in
+// the fallback, and the swap is near-invisible for most readers because
+// Android ships Noto Sans Telugu as its system Telugu font: the fallback and
+// the webfont are the same design.
 const notoTelugu = Noto_Sans_Telugu({
   subsets: ["telugu", "latin"],
   variable: "--font-noto-telugu",
   display: "swap",
+  preload: false,
 });
 // Headline font (#229). Anek Telugu - modern, clean sans-serif with a wide
 // weight range, used for headlines via --font-telugu-heading. Replaced
 // Noto Serif Telugu (2026-06-02). Anek's weight axis tops out at 800; the
 // 900-weight headline sizes (telugu-2xl/3xl) fall back to 800.
-// Variable for the same reason as Noto above - one file per subset instead of
-// five per-weight files. Anek's variable axis covers wght 100-800.
+// Same preload reasoning as Noto above. Headlines swap from the system Telugu
+// fallback a beat later; that beat is what buys the hero its bandwidth.
 const anekTelugu = Anek_Telugu({
   subsets: ["telugu", "latin"],
   variable: "--font-anek-telugu",
   display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {

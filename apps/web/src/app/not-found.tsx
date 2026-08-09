@@ -39,7 +39,19 @@ export default function NotFound() {
     >
       {/* Logo - links home */}
       <Link href="/" aria-label="రాయలసీమ న్యూస్ హోమ్" className="rsn-logo" style={{ display: "inline-block", marginBottom: 28 }}>
-        <img src="/logo.png" alt="రాయలసీమ న్యూస్" style={{ height: 56, width: "auto" }} />
+        {/* Optimizer URL, not the raw 36 KB PNG. The global not-found
+            boundary's tree is serialised into EVERY page's flight payload,
+            and Next emitted an HL preload hint for this img's src - so the
+            raw logo was preloaded at high priority on every page of the
+            site, on phones, ahead of the LCP hero. The optimizer URL keeps
+            the same logo as a ~10 KB AVIF if the hint ever returns. */}
+        <img
+          src="/_next/image?url=%2Flogo.png&w=384&q=75"
+          alt="రాయలసీమ న్యూస్"
+          width={272}
+          height={56}
+          style={{ height: 56, width: "auto" }}
+        />
       </Link>
 
       {/* 4 0 4 with the 0 as a heart-pin */}
