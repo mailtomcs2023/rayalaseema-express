@@ -55,7 +55,10 @@ export function FeaturedSlide({
             alt={article.title}
             width={1200}
             height={750}
-            sizes="(max-width: 768px) 100vw, 680px"
+            // 88vw, not 100vw: PSI measured the hero displayed at 358px on a
+            // 412px viewport (the .af panel has padding). At DPR 1.75 that is
+            // 627 device px, so 88vw selects the 640w variant instead of 750w.
+            sizes="(max-width: 768px) 88vw, 680px"
             quality={60}
             priority={priority}
             loading={priority ? "eager" : "lazy"}

@@ -286,6 +286,15 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
             )}
           </p>
         </div>
+        {/* Site-wide archive link. Not a Menu Builder row on purpose: this is
+            structural crawl plumbing, not editorial navigation, and it must be
+            present on every page for the back catalogue to stay reachable.
+            Measured 2026-08-09: 74% of articles were linked from nowhere. */}
+        <div className="container-news pb-3 text-xs">
+          <Link href="/archive" className="text-gray-400 hover:text-white underline">
+            వార్తల ఆర్కైవ్ · News Archive
+          </Link>
+        </div>
         <div className="container-news pb-5 text-[11px] text-gray-600 leading-relaxed">
           Content on {config.publisher_brand_name || "Rayalaseema News"} is copyright protected. Copying,
           reproduction or re-use of any content, in whole or in part, without the written consent of{" "}

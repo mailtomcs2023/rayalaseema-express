@@ -23,20 +23,26 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swa
 // --font-telugu-body token onto it. (Previously both next/font AND globals.css
 // defined --font-telugu-body, and the literal-string version silently shadowed
 // the real self-hosted font.)
+// VARIABLE font - no `weight` array. With six static weights, next/font
+// preloaded a separate woff2 per weight per subset: 359 KB of fonts fetched
+// at highest priority in the same window as the 14 KB LCP hero image. On the
+// simulated 1.6 Mbps mobile connection that is ~1.8 s of bandwidth spent
+// before the hero can finish - PSI's "resource load delay" was exactly this.
+// The variable file carries wght 100-900 in one request per subset.
 const notoTelugu = Noto_Sans_Telugu({
   subsets: ["telugu", "latin"],
   variable: "--font-noto-telugu",
-  weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
 });
 // Headline font (#229). Anek Telugu - modern, clean sans-serif with a wide
 // weight range, used for headlines via --font-telugu-heading. Replaced
 // Noto Serif Telugu (2026-06-02). Anek's weight axis tops out at 800; the
 // 900-weight headline sizes (telugu-2xl/3xl) fall back to 800.
+// Variable for the same reason as Noto above - one file per subset instead of
+// five per-weight files. Anek's variable axis covers wght 100-800.
 const anekTelugu = Anek_Telugu({
   subsets: ["telugu", "latin"],
   variable: "--font-anek-telugu",
-  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 

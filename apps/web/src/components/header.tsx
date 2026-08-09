@@ -358,14 +358,21 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
                 className="h-12 w-auto md:hidden"
                 style={{ height: 48, width: "auto" }}
               />
-              <Image
-                src="/logo.png"
+              {/* Plain <img>, deliberately NOT next/image. Even with
+                loading="lazy", Next 16 emitted <link rel="preload"
+                href="/logo.png"> into <head> for this element - 36 KB
+                preloaded at high priority on phones where the wordmark is
+                display:none, competing with the LCP hero. A plain tag pointed
+                at the optimizer URL keeps the AVIF/WebP negotiation and emits
+                nothing. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/_next/image?url=%2Flogo.png&w=640&q=75"
                 alt="రాయలసీమ న్యూస్"
                 width={320}
                 height={66}
-                sizes="320px"
-                quality={75}
                 loading="lazy"
+                decoding="async"
                 className="hidden md:block h-16 w-auto"
                 style={{ height: 64, width: "auto" }}
               />

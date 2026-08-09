@@ -20,7 +20,7 @@ type ArticleLink = {
 };
 
 const RESERVED_DISTRICT_SLUGS = new Set<string>([
-  "about", "api", "article", "author", "cartoon", "category", "cinema",
+  "about", "api", "archive", "article", "author", "cartoon", "category", "cinema",
   "constituency", "contact", "district", "epaper", "gallery", "horoscope",
   "mandal", "masthead", "news", "news-sitemap.xml", "ownership", "page-builder",
   "privacy", "reel", "robots.txt", "rss", "search", "sitemap.xml",

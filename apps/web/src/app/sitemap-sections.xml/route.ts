@@ -12,6 +12,7 @@
 
 import { prisma } from "@rayalaseema/db";
 import { escXml } from "@/lib/sitemap-months";
+import { listArchiveMonths } from "@/lib/archive";
 
 export const revalidate = 3600;
 
@@ -66,6 +67,18 @@ export async function GET() {
   urls.push(`  <url><loc>${siteUrl}/videos/shorts</loc><changefreq>daily</changefreq><priority>0.6</priority></url>`);
   for (const v of videos) {
     urls.push(`  <url><loc>${escXml(`${siteUrl}/videos/${v.slug}`)}</loc><lastmod>${v.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`);
+  }
+
+  // Archive index + every month page + every pagination page. These are the
+  // pages that make the back catalogue reachable, so Google needs them in the
+  // sitemap as well as via the footer link - belt and braces on discovery.
+  const months = await listArchiveMonths();
+  urls.push(`  <url><loc>${siteUrl}/archive</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`);
+  for (const m of months) {
+    urls.push(`  <url><loc>${siteUrl}/archive/${m.month}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
+    for (let n = 2; n <= m.pages; n++) {
+      urls.push(`  <url><loc>${siteUrl}/archive/${m.month}/page/${n}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>`);
+    }
   }
 
   for (const slug of TRUST_PAGES) {
