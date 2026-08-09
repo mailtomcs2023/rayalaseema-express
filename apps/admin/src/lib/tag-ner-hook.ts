@@ -69,6 +69,16 @@ export async function tagOne(contentId: string, gazetteer: EntityEntry[]): Promi
   });
   const autoApplied = mentions.filter((m) => isAutoApply(m, m.matchedTerm.length));
 
+  // Capture the tags this content held (non-MANUAL) BEFORE the wipe, so a
+  // tag that loses its only mention here (text edited, entity no longer
+  // present) still gets recounted below - otherwise its articleCount stays
+  // stale-high forever and corrupts the articleCount >= threshold
+  // indexability gate.
+  const priorTags = await prisma.contentTag.findMany({
+    where: { contentId, source: { not: "MANUAL" } },
+    select: { tagId: true },
+  });
+
   await prisma.$transaction([
     prisma.contentTag.deleteMany({
       where: { contentId, source: { not: "MANUAL" } },
@@ -84,12 +94,13 @@ export async function tagOne(contentId: string, gazetteer: EntityEntry[]): Promi
     }),
   ]);
 
-  // Recount articleCount for every tag touched by this pass (in case any
-  // were dropped/added relative to the prior pass).
-  const affectedTagIds = autoApplied.map((m) => m.tagId);
+  // Recount articleCount for every tag touched by this pass: the new
+  // matches PLUS whatever this content used to be tagged with, so tags that
+  // dropped out get their count decremented too.
+  const affectedTagIds = [...new Set([...priorTags.map((t) => t.tagId), ...autoApplied.map((m) => m.tagId)])];
   await recountArticleCounts(affectedTagIds);
 
-  return { tagIds: affectedTagIds };
+  return { tagIds: autoApplied.map((m) => m.tagId) };
 }
 
 /** Recount + persist Tag.articleCount for the given tag ids. */
