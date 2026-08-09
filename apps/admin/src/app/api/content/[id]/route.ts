@@ -21,6 +21,7 @@ import { pickLeastLoadedReviewer } from "@/lib/reviewer-assignment";
 import { pingIndexNow } from "@/lib/indexnow";
 import { pingWebRevalidate } from "@/lib/revalidate-web";
 import { tagContentLocations } from "@/lib/location-ner-hook";
+import { tagContentEntities } from "@/lib/tag-ner-hook";
 import { injectInternalLinks } from "@/lib/internal-linker";
 
 // Build the canonical article URL the same way articleHref() does in apps/web.
@@ -473,6 +474,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // gazetteer pass. Failure is non-fatal - publish still succeeds; the
     // editor can manually re-tag from the admin UI if NER missed something.
     if (action === "content.publish" && content.type === "ARTICLE") {
+      // Topic-tagging Task 4 - entity NER against the APPROVED tag
+      // gazetteer, fire-and-forget alongside the location NER below.
+      // Failure is non-fatal (logged inside the hook itself).
+      tagContentEntities(content.id).catch((e) => console.warn("[tag-ner] non-fatal:", e));
       try {
         await tagContentLocations(content.id, content.title, content.body || "");
         // G3 (#233) - inject up to 2 internal links to the primary district +
