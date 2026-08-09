@@ -59,7 +59,7 @@ export function YettetaCartoon({ items }: { items: { id: string; title: string; 
           <button onClick={prev} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#666" }}>
             ‹
           </button>
-          <span style={{ fontSize: "var(--fs-caption)", color: "#888" }}>
+          <span style={{ fontSize: "var(--fs-caption)", color: "#5f6672" }}>
             {cartoon.date} • {current + 1}/{allCartoons.length}
           </span>
           <button onClick={next} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#666" }}>
