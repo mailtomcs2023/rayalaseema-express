@@ -14,6 +14,8 @@ import { prisma } from "@rayalaseema/db";
 import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
 import { articleHref } from "@/lib/article-href";
 import { constituencyHref } from "@/lib/constituency-href";
+import { OlderStoriesLink } from "@/components/older-stories-link";
+import { HUB_PAGE_SIZE, constituencyWhere, getHubPageCount } from "@/lib/hub-pagination";
 
 const SITE_URL = process.env.SITE_URL || "https://rayalaseemanews.com";
 
@@ -68,6 +70,8 @@ export async function ConstituencyView({ districtSlug, constituencySlug }: { dis
     orderBy: { publishedAt: "desc" },
     take: 20,
   });
+
+  const pages = await getHubPageCount(constituencyWhere(constituency.id), HUB_PAGE_SIZE.constituency);
 
   const breadcrumbLd = buildBreadcrumbListSchema({
     items: [
@@ -134,6 +138,12 @@ export async function ConstituencyView({ districtSlug, constituencySlug }: { dis
             </Link>
           </div>
         )}
+        {/* Link to page 2 so the constituency's older coverage is reachable
+            by readers and crawlers rather than capped at the newest 20. */}
+        <OlderStoriesLink
+          basePath={`/${constituency.district.slug}/${constituency.slug}`}
+          pages={pages}
+        />
       </main>
 
       <SiteFooter />

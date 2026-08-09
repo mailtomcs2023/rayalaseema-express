@@ -18,6 +18,8 @@ import { getSiteConfig, getCategoryTrending } from "@/lib/db-queries";
 import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
 import { categoryHref } from "@/lib/category-href";
 import { SectionHub } from "@/lib/section-hub";
+import { OlderStoriesLink } from "@/components/older-stories-link";
+import { HUB_PAGE_SIZE, categoryWhere, getHubPageCount } from "@/lib/hub-pagination";
 
 function siteUrl(): string {
   return process.env.SITE_URL || "https://rayalaseemanews.com";
@@ -60,18 +62,25 @@ export async function CategoryHubView({ slug }: { slug: string }) {
     getCategoryTrending(category.id, 8),
   ]);
 
+  // Page count for the "older stories" link. Cheap COUNT, and it is what keeps
+  // /<slug>/page/2 from being an orphan.
+  const pages = await getHubPageCount(categoryWhere(category.id), HUB_PAGE_SIZE.category);
+
   return (
-    <SectionHub
-      config={config}
-      slug={slug}
-      title={category.name}
-      subtitle={category.nameEn}
-      breadcrumbName={category.name}
-      emptyLabel={category.name}
-      articles={articles}
-      trending={trending}
-      siteUrl={siteUrl()}
-    />
+    <>
+      <SectionHub
+        config={config}
+        slug={slug}
+        title={category.name}
+        subtitle={category.nameEn}
+        breadcrumbName={category.name}
+        emptyLabel={category.name}
+        articles={articles}
+        trending={trending}
+        siteUrl={siteUrl()}
+      />
+      <OlderStoriesLink basePath={`/${slug}`} pages={pages} />
+    </>
   );
 }
 

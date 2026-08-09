@@ -13,6 +13,13 @@
 import { prisma } from "@rayalaseema/db";
 import { escXml } from "@/lib/sitemap-months";
 import { listArchiveMonths } from "@/lib/archive";
+import {
+  HUB_PAGE_SIZE,
+  categoryWhere,
+  constituencyWhere,
+  districtWhere,
+  getHubPageCount,
+} from "@/lib/hub-pagination";
 
 export const revalidate = 3600;
 
@@ -68,6 +75,52 @@ export async function GET() {
   for (const v of videos) {
     urls.push(`  <url><loc>${escXml(`${siteUrl}/videos/${v.slug}`)}</loc><lastmod>${v.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`);
   }
+
+  // Hub pagination pages. Page 1 is the hub itself and is already listed
+  // above; pages 2..N are separate URLs and need listing too, otherwise the
+  // deeper pages depend entirely on crawlers walking the pagination bar.
+  const [categoryPages, districtPages, constituencyPages] = await Promise.all([
+    Promise.all(
+      categories.map(async (c) => {
+        const row = await prisma.category.findUnique({ where: { slug: c.slug }, select: { id: true } });
+        if (!row) return { slug: c.slug, pages: 1 };
+        return { slug: c.slug, pages: await getHubPageCount(categoryWhere(row.id), HUB_PAGE_SIZE.category) };
+      }),
+    ),
+    Promise.all(
+      districts.map(async (d) => {
+        const row = await prisma.district.findUnique({
+          where: { slug: d.slug },
+          select: { id: true, name: true, nameEn: true, constituencies: { where: { acNumber: { not: null } }, select: { id: true } } },
+        });
+        if (!row) return { slug: d.slug, pages: 1 };
+        const pages = await getHubPageCount(
+          districtWhere(row, row.constituencies.map((x) => x.id)),
+          HUB_PAGE_SIZE.district,
+        );
+        return { slug: d.slug, pages };
+      }),
+    ),
+    Promise.all(
+      constituencies.map(async (c) => {
+        const row = await prisma.constituency.findFirst({ where: { slug: c.slug }, select: { id: true } });
+        if (!row) return { path: `${c.district.slug}/${c.slug}`, pages: 1 };
+        return {
+          path: `${c.district.slug}/${c.slug}`,
+          pages: await getHubPageCount(constituencyWhere(row.id), HUB_PAGE_SIZE.constituency),
+        };
+      }),
+    ),
+  ]);
+
+  const pushPages = (base: string, pages: number) => {
+    for (let n = 2; n <= pages; n++) {
+      urls.push(`  <url><loc>${escXml(`${siteUrl}${base}/page/${n}`)}</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>`);
+    }
+  };
+  for (const c of categoryPages) pushPages(`/${c.slug}`, c.pages);
+  for (const d of districtPages) pushPages(`/${d.slug}`, d.pages);
+  for (const c of constituencyPages) pushPages(`/${c.path}`, c.pages);
 
   // Archive index + every month page + every pagination page. These are the
   // pages that make the back catalogue reachable, so Google needs them in the

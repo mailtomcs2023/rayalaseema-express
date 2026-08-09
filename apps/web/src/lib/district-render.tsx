@@ -9,6 +9,8 @@ import { prisma } from "@rayalaseema/db";
 import { getSiteConfig, getTrendingArticles } from "@/lib/db-queries";
 import { districtHref } from "@/lib/district-href";
 import { SectionHub } from "@/lib/section-hub";
+import { OlderStoriesLink } from "@/components/older-stories-link";
+import { HUB_PAGE_SIZE, districtWhere, getHubPageCount } from "@/lib/hub-pagination";
 
 function siteUrl(): string {
   return process.env.SITE_URL || "https://rayalaseemanews.com";
@@ -105,17 +107,30 @@ export async function DistrictView({ slug }: { slug: string }) {
     ? `${district.name} జిల్లా వార్తలు త్వరలో - ప్రస్తుతం తాజా వార్తలు చూపిస్తున్నాము.`
     : null;
 
+  // Only offer "older stories" when this district has its own coverage. In the
+  // showingGeneral fallback the list is site-wide latest, so a page 2 scoped to
+  // the district would contradict what page 1 displays.
+  const pages = showingGeneral
+    ? 1
+    : await getHubPageCount(
+        districtWhere(district, district.constituencies.map((c) => c.id)),
+        HUB_PAGE_SIZE.district,
+      );
+
   return (
-    <SectionHub
-      config={config}
-      slug={slug}
-      title={`${district.name} జిల్లా`}
-      subtitle={`${district.nameEn} · ${district.constituencies.length} నియోజకవర్గాలు`}
-      breadcrumbName={`${district.name} (${district.nameEn})`}
-      banner={banner}
-      articles={articles}
-      trending={trending}
-      siteUrl={siteUrl()}
-    />
+    <>
+      <SectionHub
+        config={config}
+        slug={slug}
+        title={`${district.name} జిల్లా`}
+        subtitle={`${district.nameEn} · ${district.constituencies.length} నియోజకవర్గాలు`}
+        breadcrumbName={`${district.name} (${district.nameEn})`}
+        banner={banner}
+        articles={articles}
+        trending={trending}
+        siteUrl={siteUrl()}
+      />
+      <OlderStoriesLink basePath={`/${slug}`} pages={pages} />
+    </>
   );
 }
