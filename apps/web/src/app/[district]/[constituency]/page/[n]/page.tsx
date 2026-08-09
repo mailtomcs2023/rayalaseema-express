@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!c) return {};
   return {
     title: `${c.name} - పాత వార్తలు, పేజీ ${page}`,
-    description: `${c.name} నియోజకవర్గం పాత కథనాలు - పేజీ ${page}.`,
+    description: `${c.name} నియోజకవర్గం పాత కథనాలు - పేజీ ${page}. రాజకీయాలు, MLA కార్యక్రమాలు, అభివృద్ధి పనులు, స్థానిక వార్తలు. Older ${c.name} constituency news from Rayalaseema News.`,
     alternates: { canonical: `/${district}/${constituency}/page/${page}` },
   };
 }

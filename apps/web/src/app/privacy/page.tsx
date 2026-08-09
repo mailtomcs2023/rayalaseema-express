@@ -1,7 +1,12 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-export const metadata = { title: "Privacy Policy | Rayalaseema News" };
+export const metadata = {
+  title: "Privacy Policy | Rayalaseema News",
+  description:
+    "How Rayalaseema News collects, uses and protects reader data - cookies, analytics, advertising partners and your rights under Indian data-protection law.",
+  alternates: { canonical: "/privacy" },
+};
 
 export default function PrivacyPage() {
   return (

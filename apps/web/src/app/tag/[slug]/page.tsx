@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const indexable = await isTagIndexable(tag);
 
   const title = `${tag.name}${tag.nameEn ? ` (${tag.nameEn})` : ""} - వార్తలు | Rayalaseema News`;
-  const description = tag.description || `${tag.name} గురించి అన్ని కథనాలు`;
+  const description = tag.description || `${tag.name}${tag.nameEn ? ` (${tag.nameEn})` : ""} గురించి అన్ని కథనాలు, తాజా వార్తలు, విశ్లేషణలు ఒకే చోట - Rayalaseema News topic page.`;
 
   return {
     title,
@@ -56,7 +56,7 @@ export default async function TagPage({ params }: Props) {
   const indexable = await isTagIndexable(tag);
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
   const pageUrl = `${siteUrl}/tag/${slug}`;
-  const description = tag.description || `${tag.name} గురించి అన్ని కథనాలు`;
+  const description = tag.description || `${tag.name}${tag.nameEn ? ` (${tag.nameEn})` : ""} గురించి అన్ని కథనాలు, తాజా వార్తలు, విశ్లేషణలు ఒకే చోట - Rayalaseema News topic page.`;
 
   const breadcrumbLd = buildBreadcrumbListSchema({
     items: [

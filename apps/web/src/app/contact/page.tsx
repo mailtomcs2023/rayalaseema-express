@@ -1,7 +1,12 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-export const metadata = { title: "సంప్రదించండి | Rayalaseema News" };
+export const metadata = {
+  title: "సంప్రదించండి - Contact Us | Rayalaseema News",
+  description:
+    "Contact Rayalaseema News - editorial desk, news tips, advertising and reader feedback. రాయలసీమ న్యూస్ ను సంప్రదించండి - వార్తలు, ప్రకటనలు, అభిప్రాయాలు.",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   return (

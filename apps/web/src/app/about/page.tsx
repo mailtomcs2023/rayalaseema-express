@@ -1,7 +1,12 @@
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-export const metadata = { title: "మా గురించి | Rayalaseema News" };
+export const metadata = {
+  title: "మా గురించి - About Us | Rayalaseema News",
+  description:
+    "Rayalaseema News (రాయలసీమ న్యూస్) - hyper-local Telugu news for all 8 Rayalaseema districts. Our newsroom, editorial mission and how to reach us.",
+  alternates: { canonical: "/about" },
+};
 
 export default function AboutPage() {
   return (

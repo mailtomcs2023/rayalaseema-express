@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!r) return {};
   return {
     title: `${r.title} - పాత వార్తలు, పేజీ ${page}`,
-    description: `${r.title} విభాగంలో ప్రచురించిన పాత కథనాలు - పేజీ ${page}.`,
+    description: `${r.title} విభాగంలో రాయలసీమ న్యూస్ ప్రచురించిన పాత కథనాలు - పేజీ ${page}. రాజకీయాలు, అభివృద్ధి, స్థానిక వార్తలు. Older ${r.kind === "district" ? "district" : "section"} news, page ${page}.`,
     alternates: { canonical: `/${slug}/page/${page}` },
   };
 }

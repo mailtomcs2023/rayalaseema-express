@@ -4,6 +4,7 @@
 
 import type { Metadata } from "next";
 import { articleHref } from "./article-href";
+import { metaTitle, metaDescription } from "./meta-text";
 
 type ArticleMeta = {
   id: string;
@@ -22,9 +23,15 @@ type ArticleMeta = {
 } & { [k: string]: unknown };
 
 export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Metadata {
-  const metaTitle = (article.metaTitle as string) || article.title;
-  const metaDescription =
-    (article.metaDescription as string) || article.summary || article.title;
+  // Editor-set overrides are respected but still length-capped: the audit
+  // found raw summaries of 300-474 chars shipped as descriptions and titles
+  // to 121 chars - Google truncates both arbitrarily, which at 4k pages reads
+  // as low-effort content. metaTitle() drops the brand suffix rather than
+  // chopping a long Telugu headline mid-word.
+  const pageTitle = metaTitle((article.metaTitle as string) || article.title);
+  const pageDescription = metaDescription(
+    (article.metaDescription as string) || article.summary || article.title,
+  );
   // Featured image OR auto-generated branded card from /api/og/<slug>.
   const ogImage =
     (article.ogImage as string) ||
@@ -33,8 +40,8 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
   const canonical = `${siteUrl}${articleHref(article)}`;
   const noindex = article.status !== "PUBLISHED";
   return {
-    title: `${metaTitle} | రాయలసీమ న్యూస్`,
-    description: metaDescription,
+    title: pageTitle,
+    description: pageDescription,
     alternates: { canonical },
     // A page-level `robots` REPLACES the root layout's default, so the
     // googleBot directives have to be repeated here - otherwise articles, the
@@ -54,8 +61,8 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
           },
         },
     openGraph: {
-      title: metaTitle,
-      description: metaDescription,
+      title: pageTitle,
+      description: pageDescription,
       url: canonical,
       type: "article",
       locale: "te_IN",
@@ -66,8 +73,8 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
     },
     twitter: {
       card: "summary_large_image",
-      title: metaTitle,
-      description: metaDescription,
+      title: pageTitle,
+      description: pageDescription,
       images: ogImage ? [ogImage] : undefined,
     },
   };

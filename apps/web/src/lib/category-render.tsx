@@ -20,6 +20,7 @@ import { categoryHref } from "@/lib/category-href";
 import { SectionHub } from "@/lib/section-hub";
 import { OlderStoriesLink } from "@/components/older-stories-link";
 import { HUB_PAGE_SIZE, categoryWhere, getHubPageCount } from "@/lib/hub-pagination";
+import { metaTitle, metaDescription } from "@/lib/meta-text";
 
 function siteUrl(): string {
   return process.env.SITE_URL || "https://rayalaseemanews.com";
@@ -29,9 +30,17 @@ export async function buildCategoryMetadata(slug: string): Promise<Metadata> {
   const cat = await prisma.category.findUnique({ where: { slug } });
   if (!cat) return { title: "Category not found" };
   const url = `${siteUrl()}${categoryHref(slug)}`;
+  // Market pattern (2026-08-09 competitor check): keyword variants in the
+  // title body, brand as suffix; the old fallback description was 30-47 chars
+  // - one thin line - so the template now writes a full one from what the
+  // category actually is. cat.description still wins when the admin set it.
+  const nameEn = cat.nameEn || cat.name;
   return {
-    title: `${cat.name} | రాయలసీమ న్యూస్`,
-    description: cat.description || `${cat.name} - తాజా వార్తలు, విశ్లేషణలు`,
+    title: metaTitle(`${nameEn} News in Telugu - ${cat.name} వార్తలు`),
+    description: metaDescription(
+      cat.description ||
+        `${cat.name} (${nameEn}) తాజా వార్తలు, విశ్లేషణలు, ప్రత్యేక కథనాలు. Latest ${nameEn} news in Telugu from Rayalaseema News - రాయలసీమ న్యూస్.`,
+    ),
     alternates: { canonical: url },
     openGraph: {
       title: cat.name,

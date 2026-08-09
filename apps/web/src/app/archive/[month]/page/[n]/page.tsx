@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!MONTH_PATTERN.test(month) || page === null) return {};
   return {
     title: `${monthLabel(month)} వార్తలు - పేజీ ${page} | Rayalaseema News`,
-    description: `${monthLabel(month)} నెలలో ప్రచురించిన కథనాలు, పేజీ ${page}.`,
+    description: `${monthLabel(month)} నెలలో రాయలసీమ న్యూస్ ప్రచురించిన కథనాలు, పేజీ ${page} - రాజకీయాలు, క్రీడలు, జిల్లా వార్తలు. Rayalaseema News archive ${month}, page ${page}.`,
     alternates: { canonical: `/archive/${month}/page/${page}` },
   };
 }

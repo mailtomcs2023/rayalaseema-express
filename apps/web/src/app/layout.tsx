@@ -63,8 +63,10 @@ export const metadata: Metadata = {
     default: "Telugu News Today - Rayalaseema News | రాయలసీమ తాజా వార్తలు",
     template: "%s | Rayalaseema News",
   },
+  // <=160 chars - Google's display window. The old 273-char version was
+  // truncated arbitrarily mid-list on every SERP (meta audit 2026-08-09).
   description:
-    "Latest Telugu news from Andhra Pradesh's Rayalaseema region - Kurnool, Nandyal, Anantapur, Sri Sathya Sai, Kadapa, Annamayya, Tirupati, Chittoor. Politics, sports, cinema, weather, mandi prices, gold rates, devotional. తాజా రాయలసీమ వార్తలు, రాజకీయాలు, క్రీడలు, సినిమా.",
+    "Latest Telugu news from Rayalaseema - Kurnool, Anantapur, Kadapa, Tirupati, Chittoor. రాయలసీమ తాజా వార్తలు: రాజకీయాలు, క్రీడలు, సినిమా, వాతావరణం.",
   manifest: "/manifest.json",
   // Google Discover only surfaces large-image cards when the page grants
   // max-image-preview:large. Without it our 1200px article heroes were capped
