@@ -222,6 +222,13 @@ enum TagKind {
   EVENT
   FILM
   PLACE
+  // Thematic kinds - ongoing issues and story themes rather than named
+  // entities (e.g. "scheme fraud", "farmer suicides", "sand mafia").
+  // These are often the strongest long-tail topic pages for a news site:
+  // readers search the issue, not a person. Kind is editable in the
+  // review UI, so miscategorised candidates can be re-kinded there.
+  ISSUE
+  CRIME
   OTHER
 }
 

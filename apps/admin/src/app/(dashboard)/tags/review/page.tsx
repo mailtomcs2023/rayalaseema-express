@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-const TAG_KINDS = ["PERSON", "PARTY", "ORG", "SCHEME", "EVENT", "FILM", "PLACE", "OTHER"] as const;
+const TAG_KINDS = ["PERSON", "PARTY", "ORG", "SCHEME", "EVENT", "FILM", "PLACE", "ISSUE", "CRIME", "OTHER"] as const;
 
 interface CandidateTag {
   id: string;

@@ -119,7 +119,7 @@ interface ArticleRow {
 interface Cluster {
   nameTe: string; // canonical Telugu (or best-available) display name
   nameEn?: string;
-  kind: "PERSON" | "PARTY" | "ORG" | "SCHEME" | "EVENT" | "FILM" | "PLACE" | "OTHER";
+  kind: "PERSON" | "PARTY" | "ORG" | "SCHEME" | "EVENT" | "FILM" | "PLACE" | "ISSUE" | "CRIME" | "OTHER";
   members: string[]; // includes the canonical itself
 }
 
@@ -205,7 +205,7 @@ async function clusterViaAzureOpenAI(tokens: string[]): Promise<Cluster[] | null
     console.warn("[seed-topic-candidates] Azure OpenAI env not configured; treating batch as ungrouped");
     return null;
   }
-  const prompt = `Group these Telugu/English news tokens that refer to the same real-world entity. For each group return canonical Telugu name, English name, kind (PERSON/PARTY/ORG/SCHEME/EVENT/FILM/OTHER), members.\n\nTokens:\n${tokens.join(", ")}\n\nRespond with strict JSON only, shape: {"groups":[{"nameTe":"...","nameEn":"...","kind":"PERSON","members":["...","..."]}]}. Every input token must appear in exactly one group's members array.`;
+  const prompt = `Group these Telugu/English news tokens that refer to the same real-world entity. For each group return canonical Telugu name, English name, kind (PERSON/PARTY/ORG/SCHEME/EVENT/FILM/PLACE/ISSUE/CRIME/OTHER; ISSUE = ongoing story theme like scheme fraud or farmer distress, CRIME = crime-type theme), members.\n\nTokens:\n${tokens.join(", ")}\n\nRespond with strict JSON only, shape: {"groups":[{"nameTe":"...","nameEn":"...","kind":"PERSON","members":["...","..."]}]}. Every input token must appear in exactly one group's members array.`;
 
   try {
     const res = await fetch(
@@ -244,7 +244,7 @@ async function clusterViaAzureOpenAI(tokens: string[]): Promise<Cluster[] | null
       console.error("[seed-topic-candidates] LLM response missing groups[], keeping batch ungrouped");
       return null;
     }
-    const validKinds = new Set(["PERSON", "PARTY", "ORG", "SCHEME", "EVENT", "FILM", "PLACE", "OTHER"]);
+    const validKinds = new Set(["PERSON", "PARTY", "ORG", "SCHEME", "EVENT", "FILM", "PLACE", "ISSUE", "CRIME", "OTHER"]);
     return parsed.groups
       .filter((g) => g.nameTe && Array.isArray(g.members) && g.members.length > 0)
       .map((g) => ({
