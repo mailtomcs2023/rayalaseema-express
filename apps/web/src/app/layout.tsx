@@ -202,18 +202,13 @@ export default async function RootLayout({
   return (
     <html lang="te" className={cn("font-sans", geist.variable, notoTelugu.variable, anekTelugu.variable)} suppressHydrationWarning>
       <head>
-        {/* Every article photo comes from this origin, and the hero image is
-            the LCP element - without a preconnect the browser pays DNS + TLS
-            for it only after parsing the markup. PSI reported "no origins were
-            preconnected" against a 1,481 ms critical path. */}
-        <link rel="preconnect" href="https://rayalaseemamedia.blob.core.windows.net" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://rayalaseemamedia.blob.core.windows.net" />
-        {/* Video thumbnails come from YouTube's still host. The player itself
-            is only fetched if the reader presses play (see YouTubeFacade), but
-            the stills load immediately on the video pages and in the homepage
-            strip. */}
-        <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://i.ytimg.com" />
+        {/* No preconnects, deliberately. The ones that used to sit here
+            (blob storage, i.ytimg.com) date from when the browser fetched
+            images from those origins directly. Every image now routes through
+            /_next/image on our own origin, so the browser never opens those
+            connections - PSI flags both as "unused preconnect", which wastes
+            connection setup on phones. If a direct-to-origin image ever comes
+            back, re-add the matching preconnect with it. */}
         {bingVerify && <meta name="msvalidate.01" content={bingVerify} />}
         {/* JSON-LD structured data - search-engine metadata. A PLAIN
             <script type="application/ld+json"> is the App Router pattern for
