@@ -68,7 +68,23 @@ export async function processImageBuffer(
     pipeline = pipeline.resize({ width: maxWidth, withoutEnlargement: true });
   }
 
-  const hasAlpha = !!meta.hasAlpha;
+  // An alpha CHANNEL is not the same as transparency. Phone screenshots and
+  // AI-generated images routinely ship RGBA with every alpha value at 255 -
+  // and the old `hasAlpha` check sent those down the keep-as-PNG branch "to
+  // preserve transparency" that did not exist. That is exactly how a 2 MB
+  // PNG became a homepage hero on 2026-08-08 and made every cold
+  // /_next/image variant re-encode 2 MB on demand. Only genuinely
+  // transparent pixels (alpha min < 255) earn PNG now.
+  let hasAlpha = !!meta.hasAlpha;
+  if (hasAlpha) {
+    try {
+      const stats = await sharp(input).stats();
+      const alphaChannel = stats.channels[stats.channels.length - 1];
+      if (alphaChannel && alphaChannel.min === 255) hasAlpha = false;
+    } catch {
+      // stats failure keeps the conservative PNG path.
+    }
+  }
 
   // Editorial baseline runs BEFORE encoding so the histogram-stretch
   // sees the original tonal range. Skipped for alpha sources (halos
