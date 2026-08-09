@@ -131,6 +131,19 @@ export async function POST(req: NextRequest) {
             where: { contentId_tagId: { contentId: ct.contentId, tagId: mergeIntoTagId } },
           });
           if (already) {
+            // Content already has both the merged tag and the target tag -
+            // the merged-side row has to go (composite PK collision), but
+            // ContentTag rows with source=MANUAL must never be silently
+            // deleted by an automated flow (global invariant). If the
+            // merged-side row was MANUAL and the surviving target-side row
+            // isn't, upgrade the survivor to MANUAL first so the editor's
+            // explicit tagging intent isn't lost in the merge.
+            if (ct.source === "MANUAL" && already.source !== "MANUAL") {
+              await tx.contentTag.update({
+                where: { contentId_tagId: { contentId: ct.contentId, tagId: mergeIntoTagId } },
+                data: { source: "MANUAL" },
+              });
+            }
             await tx.contentTag.delete({ where: { contentId_tagId: { contentId: ct.contentId, tagId } } });
           } else {
             await tx.contentTag.update({
@@ -159,6 +172,10 @@ export async function POST(req: NextRequest) {
         // Recount articleCount on the target: distinct Content rows tagged
         // via ContentTag (the durable signal - consistent with how
         // ContentTag drives /tag/[slug] pages elsewhere in the codebase).
+        // Caveat: before the topic-tagging backfill has run, most CANDIDATE
+        // tags have zero real ContentTag rows, so this recount can drop a
+        // tag's count to 0 even though the seeding script's provisional
+        // (token-mined) articleCount was nonzero - expected until backfill.
         const distinctCount = await tx.contentTag.count({ where: { tagId: mergeIntoTagId } });
         await tx.tag.update({ where: { id: mergeIntoTagId }, data: { articleCount: distinctCount } });
       });
