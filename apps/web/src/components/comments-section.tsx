@@ -81,7 +81,7 @@ export function CommentsSection({ articleId }: { articleId: string }) {
 
       {/* Comments List */}
       {comments.length === 0 ? (
-        <p style={{ fontSize: 14, color: "#888", textAlign: "center", padding: 20 }}>ఇంకా వ్యాఖ్యలు లేవు. మీరు మొదటి వ్యాఖ్య రాయండి!</p>
+        <p style={{ fontSize: 14, color: "#5f6672", textAlign: "center", padding: 20 }}>ఇంకా వ్యాఖ్యలు లేవు. మీరు మొదటి వ్యాఖ్య రాయండి!</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {comments.map((c) => (

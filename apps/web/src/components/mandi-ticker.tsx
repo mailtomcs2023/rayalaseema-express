@@ -40,7 +40,7 @@ export function MandiTicker() {
           {prices.map((p) => (
             <span key={p.id} style={{ marginLeft: 24, marginRight: 24 }}>
               <span style={{ color: "#fbbf24", fontSize: 12, fontWeight: 700 }}>{p.commodity}</span>
-              <span style={{ color: "#888", fontSize: 11, margin: "0 4px" }}>({p.market})</span>
+              <span style={{ color: "#5f6672", fontSize: 11, margin: "0 4px" }}>({p.market})</span>
               <span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{"\u20B9"}{p.price.toLocaleString()}</span>
               <span style={{ color: "#666", fontSize: 10, marginLeft: 2 }}>/{p.unit}</span>
               {p.change !== 0 && (

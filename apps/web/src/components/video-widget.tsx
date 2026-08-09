@@ -83,7 +83,7 @@ export function VideoWidget({ videos }: { videos: VideoItem[] }) {
               <p style={{ fontSize: 13, fontWeight: 700, color: "#000", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const, overflow: "hidden" }}>
                 {video.title}
               </p>
-              <p style={{ fontSize: 11, color: "#888", marginTop: 3 }}>
+              <p style={{ fontSize: 11, color: "#5f6672", marginTop: 3 }}>
                 RSN News
               </p>
             </div>
