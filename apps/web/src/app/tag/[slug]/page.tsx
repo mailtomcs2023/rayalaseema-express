@@ -11,8 +11,6 @@ import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-sch
 import { HUB_PAGE_SIZE, getHubPage, tagWhere } from "@/lib/hub-pagination";
 import { isTagIndexable } from "@/lib/tag-indexing";
 
-export { isTagIndexable };
-
 interface Props {
   params: Promise<{ slug: string }>;
 }

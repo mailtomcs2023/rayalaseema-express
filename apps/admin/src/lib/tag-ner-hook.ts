@@ -103,12 +103,15 @@ export async function tagOne(contentId: string, gazetteer: EntityEntry[]): Promi
   return { tagIds: autoApplied.map((m) => m.tagId) };
 }
 
-/** Recount + persist Tag.articleCount for the given tag ids. */
+/** Recount + persist Tag.articleCount for the given tag ids. Only counts
+ * ContentTag rows whose content is PUBLISHED and not soft-deleted, so
+ * drafts/unpublished/soft-deleted rows never inflate the hub-indexability
+ * gate (articleCount >= threshold). */
 async function recountArticleCounts(tagIds: string[]): Promise<void> {
   if (tagIds.length === 0) return;
   const counts = await prisma.contentTag.groupBy({
     by: ["tagId"],
-    where: { tagId: { in: tagIds } },
+    where: { tagId: { in: tagIds }, content: { status: "PUBLISHED", deletedAt: null } },
     _count: { contentId: true },
   });
   const countByTag = new Map(counts.map((c) => [c.tagId, c._count.contentId]));

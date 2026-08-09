@@ -51,9 +51,13 @@ async function loadGazetteer(): Promise<EntityEntry[]> {
 
 async function recountArticleCounts(tagIds: string[]): Promise<void> {
   if (tagIds.length === 0) return;
+  // Only count ContentTag rows whose content is PUBLISHED and not
+  // soft-deleted, so drafts/unpublished/soft-deleted rows never inflate the
+  // hub-indexability gate (articleCount >= threshold). Kept textually
+  // parallel with tag-ner-hook.ts::recountArticleCounts.
   const counts = await prisma.contentTag.groupBy({
     by: ["tagId"],
-    where: { tagId: { in: tagIds } },
+    where: { tagId: { in: tagIds }, content: { status: "PUBLISHED", deletedAt: null } },
     _count: { contentId: true },
   });
   const countByTag = new Map(counts.map((c) => [c.tagId, c._count.contentId]));
@@ -136,7 +140,7 @@ async function main() {
   while (processed < LIMIT) {
     const take = Math.min(BATCH_SIZE, LIMIT - processed);
     const batch = await prisma.content.findMany({
-      where: { type: "ARTICLE", status: "PUBLISHED" },
+      where: { type: "ARTICLE", status: "PUBLISHED", deletedAt: null },
       select: { id: true, title: true, body: true },
       orderBy: { id: "asc" },
       take,
