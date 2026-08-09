@@ -157,10 +157,10 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
       <SiteHeader activeSectionSlug={article.category?.slug} />
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
-        <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#888", marginBottom: 16 }}>
-          <Link href="/" style={{ color: "#888", textDecoration: "none" }}>Home</Link>
+        <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5f6672", marginBottom: 16 }}>
+          <Link href="/" style={{ color: "#5f6672", textDecoration: "none" }}>Home</Link>
           <span>/</span>
-          <Link href={categoryHref(article.category.slug)} style={{ color: "#888", textDecoration: "none" }}>{article.category.name}</Link>
+          <Link href={categoryHref(article.category.slug)} style={{ color: "#5f6672", textDecoration: "none" }}>{article.category.name}</Link>
           <span>/</span>
           <span style={{ color: "#555" }}>{article.title.substring(0, 40)}...</span>
         </nav>
@@ -178,7 +178,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 <div style={{ fontFamily: "var(--font-telugu-heading), serif", fontSize: 15, fontWeight: 800, color: "#1a1a1a" }}>
                   {article.desk?.name ?? article.author.name}
                 </div>
-                <p style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                <p style={{ fontSize: 12, color: "#5f6672", marginTop: 2 }}>
                   {(() => {
                     // Google News wants a clearly visible date/time between the
                     // headline and the body, plus a machine-readable <time>
@@ -201,7 +201,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                   })()}
                 </p>
               </div>
-              <div style={{ marginLeft: "auto", fontSize: 12, color: "#888" }}>
+              <div style={{ marginLeft: "auto", fontSize: 12, color: "#5f6672" }}>
                 {article.viewCount.toLocaleString()} views
               </div>
             </div>
@@ -246,7 +246,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                     style={{ width: "100%", borderRadius: 8, maxHeight: 500, background: "#000" }}
                   />
                 )}
-                {article.imageCaption && <p style={{ fontSize: 12, color: "#888", marginTop: 6, fontStyle: "italic" }}>{article.imageCaption}</p>}
+                {article.imageCaption && <p style={{ fontSize: 12, color: "#5f6672", marginTop: 6, fontStyle: "italic" }}>{article.imageCaption}</p>}
               </div>
             ) : article.featuredImage ? (
               <div style={{ marginTop: 20 }}>
@@ -276,7 +276,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                     borderRadius: 8,
                   }}
                 />
-                {article.imageCaption && <p style={{ fontSize: 12, color: "#888", marginTop: 6, fontStyle: "italic" }}>{article.imageCaption}</p>}
+                {article.imageCaption && <p style={{ fontSize: 12, color: "#5f6672", marginTop: 6, fontStyle: "italic" }}>{article.imageCaption}</p>}
               </div>
             ) : null}
 
@@ -290,7 +290,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
 
             {article.tags.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 24, paddingTop: 16, borderTop: "1px solid #eee" }}>
-                <span style={{ fontSize: 13, color: "#888" }}>Tags:</span>
+                <span style={{ fontSize: 13, color: "#5f6672" }}>Tags:</span>
                 {article.tags.map((t) => (
                   <Link key={t.tag.slug} href={`/tag/${t.tag.slug}`} style={{ padding: "4px 12px", background: "#f3f4f6", borderRadius: 20, fontSize: 12, color: "#555", textDecoration: "none" }}>
                     #{t.tag.name}
@@ -320,7 +320,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                       )}
                       <div>
                         <p style={{ fontSize: 14, fontWeight: 700, color: "#111", lineHeight: 1.5 }}>{r.title}</p>
-                        <p style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
+                        <p style={{ fontSize: 11, color: "#5f6672", marginTop: 4 }}>
                           {r.publishedAt ? new Date(r.publishedAt).toLocaleDateString("te-IN") : ""}
                         </p>
                       </div>
@@ -349,7 +349,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                   </span>
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 700, color: "#111", lineHeight: 1.5 }}>{t.title}</p>
-                    <p style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{t.viewCount.toLocaleString()} views</p>
+                    <p style={{ fontSize: 11, color: "#5f6672", marginTop: 2 }}>{t.viewCount.toLocaleString()} views</p>
                   </div>
                 </Link>
               ))}
