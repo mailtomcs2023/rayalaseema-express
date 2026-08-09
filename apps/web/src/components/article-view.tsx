@@ -308,9 +308,9 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
 
             {related.length > 0 && (
               <div style={{ marginTop: 32 }}>
-                <h3 style={{ fontSize: 20, fontWeight: 800, color: "#000", marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "#000", marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
                   Related Articles
-                </h3>
+                </h2>
                 <div className="related-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                   {related.filter((r) => r.id !== article.id).slice(0, 4).map((r) => (
                     <Link key={r.id} href={articleHref(r)} style={{ display: "flex", gap: 10, textDecoration: "none" }}>
@@ -346,9 +346,9 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 top clears the sticky nav (~40px); it scrolls internally if the
                 list is taller than the viewport. */}
             <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16, position: "sticky", top: 56, maxHeight: "calc(100vh - 72px)", overflowY: "auto" }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
                 Trending
-              </h3>
+              </h2>
               {trending.map((t, i) => (
                 <Link key={t.id} href={articleHref(t)} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f5f5f5", textDecoration: "none" }}>
                   {/* #7b8290, not the old #ddd (1.35:1 on white - the exact
