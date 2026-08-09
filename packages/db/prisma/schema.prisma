@@ -214,6 +214,29 @@ enum TagSuggestionSource {
   MANUAL // Editor pinned this tag manually via admin UI
 }
 
+enum TagKind {
+  PERSON
+  PARTY
+  ORG
+  SCHEME
+  EVENT
+  FILM
+  PLACE
+  OTHER
+}
+
+enum TagStatus {
+  CANDIDATE
+  APPROVED
+  REJECTED
+}
+
+enum TagSource {
+  GAZETTEER
+  LLM
+  MANUAL
+}
+
 model CategoryTagSuggestion {
   id         String              @id @default(cuid())
   categoryId String
@@ -249,10 +272,29 @@ model Tag {
   id            String                  @id @default(cuid())
   name          String                  @unique
   slug          String                  @unique
+  nameEn        String?
+  kind          TagKind                 @default(OTHER)
+  description   String?                 @db.Text
+  status        TagStatus               @default(CANDIDATE)
+  articleCount  Int                     @default(0)
+  aliases       TagAlias[]
   contentTags   ContentTag[]
   categorySeeds CategoryTagSuggestion[]
 
+  @@index([status, articleCount])
   @@map("tags")
+}
+
+model TagAlias {
+  id     String @id @default(cuid())
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  alias  String
+  script String @default("te")
+
+  @@unique([alias, script])
+  @@index([tagId])
+  @@map("tag_aliases")
 }
 
 // Spec #1 A1C (#189) - model ArticleTag dropped. See Content table for the unified replacement.
@@ -1274,6 +1316,10 @@ model ContentTag {
   content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
   tagId     String
   tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  // Provenance: lets the publish hook re-run idempotently (it may only wipe
+  // non-MANUAL rows) and makes the 4k backfill reversible with one DELETE.
+  source     TagSource @default(MANUAL)
+  confidence String?
 
   @@id([contentId, tagId])
   // The composite PK above gives us a fast `[contentId, tagId]` lookup
