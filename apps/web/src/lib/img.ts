@@ -13,10 +13,22 @@
 // width outside this set 400s the request, so we snap to the nearest allowed up.
 const ALLOWED_W = [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840];
 
+// Hosts that refuse SERVER-side fetches (403/405 to our optimizer and to a
+// direct backend download - verified by the rehost backfill failing on them)
+// but serve the same image fine to a browser. Routing them through
+// /_next/image guarantees a failed request logged in every reader's console,
+// which is what capped Best Practices at 96. For these, go straight to the
+// browser and let SmartImg's fallback chain handle the rest.
+const SERVER_BLOCKED_HOSTS = ["sakshi.com", "www.sakshi.com"];
+
 export function proxyImg(url: string | null | undefined, w = 640, q = 60): string {
   if (!url) return "";
   // already local/inline - the browser can load these directly, no proxy needed
   if (url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:")) return url;
+  try {
+    const host = new URL(url).hostname;
+    if (SERVER_BLOCKED_HOSTS.some((h) => host === h || host.endsWith("." + h))) return url;
+  } catch {}
   const width = ALLOWED_W.find((x) => x >= w) ?? 640;
   return `/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=${q}`;
 }
