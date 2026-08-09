@@ -121,6 +121,11 @@ interface Cluster {
   nameEn?: string;
   kind: "PERSON" | "PARTY" | "ORG" | "SCHEME" | "EVENT" | "FILM" | "PLACE" | "ISSUE" | "CRIME" | "OTHER";
   members: string[]; // includes the canonical itself
+  /** LLM judgment: true = common/role/action word, not a viable topic page.
+   *  Generic clusters are auto-REJECTED so the review queue only shows
+   *  plausible topics; undefined (skip-llm / parse-failure paths) stays
+   *  CANDIDATE for human judgment. */
+  generic?: boolean;
 }
 
 function isTeluguChar(ch: string): boolean {
@@ -197,6 +202,7 @@ interface LlmClusterResult {
     nameEn?: string;
     kind: string;
     members: string[];
+    generic?: boolean;
   }[];
 }
 
@@ -205,7 +211,7 @@ async function clusterViaAzureOpenAI(tokens: string[]): Promise<Cluster[] | null
     console.warn("[seed-topic-candidates] Azure OpenAI env not configured; treating batch as ungrouped");
     return null;
   }
-  const prompt = `Group these Telugu/English news tokens that refer to the same real-world entity. For each group return canonical Telugu name, English name, kind (PERSON/PARTY/ORG/SCHEME/EVENT/FILM/PLACE/ISSUE/CRIME/OTHER; ISSUE = ongoing story theme like scheme fraud or farmer distress, CRIME = crime-type theme), members.\n\nTokens:\n${tokens.join(", ")}\n\nRespond with strict JSON only, shape: {"groups":[{"nameTe":"...","nameEn":"...","kind":"PERSON","members":["...","..."]}]}. Every input token must appear in exactly one group's members array.`;
+  const prompt = `Group these Telugu/English news tokens that refer to the same real-world entity. For each group return canonical Telugu name, English name, kind (PERSON/PARTY/ORG/SCHEME/EVENT/FILM/PLACE/ISSUE/CRIME/OTHER; ISSUE = ongoing story theme like scheme fraud or farmer distress, CRIME = crime-type theme), members, and generic.\n\ngeneric=true means the token is NOT a viable news topic page: a bare role or profession word (మంత్రి, పోలీసు, కలెక్టర్), a generic action/process noun (దర్యాప్తు, అరెస్టు), a function word, a verb form, or any common noun that would match unrelated articles. generic=false only for a SPECIFIC named person, party, organisation, place, scheme, film, event, or a distinct ongoing story theme a reader would follow.\n\nTokens:\n${tokens.join(", ")}\n\nRespond with strict JSON only, shape: {"groups":[{"nameTe":"...","nameEn":"...","kind":"PERSON","generic":false,"members":["...","..."]}]}. Every input token must appear in exactly one group's members array.`;
 
   try {
     const res = await fetch(
@@ -252,6 +258,7 @@ async function clusterViaAzureOpenAI(tokens: string[]): Promise<Cluster[] | null
         nameEn: g.nameEn,
         kind: (validKinds.has(g.kind) ? g.kind : "OTHER") as Cluster["kind"],
         members: g.members,
+        generic: g.generic === true,
       }));
   } catch (e) {
     console.error("[seed-topic-candidates] Azure OpenAI call failed, keeping batch ungrouped:", (e as Error).message);
@@ -348,14 +355,24 @@ async function main() {
           slug,
           nameEn: cluster.nameEn,
           kind: cluster.kind,
-          status: "CANDIDATE",
+          // Generic (common/role/action word) clusters are dead on arrival -
+          // auto-REJECT so the review queue holds only plausible topics.
+          status: cluster.generic ? "REJECTED" : "CANDIDATE",
           articleCount,
         },
       });
       candidatesCreated++;
     } else {
-      // Tag already exists (e.g. re-run) - refresh provisional count.
-      await prisma.tag.update({ where: { id: tag.id }, data: { articleCount } });
+      // Tag already exists (e.g. re-run) - refresh provisional count, and
+      // let a fresh generic judgment demote a stale CANDIDATE. APPROVED and
+      // REJECTED are human decisions - never overridden here.
+      await prisma.tag.update({
+        where: { id: tag.id },
+        data: {
+          articleCount,
+          ...(cluster.generic && tag.status === "CANDIDATE" ? { status: "REJECTED" as const } : {}),
+        },
+      });
     }
 
     for (const member of cluster.members) {
@@ -369,7 +386,11 @@ async function main() {
       }
     }
 
-    results.push({ name: cluster.nameEn ? `${cluster.nameTe} (${cluster.nameEn})` : cluster.nameTe, articleCount });
+    // Generic clusters were auto-rejected - keep them out of the top-30 so
+    // the summary reflects what the review queue will actually show.
+    if (!cluster.generic) {
+      results.push({ name: cluster.nameEn ? `${cluster.nameTe} (${cluster.nameEn})` : cluster.nameTe, articleCount });
+    }
   }
 
   await printSummary(candidatesCreated, aliasesCreated, results);
@@ -389,6 +410,10 @@ async function printSummary(
     console.log(`Top ${top30.length} by articleCount:`);
     for (const r of top30) console.log(`  ${r.articleCount.toString().padStart(4)}  ${r.name}`);
   }
+  // Status split so the operator sees how many the generic filter removed
+  // from the review queue vs how many await human judgment.
+  const byStatus = await prisma.tag.groupBy({ by: ["status"], _count: { _all: true } });
+  console.log(`Status split: ${byStatus.map((s) => `${s.status}=${s._count._all}`).join("  ")}`);
 }
 
 main()
