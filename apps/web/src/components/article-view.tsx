@@ -267,6 +267,13 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                   sizes="(max-width: 768px) 100vw, 800px"
                   quality={60}
                   priority
+                  // priority alone emits the preload WITHOUT fetchpriority=high
+                  // (PSI: "fetchpriority=high should be applied to the image
+                  // preload request"). Setting it on the tag makes Next carry
+                  // it onto the preload too, so the hero downloads ahead of
+                  // the fonts instead of alongside them.
+                  fetchPriority="high"
+                  loading="eager"
                   style={{
                     width: "100%",
                     height: "auto",
@@ -344,7 +351,11 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
               </h3>
               {trending.map((t, i) => (
                 <Link key={t.id} href={articleHref(t)} style={{ display: "flex", gap: 8, padding: "8px 0", borderBottom: "1px solid #f5f5f5", textDecoration: "none" }}>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: i < 3 ? "var(--color-brand)" : "#ddd", width: 28, flexShrink: 0 }}>
+                  {/* #7b8290, not the old #ddd (1.35:1 on white - the exact
+                      nodes PSI named). 20px/900 counts as large text, so the
+                      floor is 3:1; #7b8290 is ~3.9:1 and still clearly muted
+                      next to the brand-red top-3. */}
+                  <span style={{ fontSize: 20, fontWeight: 900, color: i < 3 ? "var(--color-brand)" : "#7b8290", width: 28, flexShrink: 0 }}>
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <div>
