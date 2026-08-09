@@ -74,7 +74,7 @@ export function HubPageList({
               {a.featuredImage ? (
                 <Image
                   src={a.featuredImage}
-                  alt=""
+                  alt={a.title}
                   width={400}
                   height={225}
                   className="w-full h-40 object-cover"
