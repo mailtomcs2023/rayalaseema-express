@@ -83,24 +83,36 @@ export function detectEntities(args: DetectArgs): EntityMention[] {
   const haystack = `${title} \n ${body}`;
   const titleLen = title.length + 3;
 
-  const mentions: EntityMention[] = [];
-  const offsets: number[] = [];
+  // Merge by tagId: multiple gazetteer entries (or repeated aliases) can
+  // share one tagId. Keep the best confidence, the longest matched term,
+  // summed occurrences, and the earliest offset for final sort order.
+  const merged = new Map<string, { mention: EntityMention; offset: number }>();
   for (const entry of args.gazetteer) {
     const hit = findMatches(haystack, entry);
     if (!hit) continue;
-    mentions.push({
-      tagId: entry.tagId,
-      confidence: bandConfidence(hit.firstOffset, titleLen),
-      matchedTerm: hit.matched,
-      occurrences: hit.occurrences,
-    });
-    offsets.push(hit.firstOffset);
+    const confidence = bandConfidence(hit.firstOffset, titleLen);
+    const prev = merged.get(entry.tagId);
+    if (!prev) {
+      merged.set(entry.tagId, {
+        mention: { tagId: entry.tagId, confidence, matchedTerm: hit.matched, occurrences: hit.occurrences },
+        offset: hit.firstOffset,
+      });
+    } else {
+      merged.set(entry.tagId, {
+        mention: {
+          tagId: entry.tagId,
+          confidence: bestConfidence(prev.mention.confidence, confidence),
+          matchedTerm: hit.matched.length > prev.mention.matchedTerm.length ? hit.matched : prev.mention.matchedTerm,
+          occurrences: prev.mention.occurrences + hit.occurrences,
+        },
+        offset: Math.min(prev.offset, hit.firstOffset),
+      });
+    }
   }
 
-  return mentions
-    .map((m, i) => ({ m, offset: offsets[i] }))
+  return [...merged.values()]
     .sort((a, b) => a.offset - b.offset)
-    .map((x) => x.m);
+    .map((x) => x.mention);
 }
 
 /** Auto-apply rule: HIGH/MEDIUM confidence AND matched term length >= 4. */

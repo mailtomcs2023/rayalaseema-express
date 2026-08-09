@@ -48,6 +48,30 @@ test("HTML stripped before matching", () => {
   expect(m[0]?.tagId).toBe("t_cbn");
 });
 
+test("two gazetteer entries sharing one tagId merge into a single mention with best confidence and longest matchedTerm", () => {
+  const cbnAliasOnly: EntityEntry = {
+    tagId: "t_cbn",
+    name: "CBN",
+    aliases: [{ alias: "CBN", script: "en" }],
+  };
+  const cbnFullName: EntityEntry = {
+    tagId: "t_cbn",
+    name: "చంద్రబాబు నాయుడు",
+    nameEn: "Chandrababu Naidu",
+    aliases: [],
+  };
+  const filler = "అ".repeat(700);
+  const m = detectEntities({
+    title: "వార్త",
+    body: `CBN ${filler} చంద్రబాబు నాయుడు మాట్లాడారు`,
+    gazetteer: [cbnAliasOnly, cbnFullName],
+  });
+  const cbnMentions = m.filter((x) => x.tagId === "t_cbn");
+  expect(cbnMentions.length).toBe(1);
+  expect(cbnMentions[0].confidence).toBe("HIGH");
+  expect(cbnMentions[0].matchedTerm).toBe("చంద్రబాబు నాయుడు");
+});
+
 test("isAutoApply: short token never auto-applies", () => {
   expect(isAutoApply({ tagId: "t", confidence: "HIGH", matchedTerm: "cbn", occurrences: 3 }, 3)).toBe(false);
   expect(isAutoApply({ tagId: "t", confidence: "HIGH", matchedTerm: "chandrababu", occurrences: 1 }, 11)).toBe(true);
