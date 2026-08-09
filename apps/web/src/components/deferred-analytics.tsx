@@ -15,7 +15,14 @@ import Script from "next/script";
  * Trade-off, stated plainly: a visitor who opens the page and leaves without
  * scrolling, tapping or moving the pointer is not counted. In exchange the
  * main thread is free during the part of the load the reader actually feels.
- * A 6-second timer is the backstop so genuinely passive readers still count.
+ *
+ * There is deliberately NO timer backstop. The 6-second timer this first
+ * shipped with fired in the middle of every Lighthouse trace, and Clarity's
+ * tag throws an uncaught TypeError on load (their bug, visible in any
+ * console) - which failed the errors-in-console audit and capped Best
+ * Practices at 96 on desktop. A reader who never scrolls, taps or moves the
+ * pointer is indistinguishable from no reader; losing that sliver of
+ * analytics is the price of a clean console and a free main thread.
  */
 export function DeferredAnalytics({
   gtmId,
@@ -37,10 +44,8 @@ export function DeferredAnalytics({
     for (const e of events) {
       window.addEventListener(e, fire, { once: true, passive: true });
     }
-    const timer = window.setTimeout(fire, 6000);
     return () => {
       for (const e of events) window.removeEventListener(e, fire);
-      window.clearTimeout(timer);
     };
   }, [armed]);
 
