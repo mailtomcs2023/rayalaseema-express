@@ -6,4 +6,6 @@
 
 export * from "./types";
 export { detectLocations } from "./location-ner";
+export { detectEntities, isAutoApply } from "./entity-ner";
+export type { EntityEntry, EntityMention } from "./entity-ner";
 export { teluguToAscii, teluguTitleToSlug } from "./transliterate";
