@@ -272,6 +272,64 @@ server.registerTool(
   },
 );
 
+// ------------------------------------------- 9. Indexing API (best-effort)
+
+server.registerTool(
+  "gsc_request_indexing",
+  {
+    title: "Request indexing via the Indexing API (best-effort)",
+    description:
+      "Submits URL_UPDATED notifications to the Google Indexing API. IMPORTANT CAVEAT: Google documents this API as supporting only JobPosting/BroadcastEvent pages; for news articles it is unsupported and may be ignored. It historically triggered crawls anyway (the mechanism behind WordPress 'instant indexing' plugins) and has no documented penalty, so it is exposed here as a best-effort, owner-approved channel. Default quota 200/day, tracked separately from URL Inspection.",
+    inputSchema: {
+      urls: z.array(z.string()).min(1).max(200).describe("Absolute URLs inside the property. Indexing API default quota is 200/day."),
+    },
+  },
+  async ({ urls }) => {
+    // Separate auth: the Indexing API needs its own scope, and the service
+    // account must be a verified OWNER (not just Full) on the GSC property.
+    const { JWT } = await import("google-auth-library");
+    const { readFileSync } = await import("node:fs");
+    const key = JSON.parse(readFileSync(config.keyFile, "utf8"));
+    const jwt = new JWT({
+      email: key.client_email,
+      key: key.private_key,
+      scopes: ["https://www.googleapis.com/auth/indexing"],
+    });
+
+    const results: { url: string; status: number | string; detail?: string }[] = [];
+    for (const url of urls) {
+      try {
+        const res = await jwt.request({
+          url: "https://indexing.googleapis.com/v3/urlNotifications:publish",
+          method: "POST",
+          data: { url, type: "URL_UPDATED" },
+        });
+        results.push({ url, status: res.status });
+      } catch (err) {
+        const e = err as { response?: { status?: number; data?: unknown }; message?: string };
+        results.push({
+          url,
+          status: e.response?.status ?? "ERR",
+          detail:
+            typeof e.response?.data === "object"
+              ? JSON.stringify(e.response.data).slice(0, 300)
+              : (e.message ?? "").slice(0, 300),
+        });
+      }
+    }
+    const accepted = results.filter((r) => r.status === 200).length;
+    return ok({
+      accepted,
+      failed: results.length - accepted,
+      note:
+        accepted === 0 && results.some((r) => r.status === 403)
+          ? "403s usually mean the Indexing API is not enabled on the project, or the service account is not an OWNER in Search Console."
+          : undefined,
+      results,
+    });
+  },
+);
+
 // ------------------------------------------------- 7. index coverage report
 
 server.registerTool(
