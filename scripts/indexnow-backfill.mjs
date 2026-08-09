@@ -49,7 +49,7 @@ async function resolveKey() {
 }
 
 const key = await resolveKey();
-console.log(`key verified live at ${ORIGIN}/.well-known/${key}.txt`);
+console.log(`key verified live at ${ORIGIN}/${key}.txt`);
 
 const indexXml = await get(`${ORIGIN}/sitemap-index.xml`);
 const children = locs(indexXml).filter((u) => u.endsWith(".xml"));
@@ -83,7 +83,7 @@ for (let i = 0; i < all.length; i += BATCH) {
   const body = {
     host: HOST,
     key,
-    keyLocation: `${ORIGIN}/.well-known/${key}.txt`,
+    keyLocation: `${ORIGIN}/${key}.txt`,
     urlList: batch,
   };
   try {
