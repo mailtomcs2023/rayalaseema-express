@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@rayalaseema/ui";
 import { SiteHeader } from "@/components/site-header";
+import { SmartImg } from "@/components/smart-img";
 import { SidebarShorts } from "@/components/sidebar-shorts";
 import { SiteFooter } from "@/components/site-footer";
 import { TTSButton } from "@/components/tts-button";
@@ -315,14 +316,23 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                   {related.filter((r) => r.id !== article.id).slice(0, 4).map((r) => (
                     <Link key={r.id} href={articleHref(r)} style={{ display: "flex", gap: 10, textDecoration: "none" }}>
                       {r.featuredImage && (
-                        <Image
+                        /* SmartImg, not next/image: related cards can carry a
+                           legacy external featuredImage on a host that 405s
+                           the optimizer (sakshi.com), and the failed request
+                           logged a console error on every such page - the
+                           audit that held Best Practices at 96. SmartImg
+                           routes known server-blocked hosts straight to the
+                           browser and falls back cleanly. */
+                        <SmartImg
                           src={r.featuredImage}
                           alt={r.title}
-                          width={100}
-                          height={70}
+                          width={256}
                           sizes="100px"
                           quality={55}
-                          style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0 }}
+                          imgWidth={100}
+                          imgHeight={70}
+                          loading="lazy"
+                          style={{ borderRadius: 6, objectFit: "cover", flexShrink: 0, width: 100, height: 70 }}
                         />
                       )}
                       <div>
