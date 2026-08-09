@@ -243,6 +243,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@prisma/client": "^6.4.0",
+        "@rayalaseema/nlp": "*",
         "@types/bcryptjs": "^2.4.6",
         "bcryptjs": "^3.0.3",
         "zod": "^4",

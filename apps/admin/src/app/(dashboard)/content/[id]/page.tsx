@@ -1516,6 +1516,8 @@ export default function ContentEditorPage() {
                     the comma-separated input (deduped, case-insensitive). */}
                 <TagSuggestions
                   categoryId={categoryId}
+                  title={title}
+                  body={body}
                   currentNames={
                     new Set(
                       tagsInput

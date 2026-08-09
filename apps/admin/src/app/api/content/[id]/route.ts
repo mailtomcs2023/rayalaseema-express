@@ -21,6 +21,7 @@ import { pickLeastLoadedReviewer } from "@/lib/reviewer-assignment";
 import { pingIndexNow } from "@/lib/indexnow";
 import { pingWebRevalidate } from "@/lib/revalidate-web";
 import { tagContentLocations } from "@/lib/location-ner-hook";
+import { tagContentEntities } from "@/lib/tag-ner-hook";
 import { injectInternalLinks } from "@/lib/internal-linker";
 
 // Build the canonical article URL the same way articleHref() does in apps/web.
@@ -410,9 +411,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }
       }
 
-      // Tags: replace-all semantics when tagNames provided.
+      // Tags: replace-all semantics when tagNames provided - but only for
+      // editor-managed (source: MANUAL) rows. GAZETTEER rows are owned by
+      // the NER hook (tagContentEntities below); wiping them here with no
+      // source filter would silently un-tag published articles from their
+      // topic hubs on every routine edit and leave Tag.articleCount
+      // stale-high (nothing here re-recounts them).
       if (Array.isArray(body.tagNames)) {
-        await tx.contentTag.deleteMany({ where: { contentId: id } });
+        await tx.contentTag.deleteMany({ where: { contentId: id, source: "MANUAL" } });
         const seenNames = new Set<string>();
         for (const raw of body.tagNames) {
           const name = String(raw || "").trim();
@@ -437,7 +443,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               create: { name, slug: tagSlug },
             });
           }
-          await tx.contentTag.create({ data: { contentId: id, tagId: tag.id } });
+          // source defaults to MANUAL in the schema, which is correct here -
+          // this is the editor's explicit tag list, never GAZETTEER-owned.
+          await tx.contentTag.create({ data: { contentId: id, tagId: tag.id, source: "MANUAL" } });
         }
       }
 
@@ -473,6 +481,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // gazetteer pass. Failure is non-fatal - publish still succeeds; the
     // editor can manually re-tag from the admin UI if NER missed something.
     if (action === "content.publish" && content.type === "ARTICLE") {
+      // Topic-tagging Task 4 - entity NER against the APPROVED tag
+      // gazetteer, fire-and-forget alongside the location NER below.
+      // Failure is non-fatal (logged inside the hook itself).
+      tagContentEntities(content.id).catch((e) => console.warn("[tag-ner] non-fatal:", e));
       try {
         await tagContentLocations(content.id, content.title, content.body || "");
         // G3 (#233) - inject up to 2 internal links to the primary district +
@@ -485,6 +497,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       } catch (err) {
         console.warn("[content publish] location NER / internal-link failed (non-fatal):", (err as Error).message);
       }
+    } else if (content.type === "ARTICLE" && content.status === "PUBLISHED") {
+      // Routine edit of an already-published article (not a publish
+      // transition, which already re-synced above). Machine tags must
+      // re-sync on every edit too - otherwise a body edit that removes the
+      // last mention of an entity leaves the article stuck on a stale
+      // GAZETTEER tag, and edits never pick up newly-approved gazetteer
+      // entries. Non-fatal: logged inside the hook itself.
+      tagContentEntities(content.id).catch((e) => console.warn("[tag-ner] non-fatal:", e));
     }
 
     return NextResponse.json(content);
