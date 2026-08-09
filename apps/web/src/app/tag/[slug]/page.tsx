@@ -3,10 +3,15 @@ import { notFound } from "next/navigation";
 import { prisma } from "@rayalaseema/db";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { OlderStoriesLink } from "@/components/older-stories-link";
 import { getSiteConfig } from "@/lib/db-queries";
 import type { Metadata } from "next";
 import { articleHref } from "@/lib/article-href";
 import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
+import { HUB_PAGE_SIZE, getHubPage, tagWhere } from "@/lib/hub-pagination";
+import { isTagIndexable } from "@/lib/tag-indexing";
+
+export { isTagIndexable };
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -17,14 +22,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tag = await prisma.tag.findUnique({ where: { slug } });
   if (!tag) return { title: "Tag not found" };
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
+  const indexable = await isTagIndexable(tag);
+
+  const title = `${tag.name}${tag.nameEn ? ` (${tag.nameEn})` : ""} - వార్తలు | Rayalaseema News`;
+  const description = tag.description || `${tag.name} గురించి అన్ని కథనాలు`;
+
   return {
-    title: `${tag.name} | రాయలసీమ న్యూస్`,
-    description: `${tag.name} - తాజా వార్తలు, విశ్లేషణలు`,
+    title,
+    description,
     alternates: { canonical: `${siteUrl}/tag/${slug}` },
-    // Tag pages are crawl paths, not ranking targets: noindex,follow keeps
-    // Google following the article links without indexing the thin hub
-    // itself (GSC de-indexing incident, 2026-08).
-    robots: { index: false, follow: true },
+    robots: indexable
+      ? { index: true, follow: true }
+      : // Tag pages are crawl paths, not ranking targets: noindex,follow keeps
+        // Google following the article links without indexing the thin hub
+        // itself (GSC de-indexing incident, 2026-08).
+        { index: false, follow: true },
     openGraph: {
       title: tag.name,
       url: `${siteUrl}/tag/${slug}`,
@@ -35,31 +47,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TagPage({ params }: Props) {
   const { slug } = await params;
-  // Spec #1 #189: Tag → Content is now via the `contentTags` join table.
-  // We fetch the tag for its name + the joined Content rows in parallel.
-  const [tag, contentTags] = await Promise.all([
-    prisma.tag.findUnique({ where: { slug } }),
-    prisma.contentTag.findMany({
-      where: { tag: { slug }, content: { status: "PUBLISHED" } },
-      include: {
-        content: {
-          include: {
-            category: { select: { name: true, slug: true, color: true } },
-            author: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { content: { publishedAt: "desc" } },
-      take: 60,
-    }),
-  ]);
-
+  const tag = await prisma.tag.findUnique({ where: { slug } });
   if (!tag) notFound();
 
-  const config = await getSiteConfig();
-  const articles = contentTags.map((ct) => ct.content);
+  const [config, { articles, total, pages }] = await Promise.all([
+    getSiteConfig(),
+    getHubPage(tagWhere(tag.id), 1, HUB_PAGE_SIZE.tag),
+  ]);
 
+  const indexable = await isTagIndexable(tag);
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
+  const pageUrl = `${siteUrl}/tag/${slug}`;
+  const description = tag.description || `${tag.name} గురించి అన్ని కథనాలు`;
+
   const breadcrumbLd = buildBreadcrumbListSchema({
     items: [
       { name: "Home", url: siteUrl },
@@ -67,9 +67,22 @@ export default async function TagPage({ params }: Props) {
     ],
   });
 
+  const collectionPageLd = indexable
+    ? {
+        "@context": "https://schema.org" as const,
+        "@type": "CollectionPage",
+        name: tag.name,
+        description,
+        url: pageUrl,
+      }
+    : null;
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--page-bg, #f6f6f6)" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
+      {collectionPageLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(collectionPageLd) }} />
+      )}
       <SiteHeader config={config} />
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "var(--sp-5, 24px) var(--sp-4, 16px)" }}>
         {/* Tag header */}
@@ -77,7 +90,7 @@ export default async function TagPage({ params }: Props) {
           <span style={{ display: "block", width: 32, height: 3, background: "var(--brand, #E01B1B)", marginBottom: 8 }} />
           <p style={{ fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>TAG</p>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: "#111", lineHeight: 1.2 }}>#{tag.name}</h1>
-          <p style={{ fontSize: 14, color: "#666", marginTop: 8 }}>{articles.length} articles</p>
+          <p style={{ fontSize: 14, color: "#666", marginTop: 8 }}>{total} articles</p>
         </div>
 
         {/* Articles list */}
@@ -97,13 +110,15 @@ export default async function TagPage({ params }: Props) {
                     style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover", display: "block" }} />
                 )}
                 <div style={{ padding: 16 }}>
-                  <span style={{
-                    display: "inline-block", fontSize: 11, fontWeight: 700, color: "#fff",
-                    background: a.category?.color || "var(--brand)", padding: "2px 8px", borderRadius: 4,
-                    textTransform: "uppercase", letterSpacing: "0.05em",
-                  }}>
-                    {a.category?.name ?? ""}
-                  </span>
+                  {a.category && (
+                    <span style={{
+                      display: "inline-block", fontSize: 11, fontWeight: 700, color: "#fff",
+                      background: "var(--brand)", padding: "2px 8px", borderRadius: 4,
+                      textTransform: "uppercase", letterSpacing: "0.05em",
+                    }}>
+                      {a.category.name}
+                    </span>
+                  )}
                   <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", lineHeight: 1.35, marginTop: 8 }}>
                     {a.title}
                   </h2>
@@ -113,13 +128,15 @@ export default async function TagPage({ params }: Props) {
                     </p>
                   )}
                   <p style={{ fontSize: 12, color: "#888", marginTop: 8 }}>
-                    {a.author?.name ?? ""} · {a.publishedAt && new Date(a.publishedAt).toLocaleDateString("te-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    {a.publishedAt && new Date(a.publishedAt).toLocaleDateString("te-IN", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 </div>
               </Link>
             ))}
           </div>
         )}
+
+        <OlderStoriesLink basePath={`/tag/${slug}`} pages={pages} />
       </main>
       <SiteFooter config={config} />
     </div>
