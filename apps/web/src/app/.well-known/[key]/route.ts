@@ -16,8 +16,18 @@ import { prisma } from "@rayalaseema/db";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ key: string }> }) {
   const { key: requested } = await ctx.params;
-  const config = await prisma.siteConfig.findUnique({ where: { key: "indexnow_key" } });
-  const configured = config?.value?.trim();
+  // SiteConfig first so the key can be rotated from the admin without a
+  // deploy; INDEXNOW_KEY env as the fallback. The row was empty in production
+  // (verified 2026-08-09), which silently disabled IndexNow entirely - an
+  // unset row must degrade to a working default, not to a dead feature.
+  let configured: string | undefined;
+  try {
+    const config = await prisma.siteConfig.findUnique({ where: { key: "indexnow_key" } });
+    configured = config?.value?.trim() || undefined;
+  } catch {
+    // DB unavailable - fall through to env.
+  }
+  configured = configured || process.env.INDEXNOW_KEY?.trim() || undefined;
   if (!configured) {
     return new Response("IndexNow key not configured", { status: 404 });
   }

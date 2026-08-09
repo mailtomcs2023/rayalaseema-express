@@ -176,6 +176,10 @@ jobs:
             AZURE_SPEECH_KEY="${{ secrets.AZURE_SPEECH_KEY }}"
             AZURE_SPEECH_REGION="centralindia"
             AZURE_SPEECH_VOICE="te-IN-MohanNeural"
+            # IndexNow host-ownership key. NOT a secret - the protocol requires
+            # serving it publicly at /.well-known/<key>.txt to prove control of
+            # the host. SiteConfig.indexnow_key overrides this when set.
+            INDEXNOW_KEY="489ddfa71a2accb496def1963c087f14"
             ENV
 
             cat > apps/admin/.env << 'ENV'
@@ -227,6 +231,9 @@ jobs:
             # Works without a key (free tier); set this secret to raise the
             # rate limit. Empty when the secret is unset -> keyless path.
             JINA_API_KEY="${{ secrets.JINA_API_KEY }}"
+            # IndexNow host-ownership key - must match apps/web/.env exactly,
+            # since web serves the verification file and admin sends the pings.
+            INDEXNOW_KEY="489ddfa71a2accb496def1963c087f14"
             ENV
 
             echo "=== Build web ==="

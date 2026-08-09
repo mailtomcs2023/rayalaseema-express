@@ -24,14 +24,27 @@ import { tagContentLocations } from "@/lib/location-ner-hook";
 import { injectInternalLinks } from "@/lib/internal-linker";
 
 // Build the canonical article URL the same way articleHref() does in apps/web.
-// Kept inline here so admin doesn't take a cross-app import; logic is small
-// + stable enough that drift is unlikely.
-function buildArticleUrl(siteUrl: string, id: string, slug: string, districtSlug: string | null, constituencySlug: string | null): string {
-  const suffix = id.slice(-8).toLowerCase();
+// Kept inline here so admin doesn't take a cross-app import.
+//
+// This previously emitted /<district>/<constituency>/<slug>-<id8> and
+// /news/<slug>-<id8>. Neither is a real URL any more: canonical articles live
+// under /telugu-news/... with NO id suffix. Every IndexNow submission and every
+// ISR revalidation was therefore aimed at a path that 404s or 301s - which is
+// worse than useless, because it teaches Bing that our submitted URLs are junk.
+function buildArticlePath(
+  slug: string,
+  districtSlug: string | null,
+  constituencySlug: string | null,
+  categorySlug: string | null,
+): string {
   if (districtSlug && constituencySlug) {
-    return `${siteUrl}/${districtSlug}/${constituencySlug}/${slug}-${suffix}`;
+    // Eponymous district-HQ constituency collapses to one segment, exactly as
+    // articleHref() does, otherwise the URL 301s to the collapsed form.
+    if (districtSlug === constituencySlug) return `/telugu-news/${districtSlug}/${slug}`;
+    return `/telugu-news/${districtSlug}/${constituencySlug}/${slug}`;
   }
-  return `${siteUrl}/news/${slug}-${suffix}`;
+  if (categorySlug) return `/telugu-news/${categorySlug}/${slug}`;
+  return `/telugu-news/${slug}`;
 }
 
 async function pingArticlePublish(contentId: string, slug: string) {
@@ -40,27 +53,38 @@ async function pingArticlePublish(contentId: string, slug: string) {
       where: { id: contentId },
       select: {
         id: true,
+        publishedAt: true,
+        category: { select: { slug: true } },
         constituency: { select: { slug: true, district: { select: { slug: true } } } },
       },
     });
     const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
     const districtSlug = row?.constituency?.district.slug ?? null;
     const constituencySlug = row?.constituency?.slug ?? null;
-    const urls = [
-      buildArticleUrl(siteUrl, contentId, slug, districtSlug, constituencySlug),
-      siteUrl,
-      `${siteUrl}/news-sitemap.xml`,
-    ];
-    if (districtSlug) urls.push(`${siteUrl}/district/${districtSlug}`);
-    if (constituencySlug) urls.push(`${siteUrl}/constituency/${constituencySlug}`);
-    await pingIndexNow(urls);
+    const categorySlug = row?.category?.slug ?? null;
+    const articlePath = buildArticlePath(slug, districtSlug, constituencySlug, categorySlug);
+
+    // Hub slugs are bare-root now (/kurnool, /business); /district/<slug> and
+    // /constituency/<slug> both 301, so submitting them wasted the ping.
+    const paths = [articlePath, "/"];
+    if (districtSlug) paths.push(`/${districtSlug}`);
+    if (constituencySlug && districtSlug) paths.push(`/${districtSlug}/${constituencySlug}`);
+    if (categorySlug) paths.push(`/${categorySlug}`);
+    // The month archive page that now permanently holds this article.
+    const stamp = row?.publishedAt ?? new Date();
+    const month = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+    })
+      .format(stamp)
+      .slice(0, 7);
+    paths.push(`/archive/${month}`);
+
+    await pingIndexNow([...paths.map((p) => `${siteUrl}${p === "/" ? "" : p}`), `${siteUrl}/news-sitemap.xml`]);
 
     // Bust apps/web's ISR page cache for the pages that surface this article so
-    // it appears immediately rather than after the page's TTL (home = 30s). The
-    // endpoint always revalidates "/"; we add the article + its hub paths.
-    const paths = [buildArticleUrl("", contentId, slug, districtSlug, constituencySlug)];
-    if (districtSlug) paths.push(`/district/${districtSlug}`);
-    if (constituencySlug) paths.push(`/constituency/${constituencySlug}`);
+    // it appears immediately rather than after the page's TTL.
     pingWebRevalidate(paths);
   } catch (err) {
     console.warn("[content publish] IndexNow ping failed (non-fatal):", (err as Error).message);

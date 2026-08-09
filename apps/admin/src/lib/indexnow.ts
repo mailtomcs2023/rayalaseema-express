@@ -15,11 +15,30 @@ const ENDPOINT = "https://api.indexnow.org/IndexNow";
 
 let cachedKey: string | null = null;
 let cachedKeyExpires = 0;
+
+/**
+ * SiteConfig first (admin can rotate without a deploy), env second.
+ *
+ * The env fallback exists because the SiteConfig row was never populated in
+ * production - verified 2026-08-09, /.well-known/<anything> returned
+ * "IndexNow key not configured" - so every ping since this feature shipped hit
+ * the `if (!key) return` path and silently did nothing. An unset row should
+ * degrade to a working default, not to silence.
+ *
+ * The key is NOT a secret: the protocol requires publishing it at
+ * https://<host>/.well-known/<key>.txt to prove host control.
+ */
 async function getKey(): Promise<string | null> {
   const now = Date.now();
   if (cachedKey !== null && cachedKeyExpires > now) return cachedKey;
-  const row = await prisma.siteConfig.findUnique({ where: { key: "indexnow_key" } });
-  cachedKey = row?.value?.trim() || null;
+  let value: string | null = null;
+  try {
+    const row = await prisma.siteConfig.findUnique({ where: { key: "indexnow_key" } });
+    value = row?.value?.trim() || null;
+  } catch {
+    // DB unavailable - fall through to env rather than dropping the ping.
+  }
+  cachedKey = value || process.env.INDEXNOW_KEY?.trim() || null;
   cachedKeyExpires = now + 5 * 60 * 1000; // 5-min cache
   return cachedKey;
 }
