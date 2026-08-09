@@ -23,6 +23,18 @@ const PUBLIC_DISALLOW = [
   "/*?preview=*",       // preview-mode URLs
 ];
 
+// Google-Extended is deliberately NOT in this list.
+//
+// It does not control Search indexing at all - Googlebot handles that, and
+// Google-Extended only governs whether our content can be used in Gemini and
+// grounding for AI Overviews / AI Mode. Blocking it therefore costs us
+// eligibility for the AI answer surfaces where Telugu news queries
+// increasingly get resolved, while buying no protection for ranking. For a
+// site fighting to be seen at all, being quotable in an AI Overview is
+// visibility we cannot afford to refuse.
+//
+// The pure training scrapers below stay blocked: they ingest the archive for
+// model training and send back no traffic and no citation.
 const AI_TRAINING_BOTS = [
   "GPTBot",
   "ChatGPT-User",
@@ -32,7 +44,6 @@ const AI_TRAINING_BOTS = [
   "Claude-Web",
   "CCBot",
   "PerplexityBot",
-  "Google-Extended",
   "Bytespider",
   "Applebot-Extended",
   "Meta-ExternalAgent",
