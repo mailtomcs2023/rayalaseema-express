@@ -71,7 +71,7 @@ export const sectionBandConfig = z
     // 8 (was 4): with trending + ad + cartoon stacked in the rail, a 4-item
     // grid left a tall white gap under the politics band (owner 2026-08-10).
     // Per-block admin config still overrides.
-    gridCount: z.number().int().min(0).max(20).default(8),
+    gridCount: z.number().int().min(0).max(24).default(16),
     trendingCount: z.number().int().min(0).max(20).default(6),
     showCartoon: z.boolean().default(false),
     showScores: z.boolean().default(false),

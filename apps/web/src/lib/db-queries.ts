@@ -34,6 +34,14 @@ function sanitizeAdRow<T extends { htmlContent?: string | null }>(ad: T): T {
 // working. Bump this date if the cutover moment changes.
 const NEW_TEMPLATE_ARTICLE_CUTOFF = new Date("2026-05-25T00:00:00.000Z");
 
+// Homepage freshness window (owner 2026-08-10): anything older than 24h is
+// hidden from homepage surfaces instead of appearing as stale news. Detail,
+// category, district, archive and search pages are NOT affected.
+const HOMEPAGE_MAX_AGE_HOURS = 24;
+function homepageFreshCutoff(): Date {
+  return new Date(Date.now() - HOMEPAGE_MAX_AGE_HOURS * 3600 * 1000);
+}
+
 // ---------- Helpers ----------
 
 // Project ARTICLE-type payload fields onto the row so consumers can read
@@ -144,9 +152,13 @@ export async function getSiteConfig(): Promise<Record<string, string>> {
 
 // ---------- Article queries (type=ARTICLE) ----------
 
-export async function getFeaturedArticles(limit = 6) {
+export async function getFeaturedArticles(limit = 6, freshOnly = false) {
   const rows = await prisma.content.findMany({
-    where: { type: "ARTICLE", status: "PUBLISHED", featured: true, createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF } },
+    where: {
+      type: "ARTICLE", status: "PUBLISHED", featured: true,
+      createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF },
+      ...(freshOnly ? { publishedAt: { gte: homepageFreshCutoff() } } : {}),
+    },
     include: {
       category: { select: { name: true, nameEn: true, slug: true, color: true } },
       author: { select: { name: true } },
@@ -160,9 +172,13 @@ export async function getFeaturedArticles(limit = 6) {
   return rows.map(projectArticle);
 }
 
-export async function getLatestArticles(limit = 12) {
+export async function getLatestArticles(limit = 12, freshOnly = false) {
   return prisma.content.findMany({
-    where: { type: "ARTICLE", status: "PUBLISHED", createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF } },
+    where: {
+      type: "ARTICLE", status: "PUBLISHED",
+      createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF },
+      ...(freshOnly ? { publishedAt: { gte: homepageFreshCutoff() } } : {}),
+    },
     select: {
       id: true, title: true, slug: true, publishedAt: true,
       // category keeps articleHref() canonical for non-geo articles - without
@@ -201,8 +217,12 @@ export async function getHomepageData() {
     categories,
     allArticles,
   ] = await Promise.all([
-    getFeaturedArticles(6),
-    getLatestArticles(12),
+    // freshOnly: homepage hides >24h-old items rather than showing stale news.
+    getFeaturedArticles(6, true).then(async (rows) =>
+      // Fallback: never leave the hero carousel blank on a slow news day.
+      rows.length > 0 ? rows : getFeaturedArticles(3)
+    ),
+    getLatestArticles(12, true),
     // Breaking news now lives in Content with type=BREAKING_NEWS. Project to
     // the old BreakingNews shape so the ticker doesn't have to change.
     prisma.content.findMany({
@@ -220,7 +240,12 @@ export async function getHomepageData() {
       orderBy: { sortOrder: "asc" },
     }),
     prisma.content.findMany({
-      where: { type: "ARTICLE", status: "PUBLISHED", createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF } },
+      where: {
+        type: "ARTICLE", status: "PUBLISHED",
+        createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF },
+        // Homepage bands hide >24h-old stories (owner 2026-08-10).
+        publishedAt: { gte: homepageFreshCutoff() },
+      },
       include: {
         category: { select: { name: true, nameEn: true, slug: true, color: true } },
         author: { select: { name: true } },
@@ -628,6 +653,8 @@ export async function getDistrictArticles(myDistrictSlug?: string | null) {
       type: "ARTICLE",
       status: "PUBLISHED",
       createdAt: { gte: NEW_TEMPLATE_ARTICLE_CUTOFF },
+      // Homepage district grid hides >24h-old stories (owner 2026-08-10).
+      publishedAt: { gte: homepageFreshCutoff() },
       OR: [
         { constituencyId: { in: allConstIds } },
         ...districts.flatMap((d) => [
@@ -658,7 +685,9 @@ export async function getDistrictArticles(myDistrictSlug?: string | null) {
         a.title.includes(nameL) ||
         a.title.toLowerCase().includes(nameEnL)
       )
-      .slice(0, d.slug === myDistrictSlug ? 8 : 3);
+      // 5 per district on the homepage grid (owner 2026-08-10); the reader's
+      // own district (cookie) still gets a bigger allotment.
+      .slice(0, d.slug === myDistrictSlug ? 8 : 5);
 
     districtArticles[d.slug] = { district: d, articles };
   }
