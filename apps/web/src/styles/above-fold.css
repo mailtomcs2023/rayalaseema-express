@@ -200,7 +200,12 @@
           gap: 0px;
           /* Spacing now comes from .af-carousel-controls. */
           margin-top: 0;
-          flex-wrap: wrap;
+          /* Single row always (owner 2026-08-10): with 12 slides the dots
+             wrapped to a second line under the arrows. Dots shrink to fit
+             instead of wrapping. */
+          flex-wrap: nowrap;
+          min-width: 0;
+          overflow: hidden;
         }
         .af-dot {
           /* Fixed-width button so the dot row NEVER reflows when the active dot
@@ -209,7 +214,11 @@
              the tap area; the visible pill is the ::after, so widening the
              button does not change the look. 14px was under the 24px floor
              PSI measures for tap targets. */
+          /* Shrinkable: 26px when the row has room, squeezing down (12px
+             floor) so 12+ slides still fit on ONE line beside the arrows. */
+          flex: 0 1 26px;
           width: 26px;
+          min-width: 12px;
           height: 32px;
           padding: 0;
           border: none;
