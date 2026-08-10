@@ -82,9 +82,10 @@ export function AboveFold({
 
           {/* DISTRICT GRID - 2x4, local-first */}
           <div className="af-dist-head">
+            {/* Mandi strip removed (owner 2026-08-10): prices live only in
+                their own boxes (daily band, /mandi-prices) - not scrolled
+                over the districts section. */}
             రాయలసీమ జిల్లాలు <span aria-hidden="true">›</span>
-            {/* Mandi prices strip (auto-scrolls) - replaces the retired ticker bar. */}
-            <div className="af-dist-head-mandi"><MandiStrip /></div>
           </div>
           <div className="af-dist-grid">
             {districts.map((d) => {

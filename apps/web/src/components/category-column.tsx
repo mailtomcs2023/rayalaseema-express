@@ -41,20 +41,14 @@ export function CategoryColumn({
             row stays a FIXED single-line height so every card's lead image
             starts at the same Y and the images align across the row.
             The strip is rendered twice so the -50% translate loops seamlessly. */}
-        {slug === "business" || slug === "national" ? (
+        {/* Owner rule (2026-08-10): price strips only in their respective
+            boxes. Bullion stays on business (gold IS business content);
+            the forex strip on national was off-topic and is gone. */}
+        {slug === "business" ? (
           <div className="cc-head-strip">
             <div className="cc-head-strip-track">
-              {slug === "business" ? (
-                <>
-                  <BullionStrip />
-                  <BullionStrip />
-                </>
-              ) : (
-                <>
-                  <ForexStrip />
-                  <ForexStrip />
-                </>
-              )}
+              <BullionStrip />
+              <BullionStrip />
             </div>
           </div>
         ) : null}
