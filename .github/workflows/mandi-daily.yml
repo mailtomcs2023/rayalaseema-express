@@ -1,0 +1,28 @@
+name: Mandi Prices Daily Fetch
+
+# Pulls the day's Agmarknet APMC prices for the 8 Rayalaseema districts into
+# MandiPrice (feeds /mandi-prices, the utility ticker and the homepage daily
+# band). 08:15 UTC = 13:45 IST - after Agmarknet's ~12:00 IST daily update.
+# Same VM-SSH pattern as seo-daily-check.
+
+on:
+  schedule:
+    - cron: "15 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  fetch-mandi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch mandi prices on Azure VM
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: 20.198.2.80
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            export PATH="$HOME/.bun/bin:$PATH"
+            cd /home/azureuser/app
+            DATABASE_URL="postgresql://reapp:RayalaseemaExpress2026!@localhost:5432/rayalaseema_express" \
+            DATA_GOV_IN_KEY="${{ secrets.DATA_GOV_IN_KEY }}" \
+            bun packages/db/scripts/fetch-mandi-prices.ts

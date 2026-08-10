@@ -15,8 +15,7 @@ const RASHIS = [
   ["dhanu", "ధనస్సు"], ["makara", "మకరం"], ["kumbha", "కుంభం"], ["meena", "మీనం"],
 ] as const;
 
-// Circle badge + name-chip pastels per sign, in the reference's spirit.
-const CIRCLE = ["#0e9f6e", "#e02424", "#7e3af2", "#1c64f2", "#e3a008", "#0694a2", "#d61f69", "#ff5a1f", "#057a55", "#c27803", "#5850ec", "#0e9f6e"];
+// Name-chip pastels per sign, in the reference's spirit.
 const CHIP = ["#d9f2e2", "#fde8e8", "#ede4ff", "#dbe9fe", "#fdf3d0", "#d5f1f4", "#fce8f3", "#ffe4d5", "#d9f2e2", "#fdf3d0", "#e0defe", "#d5f1f4"];
 
 const getMandiTop = cache(async () => {
@@ -92,15 +91,10 @@ export async function DailyBand() {
           <div className="rashi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", rowGap: 14, columnGap: 18 }}>
             {RASHIS.map(([id, name], i) => (
               <Link key={id} href={`/horoscope#${id}`} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-                <span
-                  style={{
-                    width: 46, height: 46, borderRadius: "50%", background: CIRCLE[i],
-                    display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
-                  }}
-                >
-                  <Image src={`/rashis/${id}.svg`} alt={name} width={30} height={30} loading="lazy" />
-                </span>
+                {/* The OpenMoji sign art carries its own colored background -
+                    wrapping it in another colored circle made it read as a
+                    tiny dark checkbox (owner). Bare icon, larger. */}
+                <Image src={`/rashis/${id}.svg`} alt={name} width={44} height={44} loading="lazy" style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: 14.5, fontWeight: 800, color: "#1a1a1a", background: CHIP[i], padding: "5px 14px", borderRadius: 6 }}>
                   {name}
                 </span>
