@@ -24,6 +24,16 @@ import { sanitizeArticleHtml } from "@/lib/sanitize";
 import { categoryHref } from "@/lib/category-href";
 import { articleHref } from "@/lib/article-href";
 import { buildNewsArticleSchema, buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
+import { cache } from "react";
+import { prisma } from "@rayalaseema/db";
+
+// Telugu district name for the breadcrumb - the article projection carries
+// only slugs. Cached per request burst; shares the burst with the edition
+// banner's own district query.
+const getDistrictName = cache(async (slug: string): Promise<string | null> => {
+  const d = await prisma.district.findUnique({ where: { slug }, select: { name: true } });
+  return d?.name ?? null;
+});
 import type { LocationChain, AuthorRef, PublisherConfig } from "@rayalaseema/seo-schema";
 
 // Convert a YouTube watch / share / shorts URL into its privacy-friendly embed
@@ -81,8 +91,13 @@ interface Props {
   siteUrl: string;
 }
 
-export function ArticleView({ article, related, trending, siteUrl }: Props) {
+export async function ArticleView({ article, related, trending, siteUrl }: Props) {
   const canonical = `${siteUrl}${articleHref(article)}`;
+  // Eenadu breadcrumb: geo articles crumb through the DISTRICT (kurnool
+  // vaarthalu), not the category; no "Home" label anywhere.
+  const districtName = article.constituency?.district?.slug
+    ? await getDistrictName(article.constituency.district.slug)
+    : null;
   // Cast widens to the post-A2/A3 author + constituency shape that
   // getArticleBySlug now returns (publicProfileSlug, social fields, lat/lng
   // on district/constituency). ArticleLike stays loose to support older
@@ -188,7 +203,13 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
           <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5f6672", marginBottom: 10, flexWrap: "wrap" }}>
             <Link href="/" style={{ color: "#5f6672", textDecoration: "none", fontWeight: 700 }}>తెలుగు వార్తలు</Link>
             <span>/</span>
-            <Link href={categoryHref(article.category.slug)} style={{ color: "#5f6672", textDecoration: "none", fontWeight: 700 }}>{article.category.name}</Link>
+            {districtName && article.constituency?.district?.slug ? (
+              <Link href={`/${article.constituency.district.slug}`} style={{ color: "#5f6672", textDecoration: "none", fontWeight: 700 }}>
+                {districtName} వార్తలు
+              </Link>
+            ) : (
+              <Link href={categoryHref(article.category.slug)} style={{ color: "#5f6672", textDecoration: "none", fontWeight: 700 }}>{article.category.name}</Link>
+            )}
             <span>/</span>
             <span style={{ color: "#555" }}>{article.title.substring(0, 44)}…</span>
           </nav>
