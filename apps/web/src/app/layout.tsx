@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { UtilityTicker } from "@/components/utility-ticker";
 import { getSiteConfig } from "@/lib/db-queries";
 import { buildNewsMediaOrganizationSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
 import { DeferredFooterClients } from "@/components/deferred-footer-clients";
@@ -228,6 +229,11 @@ export default async function RootLayout({
             />
           </noscript>
         )}
+
+        {/* Site-wide utility strip: gold/silver/USD numbers + daily-habit
+            links (owner plan 2026-08-10). Above every header variant,
+            including the district edition header. */}
+        <UtilityTicker />
 
         {/* Analytics + ads loaded via next/script so they survive client
             navigations and respect Next's loading strategies (and don't

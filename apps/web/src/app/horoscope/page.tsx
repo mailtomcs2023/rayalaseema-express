@@ -87,6 +87,9 @@ export default function HoroscopePage() {
                   return (
                     <Button
                       key={r.id}
+                      // Anchor target for /horoscope#<rashi-id> deep links
+                      // (homepage daily band + ticker land here).
+                      id={r.id}
                       variant="ghost"
                       onClick={() => saveRashi(r.id)}
                       className="h-auto w-full flex-col gap-0.5 rounded-lg border p-2.5 hover:bg-transparent"

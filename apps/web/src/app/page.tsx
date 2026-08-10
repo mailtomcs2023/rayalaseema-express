@@ -25,6 +25,7 @@ import { Header } from "@/components/header";
 import { SiteFooter } from "@/components/site-footer";
 import { MastheadAdSlot } from "@/components/masthead-ad-slot";
 import { TemplateRenderer } from "@/components/blocks/template-renderer";
+import { DailyBand } from "@/components/daily-band";
 import { getSiteConfig } from "@/lib/db-queries";
 import { getMenuItems } from "@/lib/menu";
 import { prisma } from "@rayalaseema/db";
@@ -74,6 +75,9 @@ export default async function HomePage() {
           రాయలసీమ న్యూస్ - Rayalaseema News: తాజా తెలుగు వార్తలు
         </h1>
         <TemplateRenderer urlPath="/" />
+        {/* నేటి సమాచారం daily band (owner plan 2026-08-10): రాశిఫలం grid +
+            gold + mandi. After the news template so hard news leads. */}
+        <DailyBand />
       </main>
       <SiteFooter config={config} />
     </div>
