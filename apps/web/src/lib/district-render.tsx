@@ -134,6 +134,7 @@ export async function DistrictView({ slug }: { slug: string }) {
         // English keyword lives in the meta title/description instead.
         title={`${district.name} జిల్లా వార్తలు`}
         hideHeader
+        districtSlug={slug}
         breadcrumbName={`${district.name} (${district.nameEn})`}
         banner={banner}
         articles={articles}

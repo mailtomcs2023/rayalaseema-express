@@ -9,6 +9,10 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { RailAd } from "@/components/rail-ad";
+import { ConstituencyBands } from "@/components/constituency-bands";
+import { DistrictNewsTabs } from "@/components/district-news-tabs";
+import { TopicChips } from "@/components/topic-chips";
+import { SidebarShorts } from "@/components/sidebar-shorts";
 import { buildBreadcrumbListSchema, stringifyJsonLd } from "@rayalaseema/seo-schema";
 import { articleHref } from "@/lib/article-href";
 
@@ -54,6 +58,10 @@ export interface SectionHubProps {
   // header (Eenadu pattern) - when true, SectionHub renders no SiteHeader
   // and the caller provides its own header above.
   hideHeader?: boolean;
+  // Set on district hubs only: renders the district-front extras -
+  // constituency bands under the grid, and the edition rail widgets
+  // (tabs, topic chips, shorts). Category hubs stay plain.
+  districtSlug?: string;
 }
 
 export function SectionHub({
@@ -68,6 +76,7 @@ export function SectionHub({
   trending,
   siteUrl,
   hideHeader,
+  districtSlug,
 }: SectionHubProps) {
   const lead = articles[0];
   const below = articles.slice(1);
@@ -176,12 +185,15 @@ export function SectionHub({
                 ))}
               </div>
             )}
+
+            {/* District fronts: town-by-town bands (Eenadu pattern). */}
+            {districtSlug && <ConstituencyBands districtSlug={districtSlug} />}
           </div>
 
-          {/* RAIL - sticky Trending + sidebar ad. The ad should still appear when
-              this section has no trending stories of its own. top:96 clears the
-              sticky primary nav (40px) + secondary header (40px). */}
-          <aside style={{ flex: "0 0 290px", position: "sticky", top: 96, alignSelf: "flex-start", maxHeight: "calc(100vh - 112px)", overflowY: "auto" }}>
+          {/* RAIL - NOT sticky (same overlap class the article rail had once
+              multiple widgets stack; owner-reported 2026-08-10). One normal
+              scrolling column. */}
+          <aside style={{ flex: "0 0 290px", alignSelf: "flex-start" }}>
             {trending.length > 0 ? (
               <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16, marginBottom: 16 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
@@ -199,8 +211,12 @@ export function SectionHub({
                 ))}
               </div>
             ) : null}
-            {/* Ad below the trending list - page-targetable from Admin → Ads. */}
+            {/* District fronts get the full edition rail. */}
+            {districtSlug && <DistrictNewsTabs districtSlug={districtSlug} />}
+            {districtSlug && <TopicChips />}
+            {/* Ad below the widgets - page-targetable from Admin → Ads. */}
             <RailAd position="SIDEBAR_SQUARE" />
+            {districtSlug && <SidebarShorts take={3} />}
           </aside>
         </div>
         )}

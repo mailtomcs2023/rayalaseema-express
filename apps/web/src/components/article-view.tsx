@@ -435,7 +435,10 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
               </div>
             )}
 
-            <CommentsSection articleId={article.id} />
+            {/* CommentsSection removed (owner call 2026-08-10): spam magnet
+                with no moderation desk, and a wall of "0 comments" reads as a
+                dead site. Telugu news discussion lives on WhatsApp/ShareChat.
+                Re-add by restoring <CommentsSection articleId={article.id} />. */}
           </article>
           <DialectGlosser />
 
