@@ -12,6 +12,9 @@ interface FooterProps {
   // so scroll position is preserved on refresh. Omitted on client-only pages,
   // which fall back to the mount fetch.
   footerItems?: any[];
+  // Mega-footer columns (all districts + all categories) - server-provided by
+  // SiteFooter; rendered after the Menu Builder columns as crawl insurance.
+  megaColumns?: FooterColumn[];
 }
 
 // A footer nav column = one top-level menu item (the heading) + its children
@@ -59,7 +62,7 @@ function buildFooterColumns(items: any[]): FooterColumn[] {
     .filter((col) => col.links.length > 0);
 }
 
-export function Footer({ config: initialConfig = {}, footerItems }: FooterProps) {
+export function Footer({ config: initialConfig = {}, footerItems, megaColumns }: FooterProps) {
   const [config, setConfig] = useState(initialConfig);
   // Admin-published FOOTER menu. SSR'd via `footerItems` when provided (no
   // reflow on refresh); otherwise fetched on mount.
@@ -212,6 +215,26 @@ export function Footer({ config: initialConfig = {}, footerItems }: FooterProps)
             </div>
           ))}
         </div>
+
+        {/* Mega-footer (Eenadu anatomy #10): every district + every category
+            from every page - crawl insurance independent of the Menu Builder.
+            Server-provided; absent on client-only pages, which is fine. */}
+        {megaColumns && megaColumns.length > 0 && (
+          <div className="border-t border-gray-800 mt-6 pt-6" style={{ display: "grid", gap: 24 }}>
+            {megaColumns.map((col) => (
+              <div key={col.heading}>
+                <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wider">{col.heading}</h4>
+                <div style={{ display: "flex", flexWrap: "wrap", columnGap: 18, rowGap: 6 }}>
+                  {col.links.map((l) => (
+                    <Link key={l.href} href={l.href} className="hover:text-white transition-colors" style={{ fontSize: 13 }}>
+                      {l.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Publisher / contact strip. Every line is SiteConfig-driven and hides

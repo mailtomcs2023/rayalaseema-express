@@ -112,6 +112,20 @@ export async function ArticleFooterStack({
           }).format(publishedAt)}{" "}IST
         </p>
       )}
+
+      {/* గమనిక small-print (anatomy #7): the compliance/liability note that
+          closes the editorial stack before any monetization. */}
+      <p
+        style={{
+          fontSize: 11.5, color: "#8a5200", background: "#fff8ec", border: "1px solid #f2e2c4",
+          padding: "8px 10px", marginTop: 14, lineHeight: 1.6,
+        }}
+      >
+        <strong>గమనిక:</strong> ఈ కథనంలోని అభిప్రాయాలు, వ్యాఖ్యలు సంబంధిత వ్యక్తులవి.
+        ప్రకటనలు/వాణిజ్య సమాచారం విషయంలో పాఠకులు తగిన జాగ్రత్త వహించాలి; వాటి
+        నాణ్యత లేదా లోపాలకు రాయలసీమ న్యూస్ యాజమాన్యం బాధ్యత వహించదు. సవరణల కోసం{" "}
+        <Link href="/corrections-policy" style={{ color: "#8a5200", fontWeight: 700 }}>సవరణల విధానం</Link> చూడండి.
+      </p>
     </div>
   );
 }

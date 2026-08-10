@@ -14,6 +14,9 @@ import { CommentsSection } from "@/components/comments-section";
 import { ShareBar } from "@/components/share-bar";
 import { ArticleFooterStack } from "@/components/article-footer-stack";
 import { DistrictEditionBanner } from "@/components/district-edition-banner";
+import { DistrictLatestRail } from "@/components/district-latest-rail";
+import { DistrictMoreGrid } from "@/components/district-more-grid";
+import { TopicChips } from "@/components/topic-chips";
 import { DialectGlosser } from "@/components/dialect-glosser";
 import { injectInlineByline, formatRelativeTelugu } from "@/lib/byline";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
@@ -177,6 +180,12 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
         </nav>
 
         <div className="article-layout" style={{ display: "flex", gap: 24 }}>
+          {/* Left rail (Eenadu anatomy #2): district latest, geo articles only.
+              Hidden on mobile via the existing .article-layout responsive CSS
+              pattern (flex column stacks it after the article). */}
+          {article.constituency?.district?.slug && (
+            <DistrictLatestRail districtSlug={article.constituency.district.slug} excludeId={article.id} />
+          )}
           <article style={{ flex: 1, minWidth: 0 }}>
             <Badge color={article.category.color || "#FF2C2C"}>{article.category.name}</Badge>
             <h1 style={{ fontSize: 28, fontWeight: 900, color: "#000", lineHeight: 1.4, marginTop: 10 }}>
@@ -212,10 +221,30 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                   })()}
                 </p>
               </div>
-              <div style={{ marginLeft: "auto", fontSize: 12, color: "#5f6672" }}>
-                {article.viewCount.toLocaleString()} views
+              <div style={{ marginLeft: "auto", fontSize: 12, color: "#5f6672", textAlign: "right" }}>
+                {/* Read time (anatomy #4): Telugu reading ~120 wpm at ~6
+                    chars/word => ~720 chars/min on the plain-text body. */}
+                {(() => {
+                  const chars = (article.body || "").replace(/<[^>]+>/g, "").length;
+                  const mins = Math.max(1, Math.round(chars / 720));
+                  return <div>{mins} నిమిషాల చదువు</div>;
+                })()}
+                <div>{article.viewCount.toLocaleString()} views</div>
               </div>
             </div>
+
+            {/* Standfirst (anatomy #5): the summary as a bold lede line
+                between byline and body - geo keywords up top. */}
+            {article.summary && (
+              <p
+                style={{
+                  fontSize: 16.5, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.65,
+                  marginTop: 14, paddingLeft: 10, borderLeft: "3px solid var(--color-brand)",
+                }}
+              >
+                {article.summary}
+              </p>
+            )}
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}>
               <TTSButton text={article.body || ""} />
@@ -327,7 +356,13 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
               publishedAt={article.publishedAt}
             />
 
-            {related.length > 0 && (
+            {/* Geo articles: the district-scoped మరిన్ని grid (anatomy #8)
+                keeps readers inside the edition; category Related only for
+                non-geo articles. */}
+            {article.constituency?.district?.slug && (
+              <DistrictMoreGrid districtSlug={article.constituency.district.slug} excludeId={article.id} />
+            )}
+            {!article.constituency?.district?.slug && related.length > 0 && (
               <div style={{ marginTop: 32 }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: "#000", marginBottom: 16, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
                   Related Articles
@@ -395,6 +430,10 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 </Link>
               ))}
             </div>
+
+            {/* Useful-Topics chip cloud + daily hooks (anatomy #9) - the rail
+                surface for the /tag/ topic hubs. */}
+            <TopicChips />
 
             {/* Latest shorts - links into /videos/<slug>, no player. Gives the
                 video section an entry point from every article. */}
