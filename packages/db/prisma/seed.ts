@@ -166,8 +166,10 @@ async function main() {
   await seedConstituencies(prisma);
 
   // ========== BREAKING NEWS ==========
-  await prisma.content.deleteMany({ where: { type: "BREAKING_NEWS" } });
-  console.log("  Breaking news cleared (add real ones from admin)");
+  // Do NOT clear editorial BREAKING_NEWS rows here. This seed runs on EVERY
+  // deploy, and the deleteMany that used to live here silently wiped the
+  // live ticker each time GitHub Actions fired (owner-reported 2026-08-10).
+  // Breaking items are managed from admin (or expire via payload.expiresAt).
 
   // ========== SITE CONFIG ==========
   const configs = [

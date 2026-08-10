@@ -141,8 +141,12 @@ export async function fetchAboveFold(
 ) {
   const exclude = new Set(config.excludeCategories);
 
+  // Homepage freshness window (owner 2026-08-10): stories older than 24h are
+  // hidden from the homepage instead of showing as stale news.
+  const freshCutoff = new Date(Date.now() - 24 * 3600 * 1000);
+
   const pool = await prisma.content.findMany({
-    where: { type: "ARTICLE", status: "PUBLISHED" },
+    where: { type: "ARTICLE", status: "PUBLISHED", publishedAt: { gte: freshCutoff } },
     orderBy: { publishedAt: "desc" },
     take: 80,
     select: {
@@ -160,7 +164,24 @@ export async function fetchAboveFold(
     },
   });
 
-  const filtered = pool.filter((c) => c.category && !exclude.has(c.category.slug));
+  let filtered = pool.filter((c) => c.category && !exclude.has(c.category.slug));
+  // Slow-news-day fallback: never render a blank above-fold. If nothing was
+  // published in the last 24h, fall back to the most recent stories.
+  if (filtered.length === 0) {
+    const older = await prisma.content.findMany({
+      where: { type: "ARTICLE", status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      take: 30,
+      select: {
+        id: true, title: true, slug: true, summary: true, featuredImage: true,
+        publishedAt: true, featured: true, viewCount: true,
+        category: { select: { name: true, slug: true, color: true } },
+        constituency: { select: { slug: true, name: true, district: { select: { slug: true, name: true } } } },
+        desk: { select: { name: true } },
+      },
+    });
+    filtered = older.filter((c) => c.category && !exclude.has(c.category.slug));
+  }
   // Hero carousel: all editor-"featured" stories, newest-first (pool is
   // ordered publishedAt desc), capped. Fall back to the single newest article
   // when nothing is featured, so the hero is never empty.
@@ -198,9 +219,11 @@ export async function fetchAboveFold(
           type: "ARTICLE",
           status: "PUBLISHED",
           constituency: { district: { slug: d.slug } },
+          publishedAt: { gte: freshCutoff },
         },
         orderBy: { publishedAt: "desc" },
-        take: 4,
+        // Lead card + 5 sub-headlines per district (owner 2026-08-10).
+        take: 6,
         select: {
           id: true,
           title: true,
