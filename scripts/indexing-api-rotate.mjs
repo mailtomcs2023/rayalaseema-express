@@ -14,7 +14,8 @@
 // this script. Inspectable; delete the file to start over.
 //
 // Env: GSC_KEY_FILE (service-account JSON, needs GSC Owner), SITE_URL optional.
-// Cron:  15 2 * * *  UTC (07:45 IST) - after the Pacific daily quota reset.
+// Cron:  45 7 * * *  UTC (13:15 IST) - Google's daily quota resets at Pacific
+// midnight = 07:00 UTC = 12:30 IST; running earlier burns the run on a 429.
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
