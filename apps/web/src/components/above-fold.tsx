@@ -44,7 +44,8 @@ function timeAgo(iso?: string | null): string {
   if (m < 60) return `${m} నిమి.`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h} గం.`;
-  return `${Math.floor(h / 24)} రోజులు`;
+  // Past 24h show nothing (owner 2026-08-10): "N రోజులు" reads as stale news.
+  return "";
 }
 
 /**

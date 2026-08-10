@@ -39,9 +39,9 @@ export function formatRelativeTelugu(d: Date | string | null | undefined): strin
   if (min < 60) return `${min} min ago`;
   const hr = Math.floor(min / 60);
   if (hr < 24) return hr === 1 ? "1 hour ago" : `${hr} hours ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return day === 1 ? "1 day ago" : `${day} days ago`;
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  // Past 24h return nothing (owner 2026-08-10): "N days ago" on a news card
+  // reads as stale news - cards simply omit the timing instead.
+  return "";
 }
 
 /**

@@ -256,7 +256,8 @@ export async function ArticleView({ article, related, trending, siteUrl }: Props
                     });
                     return (
                       <time dateTime={shown.toISOString()}>
-                        {edited ? "Updated" : "Published"} · {abs} IST · {formatRelativeTelugu(shown)}
+                        {edited ? "Updated" : "Published"} · {abs} IST
+                        {formatRelativeTelugu(shown) ? ` · ${formatRelativeTelugu(shown)}` : ""}
                       </time>
                     );
                   })()}
