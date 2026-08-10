@@ -98,7 +98,10 @@ export async function DistrictEditionBanner({ districtSlug }: { districtSlug: st
           {/* Brand center - links to the main homepage (the only route back
               to the full site chrome, exactly like Eenadu's center brand). */}
           <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
-            <Image src="/logo.png" alt="రాయలసీమ న్యూస్" width={150} height={44} style={{ height: 44, width: "auto", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }} />
+            {/* New horizontal lockup (owner SVGs 2026-08-10, rasterized from
+                LOGOS/SVG with the C2PA metadata stripped): white variant for
+                the red banner; red-on-white twin at /logo-horizontal-red.webp. */}
+            <Image src="/logo-horizontal-white.webp" alt="రాయలసీమ న్యూస్ - మన గళం మన కలం" width={230} height={46} style={{ height: 46, width: "auto", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))" }} />
           </Link>
           {/* Neighbour district top-right. */}
           <Link
@@ -125,45 +128,42 @@ export async function DistrictEditionBanner({ districtSlug }: { districtSlug: st
           }}
         >
           <span suppressHydrationWarning style={{ fontWeight: 800 }}>{teluguDate()}</span>
-          <span style={{ display: "flex", gap: 18, alignItems: "center" }}>
-            {/* White inline home glyphs - emoji render in OS colors and clash
-                with the bar (owner call). */}
-            <Link href={`/${district.slug}`} style={{ color: "#fff", textDecoration: "none", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <HomeIcon /> {district.name} హోం
-            </Link>
-            <Link href="/" style={{ color: "#fff", textDecoration: "none", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <HomeIcon /> హోం
-            </Link>
-          </span>
         </div>
       </div>
 
-      {/* Constituency row - every seat in the district. */}
-      {district.constituencies.length > 0 && (
-        <div style={{ background: "var(--color-brand)", padding: "6px 12px", borderTop: "1px solid rgba(255,255,255,0.25)" }}>
-          <div
-            style={{
-              maxWidth: 1280,
-              margin: "0 auto",
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              columnGap: 18,
-              rowGap: 4,
-            }}
-          >
-            {district.constituencies.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/${district.slug}/${c.slug}`}
-                style={{ color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 600 }}
-              >
-                {c.name}
-              </Link>
-            ))}
-          </div>
+      {/* Constituency row - home links LEFT (owner call: above the తాజా
+          వార్తలు rail), then every seat in the district. */}
+      <div style={{ background: "var(--color-brand)", padding: "6px 12px", borderTop: "1px solid rgba(255,255,255,0.25)" }}>
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: "0 auto",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            columnGap: 18,
+            rowGap: 4,
+          }}
+        >
+          <span style={{ display: "inline-flex", gap: 14, alignItems: "center", paddingRight: 8, borderRight: "1px solid rgba(255,255,255,0.4)" }}>
+            <Link href={`/${district.slug}`} style={{ color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <HomeIcon /> {district.name} హోం
+            </Link>
+            <Link href="/" style={{ color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <HomeIcon /> హోం
+            </Link>
+          </span>
+          {district.constituencies.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/${district.slug}/${c.slug}`}
+              style={{ color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 600 }}
+            >
+              {c.name}
+            </Link>
+          ))}
         </div>
-      )}
+      </div>
     </header>
   );
 }
