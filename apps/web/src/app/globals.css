@@ -1075,9 +1075,12 @@ footer a:hover {
     display: none !important;
   }
 
-  /* Homepage daily band stacks on phones. */
+  /* Homepage daily band stacks on phones; sign grid drops to 2 columns. */
   .daily-band-grid {
     grid-template-columns: 1fr !important;
+  }
+  .rashi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   .edition-top {
     padding: 10px 8px !important;
