@@ -128,10 +128,9 @@ export async function DistrictView({ slug }: { slug: string }) {
         slug={slug}
         // H1 carries the search phrase, not just the place label - people
         // search "kurnool vaarthalu", not "kurnool jilla" (owner call,
-        // 2026-08-10). English keyword lives in the subtitle; the
-        // constituency count stays as the coverage-depth differentiator.
+        // 2026-08-10). No subtitle - owner wants the header clean; the
+        // English keyword lives in the meta title/description instead.
         title={`${district.name} జిల్లా వార్తలు`}
-        subtitle={`${district.nameEn} District Telugu News · ${district.constituencies.length} నియోజకవర్గాలు`}
         breadcrumbName={`${district.name} (${district.nameEn})`}
         banner={banner}
         articles={articles}

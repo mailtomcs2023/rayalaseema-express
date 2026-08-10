@@ -87,7 +87,6 @@ export async function CategoryHubView({ slug }: { slug: string }) {
         // suffix when the category name already ends in వార్తలు (e.g. the
         // "జిల్లా వార్తలు" category) - no double-word headings.
         title={category.name.trim().endsWith("వార్తలు") ? category.name : `${category.name} వార్తలు`}
-        subtitle={category.nameEn ? `${category.nameEn} News in Telugu` : undefined}
         breadcrumbName={category.name}
         emptyLabel={category.name}
         articles={articles}

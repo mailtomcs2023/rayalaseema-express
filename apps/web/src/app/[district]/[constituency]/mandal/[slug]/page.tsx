@@ -166,13 +166,10 @@ export default async function MandalPage({ params }: { params: Params }) {
           <span style={{ color: "#333" }}>{mandal.name}</span>
         </nav>
 
+        {/* H1 = search phrase (…వార్తలు), clean header - same pattern as the
+            district/constituency hubs, owner call 2026-08-10. */}
         <header style={{ borderBottom: "3px solid var(--color-brand)", paddingBottom: 14, marginBottom: 24 }}>
-          <h1 style={{ fontSize: 30, fontWeight: 900, color: "var(--color-brand)" }}>{mandal.name}</h1>
-          <p style={{ fontSize: 14, color: "#666", marginTop: 4 }}>
-            {mandal.nameEn}
-            {" "}· {mandal.constituency.nameEn} constituency · {mandal.constituency.district.nameEn} district
-            {mandal.population ? ` · Population ${mandal.population.toLocaleString()}` : ""}
-          </p>
+          <h1 style={{ fontSize: 30, fontWeight: 900, color: "var(--color-brand)" }}>{mandal.name} వార్తలు</h1>
         </header>
 
         {displayed.length === 0 ? (
