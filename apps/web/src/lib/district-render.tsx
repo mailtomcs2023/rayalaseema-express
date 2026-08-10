@@ -133,6 +133,7 @@ export async function DistrictView({ slug }: { slug: string }) {
         // 2026-08-10). No subtitle - owner wants the header clean; the
         // English keyword lives in the meta title/description instead.
         title={`${district.name} జిల్లా వార్తలు`}
+        hideHeader
         breadcrumbName={`${district.name} (${district.nameEn})`}
         banner={banner}
         articles={articles}

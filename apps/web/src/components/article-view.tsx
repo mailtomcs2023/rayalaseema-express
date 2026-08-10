@@ -157,13 +157,14 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
     <div className="min-h-screen bg-gray-50">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(newsArticleLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
-      <SiteHeader activeSectionSlug={article.category?.slug} />
-
-      {/* District-edition banner - geo-tagged (district) articles only, per
-          the Eenadu anatomy study (owner call 2026-08-10). Cinema/national
-          articles keep the plain template. */}
-      {article.constituency?.district?.slug && (
+      {/* Eenadu pattern (owner-directed): district-tagged articles live inside
+          the district EDITION - the edition header fully REPLACES the main
+          site header and menu; the center brand links back to the homepage.
+          Category articles (cinema/national/...) keep the normal header. */}
+      {article.constituency?.district?.slug ? (
         <DistrictEditionBanner districtSlug={article.constituency.district.slug} />
+      ) : (
+        <SiteHeader activeSectionSlug={article.category?.slug} />
       )}
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>

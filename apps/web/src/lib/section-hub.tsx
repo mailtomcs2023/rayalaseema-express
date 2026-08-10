@@ -50,6 +50,10 @@ export interface SectionHubProps {
   articles: HubArticle[];
   trending: HubTrending[];
   siteUrl: string;
+  // District edition pages replace the main site header with the edition
+  // header (Eenadu pattern) - when true, SectionHub renders no SiteHeader
+  // and the caller provides its own header above.
+  hideHeader?: boolean;
 }
 
 export function SectionHub({
@@ -63,6 +67,7 @@ export function SectionHub({
   articles,
   trending,
   siteUrl,
+  hideHeader,
 }: SectionHubProps) {
   const lead = articles[0];
   const below = articles.slice(1);
@@ -75,7 +80,7 @@ export function SectionHub({
   return (
     <div className="min-h-screen" style={{ background: "#fff" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
-      <SiteHeader config={config} breakingNews={[]} activeSectionSlug={slug} />
+      {!hideHeader && <SiteHeader config={config} breakingNews={[]} activeSectionSlug={slug} />}
 
       {/* Section header - "Telugu - English" on one line. Font sizes unchanged:
           Telugu big, English small/grey, separated by a dash. */}
