@@ -69,6 +69,17 @@ export const metadata: Metadata = {
   description:
     "Latest Telugu news from Rayalaseema - Kurnool, Anantapur, Kadapa, Tirupati, Chittoor. రాయలసీమ తాజా వార్తలు: రాజకీయాలు, క్రీడలు, సినిమా, వాతావరణం.",
   manifest: "/manifest.json",
+  // RSS autodiscovery: aggregators (FeedSpot, Dailyhunt crawlers, feed
+  // readers) look for <link rel="alternate" type="application/rss+xml">.
+  // The feed existed at /rss/all.xml but was undiscoverable (audit
+  // 2026-08-10). District/category feeds advertise on their own pages.
+  alternates: {
+    types: {
+      "application/rss+xml": [
+        { url: "/rss/all.xml", title: "Rayalaseema News - అన్ని వార్తలు" },
+      ],
+    },
+  },
   // Google Discover only surfaces large-image cards when the page grants
   // max-image-preview:large. Without it our 1200px article heroes were capped
   // at a thumbnail, which effectively opted us out of the format that drives
