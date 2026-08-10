@@ -11,6 +11,7 @@ import { districtHref } from "@/lib/district-href";
 import { SectionHub } from "@/lib/section-hub";
 import { metaTitle } from "@/lib/meta-text";
 import { OlderStoriesLink } from "@/components/older-stories-link";
+import { DistrictEditionBanner } from "@/components/district-edition-banner";
 import { HUB_PAGE_SIZE, districtWhere, getHubPageCount } from "@/lib/hub-pagination";
 
 function siteUrl(): string {
@@ -123,6 +124,7 @@ export async function DistrictView({ slug }: { slug: string }) {
 
   return (
     <>
+      <DistrictEditionBanner districtSlug={slug} />
       <SectionHub
         config={config}
         slug={slug}

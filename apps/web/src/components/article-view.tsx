@@ -12,6 +12,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { TTSButton } from "@/components/tts-button";
 import { CommentsSection } from "@/components/comments-section";
 import { ShareBar } from "@/components/share-bar";
+import { ArticleFooterStack } from "@/components/article-footer-stack";
+import { DistrictEditionBanner } from "@/components/district-edition-banner";
 import { DialectGlosser } from "@/components/dialect-glosser";
 import { injectInlineByline, formatRelativeTelugu } from "@/lib/byline";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
@@ -156,6 +158,13 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(newsArticleLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
       <SiteHeader activeSectionSlug={article.category?.slug} />
+
+      {/* District-edition banner - geo-tagged (district) articles only, per
+          the Eenadu anatomy study (owner call 2026-08-10). Cinema/national
+          articles keep the plain template. */}
+      {article.constituency?.district?.slug && (
+        <DistrictEditionBanner districtSlug={article.constituency.district.slug} />
+      )}
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
         <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5f6672", marginBottom: 16 }}>
@@ -306,6 +315,16 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 ))}
               </div>
             )}
+
+            <ArticleFooterStack
+              authorName={article.author.name}
+              deskName={article.desk?.name}
+              districtSlug={article.constituency?.district?.slug}
+              constituencySlug={article.constituency?.slug}
+              categoryName={article.category.name}
+              categorySlug={article.category.slug}
+              publishedAt={article.publishedAt}
+            />
 
             {related.length > 0 && (
               <div style={{ marginTop: 32 }}>
