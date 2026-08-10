@@ -367,10 +367,10 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
                 nothing. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/_next/image?url=%2Flogo.png&w=640&q=75"
-                alt="రాయలసీమ న్యూస్"
+                src="/_next/image?url=%2Flogo-horizontal-red.webp&w=640&q=80"
+                alt="రాయలసీమ న్యూస్ - మన గళం మన కలం"
                 width={320}
-                height={66}
+                height={64}
                 loading="lazy"
                 decoding="async"
                 className="hidden md:block h-16 w-auto"

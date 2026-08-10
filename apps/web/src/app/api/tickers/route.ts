@@ -56,24 +56,10 @@ async function getMandiPrices() {
 async function getBullionPrices() {
   const OZ_TO_GRAM = 31.1035;
 
-  // Method 0 (primary): Lalithaa Jewellery's Andhra Pradesh feed - the exact
-  // per-gram retail rates (Gold 22KT, Silver, Platinum) shown on their site.
-  // Used with permission; cached 30 min by lib/lalithaa-rates. Falls through
-  // to the editor/DB cascade below if their API is unreachable.
-  try {
-    const ap = await getApGoldRates();
-    if (ap) {
-      return [
-        { name: "బంగారం 22K", nameEn: "Gold 22KT", price: Math.round(ap.goldPerGram), unit: "గ్రాము", change: 0 },
-        { name: "వెండి", nameEn: "Silver", price: Math.round(ap.silverPerGram), unit: "గ్రాము", change: 0 },
-        { name: "ప్లాటినం", nameEn: "Platinum", price: Math.round(ap.platinumPerGram), unit: "గ్రాము", change: 0 },
-      ];
-    }
-  } catch {
-    // fall through to the DB / spot cascade below
-  }
-
-  // Method 1: PreciousMetalRate DB rows (editor-entered, per Rayalaseema city).
+  // Method 0 (primary): PreciousMetalRate DB rows - editor-entered LOCAL
+  // per-city rates (Kurnool, Proddatur, Tirupati...). Owner call 2026-08-10:
+  // local market rates outrank the AP-wide Lalithaa feed, which becomes the
+  // fallback below when no fresh editor rows exist.
   // The /gold-rate page reads from this same table; surfacing the same rows
   // in the strip keeps the two views in sync. Only the freshest row per
   // (city, metal, purity) within the current 24h window is shown so stale
@@ -119,7 +105,22 @@ async function getBullionPrices() {
     // DB unavailable - fall through to external API cascade below.
   }
 
-  // Method 1: goldprice.org - free, live, no key. Updates ~every 60s.
+  // Method 1: Lalithaa Jewellery's AP-wide feed (was primary; now the
+  // fallback when editors haven't entered fresh local rates).
+  try {
+    const ap = await getApGoldRates();
+    if (ap) {
+      return [
+        { name: "బంగారం 22K", nameEn: "Gold 22KT", price: Math.round(ap.goldPerGram), unit: "గ్రాము", change: 0 },
+        { name: "వెండి", nameEn: "Silver", price: Math.round(ap.silverPerGram), unit: "గ్రాము", change: 0 },
+        { name: "ప్లాటినం", nameEn: "Platinum", price: Math.round(ap.platinumPerGram), unit: "గ్రాము", change: 0 },
+      ];
+    }
+  } catch {
+    // fall through to spot APIs
+  }
+
+  // Method 2: goldprice.org - free, live, no key. Updates ~every 60s.
   // Returns { items: [{ xauPrice, xagPrice, pcXau, pcXag, ... }] } where
   // xauPrice / xagPrice are INR per troy ounce.
   try {

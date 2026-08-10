@@ -1,40 +1,19 @@
-// Site-wide utility strip (owner plan 2026-08-10, Layer 1): gold/silver
-// numbers + USD/INR + daily-habit links, one slim line on every page.
-// The /api/tickers cascade (Lalithaa AP feed -> editor DB rows -> spot APIs)
-// already exists and had no surface since the old header ticker was retired -
-// this is its new home. Server-rendered; numbers are in the initial HTML.
+// Site-wide utility strip - daily-habit links only (owner call 2026-08-10:
+// no spot-price numbers in the top bar; gold rates belong to the LOCAL
+// per-city market rates on /gold-rate, not an AP-wide spot figure).
+// Static links, zero fetches, zero layout risk.
 
 import Link from "next/link";
 
-type Bullion = { name: string; price: number; unit: string; change?: number };
-type Forex = { name: string; price: number };
+const LINKS = [
+  { href: "/horoscope", label: "♈ నేటి రాశి ఫలాలు" },
+  { href: "/gold-rate", label: "🪙 బంగారం ధరలు" },
+  { href: "/mandi-prices", label: "🌾 మండి ధరలు" },
+  { href: "/weather", label: "🌦 వాతావరణం" },
+  { href: "/epaper", label: "📰 ఈ-పేపర్" },
+];
 
-async function getTickers(): Promise<{ bullion: Bullion[]; forex: Forex[] } | null> {
-  try {
-    const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
-    const res = await fetch(`${siteUrl}/api/tickers`, {
-      next: { revalidate: 300 },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
-
-export async function UtilityTicker() {
-  const data = await getTickers();
-  // Show the strip only when at least the bullion numbers are real - a bar of
-  // links without numbers is not worth the pixels.
-  const gold = data?.bullion?.find((b) => /22/.test(b.name)) ?? data?.bullion?.[0];
-  const silver = data?.bullion?.find((b) => b.name.includes("వెండి"));
-  const usd = data?.forex?.[0];
-  if (!gold) return null;
-
-  const item: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" };
-  const num: React.CSSProperties = { fontWeight: 800, color: "#ffd257" };
-
+export function UtilityTicker() {
   return (
     <div style={{ background: "#1c1c1c", color: "#eee", fontSize: 12.5 }}>
       <div
@@ -45,33 +24,15 @@ export async function UtilityTicker() {
           padding: "4px 12px",
           display: "flex",
           alignItems: "center",
-          gap: 18,
+          gap: 22,
           overflowX: "auto",
         }}
       >
-        <Link href="/gold-rate" style={{ ...item, color: "#eee", textDecoration: "none" }}>
-          {gold.name} <span style={num}>₹{gold.price.toLocaleString("en-IN")}</span>/{gold.unit}
-        </Link>
-        {silver && (
-          <Link href="/gold-rate" style={{ ...item, color: "#eee", textDecoration: "none" }}>
-            వెండి <span style={num}>₹{silver.price.toLocaleString("en-IN")}</span>/{silver.unit}
+        {LINKS.map((l) => (
+          <Link key={l.href} href={l.href} style={{ color: "#fff", textDecoration: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
+            {l.label}
           </Link>
-        )}
-        {usd && (
-          <span style={item}>
-            USD <span style={num}>₹{usd.price}</span>
-          </span>
-        )}
-        <span style={{ opacity: 0.35 }}>|</span>
-        <Link href="/horoscope" style={{ ...item, color: "#fff", textDecoration: "none", fontWeight: 700 }}>
-          ♈ నేటి రాశి ఫలాలు
-        </Link>
-        <Link href="/weather" style={{ ...item, color: "#fff", textDecoration: "none", fontWeight: 700 }}>
-          🌦 వాతావరణం
-        </Link>
-        <Link href="/mandi-prices" style={{ ...item, color: "#fff", textDecoration: "none", fontWeight: 700 }}>
-          🌾 మండి ధరలు
-        </Link>
+        ))}
       </div>
     </div>
   );
