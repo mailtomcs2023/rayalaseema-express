@@ -41,6 +41,14 @@ const getEditionData = cache(async (districtSlug: string) => {
   return { district, next };
 });
 
+function HomeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
+      <path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3L12 3z" />
+    </svg>
+  );
+}
+
 function teluguDate(): string {
   // Weekday + date in Telugu, IST - the edition's slim-bar date line.
   return new Intl.DateTimeFormat("te-IN", {
@@ -116,13 +124,15 @@ export async function DistrictEditionBanner({ districtSlug }: { districtSlug: st
             fontSize: 13,
           }}
         >
-          <span suppressHydrationWarning>{teluguDate()}</span>
-          <span style={{ display: "flex", gap: 16 }}>
-            <Link href={`/${district.slug}`} style={{ color: "#fff", textDecoration: "none", fontWeight: 700 }}>
-              🏠 {district.name} హోం
+          <span suppressHydrationWarning style={{ fontWeight: 800 }}>{teluguDate()}</span>
+          <span style={{ display: "flex", gap: 18, alignItems: "center" }}>
+            {/* White inline home glyphs - emoji render in OS colors and clash
+                with the bar (owner call). */}
+            <Link href={`/${district.slug}`} style={{ color: "#fff", textDecoration: "none", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <HomeIcon /> {district.name} హోం
             </Link>
-            <Link href="/" style={{ color: "#fff", textDecoration: "none", fontWeight: 700 }}>
-              🏠 హోం
+            <Link href="/" style={{ color: "#fff", textDecoration: "none", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <HomeIcon /> హోం
             </Link>
           </span>
         </div>
