@@ -219,8 +219,12 @@ export async function fetchAboveFold(
           type: "ARTICLE",
           status: "PUBLISHED",
           constituency: { district: { slug: d.slug } },
-          publishedAt: { gte: freshCutoff },
         },
+        // Newest first; no freshness cutoff HERE. Most districts only get a
+        // couple of constituency-tagged stories a day, so a hard 24h window
+        // left cells at 1-3 items (owner 2026-08-10: wants 5 sub-headlines).
+        // Fresh stories naturally sort to the top, and cards hide relative
+        // timings past 24h, so older backfill doesn't read as stale.
         orderBy: { publishedAt: "desc" },
         // Lead card + 5 sub-headlines per district (owner 2026-08-10).
         take: 6,
