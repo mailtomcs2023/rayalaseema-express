@@ -105,7 +105,12 @@ const AD_OPTIONS: sanitizeHtml.IOptions = {
 
 export function sanitizeArticleHtml(html: string): string {
   if (!html) return "";
-  return sanitizeHtml(html, ARTICLE_OPTIONS);
+  const clean = sanitizeHtml(html, ARTICLE_OPTIONS);
+  // Editor-inserted body images routinely arrive without alt. Lighthouse
+  // (a11y + SEO) fails on a MISSING attribute but accepts alt="" as an
+  // explicit decorative marker - and we cannot invent meaningful alt text
+  // for arbitrary editor images. Adds alt="" only where no alt exists.
+  return clean.replace(/<img((?:(?!\balt=)[^>])*?)\/?>/gi, '<img$1 alt="" />');
 }
 
 export function sanitizeAdHtml(html: string): string {

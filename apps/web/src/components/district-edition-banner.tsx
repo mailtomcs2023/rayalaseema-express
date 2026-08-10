@@ -78,6 +78,7 @@ export async function DistrictEditionBanner({ districtSlug }: { districtSlug: st
         }}
       >
         <div
+          className="edition-top"
           style={{
             maxWidth: 1280,
             margin: "0 auto",
@@ -91,6 +92,7 @@ export async function DistrictEditionBanner({ districtSlug }: { districtSlug: st
           {/* Current district - the edition identity, big, top-left. */}
           <Link
             href={`/${district.slug}`}
+            className="edition-side"
             style={{ color: "#fff", textDecoration: "none", fontSize: 26, fontWeight: 900, textShadow: "0 1px 3px rgba(0,0,0,0.45)", whiteSpace: "nowrap" }}
           >
             {district.name}
@@ -106,6 +108,7 @@ export async function DistrictEditionBanner({ districtSlug }: { districtSlug: st
           {/* Neighbour district top-right. */}
           <Link
             href={`/${next.slug}`}
+            className="edition-side edition-neighbour"
             style={{ color: "#fff", textDecoration: "none", fontSize: 20, fontWeight: 800, textShadow: "0 1px 3px rgba(0,0,0,0.45)", whiteSpace: "nowrap" }}
           >
             {next.name}

@@ -1065,6 +1065,25 @@ footer a:hover {
     width: 100% !important;
   }
 
+  /* District edition, mobile (owner-reported distraction 2026-08-10):
+     - the left latest-rail rendered BEFORE the article in column flow, so
+       phones saw 12 links + an ad before the story - hide it; the district's
+       stories are reachable via the banner + మరిన్ని grid.
+     - edition masthead compacts: smaller district/neighbour names so the
+       three-part row fits a phone width. */
+  .district-latest-rail {
+    display: none !important;
+  }
+  .edition-top {
+    padding: 10px 8px !important;
+  }
+  .edition-side {
+    font-size: 15px !important;
+  }
+  .edition-neighbour {
+    font-size: 13px !important;
+  }
+
   /* Section 1: Stack slider above sidebar */
   .home-section-1 {
     flex-direction: column;
