@@ -98,6 +98,23 @@ HARD RULES - break any of these and the article is rejected.
     - REPEAT: there is NO situation in which an English proper noun, song title, movie title, place name, person name, party name, platform name (X, Twitter, Facebook, Instagram, YouTube, WhatsApp, Telegram), agency name (PTI, Reuters, ANI), or English-language quote may appear in Latin letters inside title_te / dek_te / summary_te / body_html_te.
     - If you find yourself about to write a Latin-letter word in the Telugu body, STOP and transliterate it phonetically into Telugu script before continuing.
     - English-language direct quotes (tweets, statements, court orders) get TRANSLATED into Telugu inside <blockquote><p>...</p><cite>- Speaker</cite></blockquote>. The original English does not appear.
+
+12. THINK IN TELUGU - no translationese
+    - Compose every sentence as a Telugu journalist who never knew English would. NEVER draft in English mentally and translate - word-for-word calques of English idiom are a defect even when every word is Telugu.
+    - BAD (English thought, Telugu words): "కేంద్ర ప్రణాళికలో లేని కారిడార్" ("corridor not in the central plan")
+      GOOD (native): "కేంద్రం జాబితాలో ఈ మార్గం ఊసే లేదు"
+    - BAD: "కోడిగుడ్డు సమస్య" (chicken-and-egg problem calque)
+      GOOD: "గుడ్డు ముందా, పిల్ల ముందా అన్న చందం"
+    - BAD: "మార్కెట్ ఖాళీ అని అర్థం" ("means a market gap")
+      GOOD: "ఎక్కడ కొరత ఉంటుందో అక్కడే వ్యాపారానికి చోటుంటుంది"
+    - BAD: "ఎర్ర జెండా" for a warning sign (red-flag calque)
+      GOOD: "ప్రమాద సంకేతం"
+    - Reach for native newsroom idiom where it fits: మొండిచేయి, ఊసే లేదు, అందిపుచ్చుకోవడం, కొల్లగొట్టడం, కానరాని, కరవైన
+    - Headlines are composed the way an Eenadu sub-editor writes them (see rule 2) - never a translated English headline.
+    - Test: read the sentence aloud. If its grammar or metaphor only makes sense to someone who knows the English original, rewrite it.
+    - NO English listicle enumeration ("మొదటి విషయం...", "రెండోది —", "మూడోది —") - Telugu prose flows with connectives and rhetorical questions instead (ఇక, మరి, అంతేకాదు, దీనికి తోడు, "మరి ... సంగతేమిటి?")
+    - NO colon-label subheads or colon-intro sentences ("అధికారిక మార్గం ఇదీ:", "జాగ్రత్త: నకిలీ ఫ్రాంచైజీ వల") - those are English section-header thought. Write subheads as natural phrases or questions ("ఛార్జింగ్ కేంద్రం పెట్టాలంటే ఏం కావాలి?", "మోసగాళ్ల వల")
+    - Rhetorical questions are the native engine of Telugu editorial flow - use them to hand off between sections ("మరి హైదరాబాద్-బెంగళూరు మార్గం సంగతేమిటి?")
 `;
 
 // Few-shot example. Real Eenadu-style article paired with its English source.
@@ -196,7 +213,7 @@ Return STRICT JSON:
 {
   "issues": [
     {
-      "type": "fabricated_quote" | "date_mismatch" | "name_drift" | "number_drift" | "missing_attribution" | "editorializing" | "structural" | "register" | "latin_script_in_body" | "untranslated_english_quote",
+      "type": "fabricated_quote" | "date_mismatch" | "name_drift" | "number_drift" | "missing_attribution" | "editorializing" | "structural" | "register" | "latin_script_in_body" | "untranslated_english_quote" | "translationese",
       "detail": "<one-sentence English description of the specific problem>",
       "location": "headline" | "dek" | "lead_para" | "body_para_N" | "quote_N" | "subhead"
     }
@@ -214,6 +231,7 @@ DRIFT RULES (use these to populate issues[]):
 - register: colloquial Telugu / dialect words in non-editorial copy / English common nouns
 - latin_script_in_body: any Latin-letter (English script) word inside title_te / dek_te / summary_te / body_html_te that is NOT inside a JSON-only field. Includes proper nouns left as "Narendra Modi" / "Lata Mangeshkar" / "X" / "Aajkal Tere Mere Pyar Ke Charche" instead of their Telugu-script transliteration. Every Latin-script glyph in the body is a defect.
 - untranslated_english_quote: a <blockquote> that contains the original English text of a quote (tweet, statement, court order) instead of a Telugu translation of it.
+- translationese: a sentence or headline whose grammar/metaphor is a word-for-word calque of English idiom rather than native Telugu phrasing (e.g. "కేంద్ర ప్రణాళికలో లేని" for "not in the central plan", "ఎర్ర జెండా" for "red flag", "కోడిగుడ్డు సమస్య" for "chicken-and-egg problem"). The words are Telugu but the thought is English.
 
 Return an empty issues[] array if no drift found. Never return any text outside the JSON envelope.`;
 }

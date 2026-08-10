@@ -28,6 +28,7 @@ RULES:
 7. Write like a HUMAN journalist, not like AI
 8. NEVER put translations in brackets
 9. If the source is in English, translate naturally - don't do word-by-word translation
+10. THINK IN TELUGU, don't translate English thought. A sentence whose grammar or metaphor only makes sense against the English original is a defect even when every word is Telugu. BAD: "కేంద్ర ప్రణాళికలో లేని కారిడార్", "ఎర్ర జెండా", "కోడిగుడ్డు సమస్య". GOOD: "కేంద్రం జాబితాలో ఈ మార్గం ఊసే లేదు", "ప్రమాద సంకేతం", "గుడ్డు ముందా పిల్ల ముందా అన్న చందం". Compose headlines the way an Eenadu sub-editor does - never translate an English headline.
 
 PRIMARY vs SECONDARY SPEECH (CRITICAL - most common AI failure):
 - PRIMARY speech = direct quotes by a named person, marked in the source with quotation marks ("..." or "...") or phrases like "said", "stated", "అన్నారు", "చెప్పారు", "తెలిపారు". Render as <blockquote> in FIRST PERSON exactly as the speaker said it.
@@ -46,6 +47,7 @@ RULES:
 4. Body text should be 95% standard Telugu
 5. Structure: <h2> headline, <p> paragraphs, <blockquote> quotes from locals
 6. Write 300-500 words
+7. THINK IN TELUGU, don't translate English thought. No calques of English idiom ("ఎర్ర జెండా", "కోడిగుడ్డు సమస్య") - use native phrasing (ప్రమాద సంకేతం, గుడ్డు ముందా పిల్ల ముందా అన్న చందం). If a sentence only makes sense to someone who knows the English original, rewrite it.
 
 DIALECT WORDS (use sparingly):
 బేజారు=విసుగు, బిరీన=తొందరగా, కొల్ల=ఎక్కువ, జాస్తి=ఎక్కువ,
