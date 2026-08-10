@@ -440,10 +440,12 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
           <DialectGlosser />
 
           <aside className="article-sidebar" style={{ width: 320, flexShrink: 0 }}>
-            {/* Sticky so the Trending card follows the reader down the article.
-                top clears the sticky nav (~40px); it scrolls internally if the
-                list is taller than the viewport. */}
-            <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16, position: "sticky", top: 56, maxHeight: "calc(100vh - 72px)", overflowY: "auto" }}>
+            {/* NOT sticky. It was sticky when Trending was the only sidebar
+                widget; with the tabs widget / topic panel / shorts stacked
+                below it, a pinned first card overlaps the widgets scrolling
+                past it (owner-reported breakage, 2026-08-10). Normal flow -
+                the whole rail scrolls as one column. */}
+            <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16 }}>
               <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
                 Trending
               </h2>
