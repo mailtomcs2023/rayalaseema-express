@@ -53,6 +53,26 @@ export default async function HomePage() {
         mastheadAdSlot={<MastheadAdSlot config={config} />}
       />
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "2px 8px 0" }}>
+        {/* The homepage had no <h1> at all (Bing Site Scan notice, 2026-08-10)
+            - the masthead is an image and the page-builder blocks start at h2.
+            Visually-hidden brand h1 gives crawlers and screen readers the page
+            topic without altering the editorial layout. Standard news-site
+            pattern; content matches the brand, so no hidden-text risk. */}
+        <h1
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            padding: 0,
+            margin: -1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+            border: 0,
+          }}
+        >
+          రాయలసీమ న్యూస్ - Rayalaseema News: తాజా తెలుగు వార్తలు
+        </h1>
         <TemplateRenderer urlPath="/" />
       </main>
       <SiteFooter config={config} />
