@@ -22,11 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
   const indexable = await isTagIndexable(tag);
 
+  // absolute below - the string carries its own suffix; without it the root
+  // template appended a second "| Rayalaseema News" (caught live by the owner
+  // in Bing's URL inspection, 2026-08-10).
   const title = `${tag.name}${tag.nameEn ? ` (${tag.nameEn})` : ""} - వార్తలు | Rayalaseema News`;
   const description = tag.description || `${tag.name}${tag.nameEn ? ` (${tag.nameEn})` : ""} గురించి అన్ని కథనాలు, తాజా వార్తలు, విశ్లేషణలు ఒకే చోట - Rayalaseema News topic page.`;
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: `${siteUrl}/tag/${slug}` },
     robots: indexable
