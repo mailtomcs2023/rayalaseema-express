@@ -311,6 +311,11 @@ function fetchBandCategoryArticles(slug: string) {
 
 type BandArt = Awaited<ReturnType<typeof fetchBandCategoryArticles>>[number];
 
+// Headline-only links that fill the lead text column's dead space (the lead
+// image is 16:10 and much taller than title + dek alone). Distinct from grid
+// and trending so the same story never appears twice in one band.
+const BAND_MORE_COUNT = 4;
+
 // Slice a category's articles into the band's lead + grid + trending panel.
 function buildBandPanel(
   arts: BandArt[],
@@ -318,6 +323,15 @@ function buildBandPanel(
 ) {
   const lead = arts[0] ? toBandArticle(arts[0]) : null;
   const grid = arts.slice(1, 1 + config.gridCount).map(toBandArticle);
+  const more = arts
+    .slice(1 + config.gridCount, 1 + config.gridCount + BAND_MORE_COUNT)
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      slug: a.slug || "",
+      category: a.category?.slug ? { slug: a.category.slug } : null,
+      constituency: a.constituency ?? null,
+    }));
   const trending = [...arts]
     .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
     .slice(0, config.trendingCount)
@@ -329,7 +343,7 @@ function buildBandPanel(
       category: a.category?.slug ? { slug: a.category.slug } : null,
       constituency: a.constituency ?? null,
     }));
-  return { lead, grid, trending };
+  return { lead, grid, more, trending };
 }
 
 // A tab filters the band to a category. The slug comes from the explicit
@@ -412,6 +426,7 @@ export async function fetchSectionBand(
     tabs,
     lead: defaultPanel.lead,
     grid: defaultPanel.grid,
+    more: defaultPanel.more,
     trending: defaultPanel.trending,
     cartoon,
   };
@@ -466,11 +481,22 @@ export async function fetchCinemaBand(
   // Each tab is an in-place filter panel (lead + grid). When its category is
   // empty, panel.lead is null - CinemaBand shows an "empty" state in place
   // rather than navigating away.
+  // Same headline-only filler as SectionBand (see BAND_MORE_COUNT).
+  const cinemaMore = (arts: { id: string; title: string; slug: string | null; category: { slug?: string } | null; constituency?: unknown }[]) =>
+    arts.slice(1 + config.gridCount, 1 + config.gridCount + BAND_MORE_COUNT).map((a) => ({
+      id: a.id,
+      title: a.title,
+      slug: a.slug || "",
+      category: a.category?.slug ? { slug: a.category.slug } : null,
+      constituency: (a.constituency as null) ?? null,
+    }));
+
   const tabs = CINEMA_TABS.map((t, i) => {
     const arts = tabArts[i];
     const panel = {
       lead: arts[0] ? toBandArticle(arts[0]) : null,
       grid: arts.slice(1, 1 + config.gridCount).map(toBandArticle),
+      more: cinemaMore(arts),
     };
     return { label: t.label, href: t.href, panel };
   });
@@ -478,6 +504,7 @@ export async function fetchCinemaBand(
   return {
     lead: toBandArticle(pool[0]),
     grid: pool.slice(1, 1 + config.gridCount).map(toBandArticle),
+    more: cinemaMore(pool),
     tabs,
     reviews: reviewsSrc.slice(0, config.reviewsCount).map((c) => {
       const p = (c.payload as Record<string, unknown> | null) || {};

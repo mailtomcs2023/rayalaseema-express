@@ -25,10 +25,18 @@ interface CinemaReview {
   rating?: number | null;
 }
 
+interface CinemaMoreItem {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 interface CinemaPanel {
   // null lead = the filtered sub-genre is empty → render an "empty" state.
   lead: CinemaArticle | null;
   grid: CinemaArticle[];
+  // Headline-only links that fill the lead column below the dek.
+  more?: CinemaMoreItem[];
 }
 
 interface CinemaTab {
@@ -64,11 +72,13 @@ function Stars({ rating }: { rating: number }) {
 export function CinemaBand({
   lead,
   grid,
+  more,
   reviews,
   tabs = [],
 }: {
   lead: CinemaArticle;
   grid: CinemaArticle[];
+  more?: CinemaMoreItem[];
   reviews: CinemaReview[];
   tabs?: CinemaTab[];
 }) {
@@ -77,6 +87,7 @@ export function CinemaBand({
   const activePanel = active != null ? tabs[active]?.panel : null;
   const viewLead = activePanel ? activePanel.lead : lead;
   const viewGrid = activePanel ? activePanel.grid : grid;
+  const viewMore = activePanel ? activePanel.more : more;
 
   return (
     <section className="cb">
@@ -115,6 +126,15 @@ export function CinemaBand({
                 <h3 className="cb-lead-title">{viewLead.title}</h3>
               </Link>
               {viewLead.summary && <p className="cb-lead-dek">{viewLead.summary}</p>}
+              {viewMore && viewMore.length > 0 && (
+                <ul className="cb-lead-more">
+                  {viewMore.map((a) => (
+                    <li key={a.id}>
+                      <Link href={articleHref(a)}>{a.title}</Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <Link href={articleHref(viewLead)} className="cb-lead-img" aria-label={viewLead.title}>
               {viewLead.featuredImage ? (

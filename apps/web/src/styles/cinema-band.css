@@ -127,6 +127,27 @@
           color: var(--n-600, #4b5563);
           margin: 0;
         }
+        /* Headline-only links filling the lead column's dead space (the
+           16:10 lead image is far taller than title + dek alone). */
+        .cb-lead-more {
+          list-style: none;
+          margin: 12px 0 0; padding: 0;
+          border-top: 1px solid var(--paper-edge, rgba(0,0,0,0.1));
+        }
+        .cb-lead-more li {
+          padding: 8px 0;
+          border-bottom: 1px dotted var(--paper-edge, rgba(0,0,0,0.15));
+        }
+        .cb-lead-more li:last-child { border-bottom: none; }
+        .cb-lead-more a {
+          font-family: var(--font-telugu-body), sans-serif;
+          font-size: 13.5px; line-height: 1.45;
+          color: var(--n-800, #1f2937);
+          text-decoration: none;
+          display: block;
+        }
+        .cb-lead-more a::before { content: "▸ "; color: var(--brand-dark, #B91414); }
+        .cb-lead-more a:hover { color: var(--brand-dark, #B91414); }
         .cb-lead-img {
           flex: 1 1 58%;
           display: block;
@@ -254,6 +275,9 @@
           }
           .cb-lead { flex-direction: column; gap: 12px; }
           .cb-lead-text, .cb-lead-img { flex-basis: auto; }
+          /* Column layout has no dead space to fill - the list would just
+             push the hero image down, so drop it on mobile. */
+          .cb-lead-more { display: none; }
           .cb-grid { grid-template-columns: 1fr; }
           .cb-grid-item {
             border-right: none !important;

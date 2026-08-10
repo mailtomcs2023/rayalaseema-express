@@ -33,6 +33,8 @@ interface BandPanel {
   // null lead = the filtered category is empty → render an "empty" state.
   lead: BandArticle | null;
   grid: BandArticle[];
+  // Headline-only links that fill the lead column below the dek.
+  more?: BandTrending[];
   trending: BandTrending[];
 }
 
@@ -73,6 +75,7 @@ export function SectionBand({
   trendingLabel = "ట్రెండింగ్",
   lead,
   grid,
+  more,
   trending,
   scores,
   cartoon,
@@ -83,6 +86,7 @@ export function SectionBand({
   trendingLabel?: string;
   lead: BandArticle;
   grid: BandArticle[];
+  more?: BandTrending[];
   trending: BandTrending[];
   scores?: BandMatch[];
   cartoon?: BandCartoon | null;
@@ -93,6 +97,7 @@ export function SectionBand({
   const activePanel = active != null ? tabs[active]?.panel : null;
   const viewLead = activePanel ? activePanel.lead : lead;
   const viewGrid = activePanel ? activePanel.grid : grid;
+  const viewMore = activePanel ? activePanel.more : more;
   const viewTrending = activePanel ? activePanel.trending : trending;
 
   return (
@@ -134,6 +139,15 @@ export function SectionBand({
               </Link>
               {viewLead.summary && <p className="sb-lead-dek">{viewLead.summary}</p>}
               <CardMeta dateline={viewLead.dateline} publishedAt={viewLead.publishedAt} />
+              {viewMore && viewMore.length > 0 && (
+                <ul className="sb-lead-more">
+                  {viewMore.map((a) => (
+                    <li key={a.id}>
+                      <Link href={articleHref(a)}>{a.title}</Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <Link href={articleHref(viewLead)} className="sb-lead-img" aria-label={viewLead.title}>
               {viewLead.featuredImage ? (
