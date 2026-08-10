@@ -7,6 +7,7 @@ import Link from "next/link";
 import { cache } from "react";
 import { prisma } from "@rayalaseema/db";
 import { articleHref } from "@/lib/article-href";
+import { RailAd } from "@/components/rail-ad";
 
 const getDistrictLatest = cache(async (districtSlug: string, excludeId: string) => {
   const district = await prisma.district.findUnique({
@@ -78,6 +79,9 @@ export async function DistrictLatestRail({ districtSlug, excludeId }: { district
               మరిన్ని ›
             </Link>
           </div>
+          {/* Left-rail ad slot (admin-configured; striped placeholder until
+              an ad is set for the position). */}
+          <RailAd position="SIDEBAR_SQUARE" />
         </div>
       </div>
     </aside>

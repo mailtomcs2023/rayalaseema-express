@@ -367,16 +367,17 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
               }}
             />
 
-            {article.tags.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 24, paddingTop: 16, borderTop: "1px solid #eee" }}>
-                <span style={{ fontSize: 13, color: "#5f6672" }}>Tags:</span>
-                {article.tags.map((t) => (
-                  <Link key={t.tag.slug} href={`/tag/${t.tag.slug}`} style={{ padding: "4px 12px", background: "#f3f4f6", borderRadius: 20, fontSize: 12, color: "#555", textDecoration: "none" }}>
-                    #{t.tag.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* Tags row always renders (Eenadu shows the label even when
+                empty) - and with the entity NER hook every published article
+                now gets machine tags, so empty is the exception. */}
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 24, paddingTop: 16, borderTop: "1px solid #eee" }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>Tags :</span>
+              {article.tags.map((t) => (
+                <Link key={t.tag.slug} href={`/tag/${t.tag.slug}`} style={{ padding: "4px 12px", background: "#f3f4f6", border: "1px solid #e5e5e5", borderRadius: 20, fontSize: 12, color: "#555", textDecoration: "none", fontWeight: 600 }}>
+                  #{t.tag.name}
+                </Link>
+              ))}
+            </div>
 
             <ArticleFooterStack
               authorName={article.author.name}
