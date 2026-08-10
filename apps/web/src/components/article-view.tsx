@@ -443,6 +443,13 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
           <DialectGlosser />
 
           <aside className="article-sidebar" style={{ width: 320, flexShrink: 0 }}>
+            {/* Rail order (owner call): జిల్లా వార్తలు tabs first, Trending
+                below it. */}
+            {article.constituency?.district?.slug && (
+              <div style={{ marginBottom: 16 }}>
+                <DistrictNewsTabs districtSlug={article.constituency.district.slug} />
+              </div>
+            )}
             {/* NOT sticky. It was sticky when Trending was the only sidebar
                 widget; with the tabs widget / topic panel / shorts stacked
                 below it, a pinned first card overlaps the widgets scrolling
@@ -468,11 +475,6 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 </Link>
               ))}
             </div>
-
-            {/* Two-tab జిల్లా వార్తలు widget (owner screenshot) - geo only. */}
-            {article.constituency?.district?.slug && (
-              <DistrictNewsTabs districtSlug={article.constituency.district.slug} />
-            )}
 
             {/* Useful-Topics chip cloud + daily hooks (anatomy #9) - the rail
                 surface for the /tag/ topic hubs. */}

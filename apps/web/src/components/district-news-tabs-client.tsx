@@ -29,6 +29,8 @@ export function DistrictNewsTabsClient({
   const [active, setActive] = useState<0 | 1>(0);
   const items = active === 0 ? itemsA : itemsB;
 
+  // Flush rectangular tabs - the clip-path slant left a white notch between
+  // active and inactive tabs (owner-reported). Clean and gapless.
   const tabStyle = (on: boolean): React.CSSProperties => ({
     flex: 1,
     padding: "8px 10px",
@@ -39,13 +41,12 @@ export function DistrictNewsTabsClient({
     border: "none",
     background: on ? "var(--color-brand)" : "#e9e9e9",
     color: on ? "#fff" : "#444",
-    // Eenadu's angled-tab feel without an image: slanted right edge on the
-    // active tab via clip-path.
-    clipPath: on ? "polygon(0 0, 100% 0, 92% 100%, 0 100%)" : undefined,
   });
 
   return (
-    <div style={{ background: "#fff", border: "1px solid #e2e2e2", borderRadius: 6, overflow: "hidden", marginTop: 16 }}>
+    // No marginTop of its own - the widget now leads the rail; spacing is the
+    // parent's job (the stray top gap the owner flagged).
+    <div style={{ background: "#fff", border: "1px solid #e2e2e2", borderRadius: 6, overflow: "hidden" }}>
       <h3 style={{ fontSize: 15, fontWeight: 800, color: "#111", padding: "10px 12px 6px", margin: 0 }}>జిల్లా వార్తలు</h3>
       <div style={{ display: "flex" }}>
         <button type="button" style={tabStyle(active === 0)} onClick={() => setActive(0)}>{tabA}</button>

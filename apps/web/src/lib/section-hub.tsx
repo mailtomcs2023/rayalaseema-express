@@ -194,6 +194,12 @@ export function SectionHub({
               multiple widgets stack; owner-reported 2026-08-10). One normal
               scrolling column. */}
           <aside style={{ flex: "0 0 290px", alignSelf: "flex-start" }}>
+            {/* Rail order (owner call): tabs widget first, Trending below. */}
+            {districtSlug && (
+              <div style={{ marginBottom: 16 }}>
+                <DistrictNewsTabs districtSlug={districtSlug} />
+              </div>
+            )}
             {trending.length > 0 ? (
               <div style={{ background: "#fff", borderRadius: 10, border: "1px solid #eee", padding: 16, marginBottom: 16 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--color-brand)", marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-brand)" }}>
@@ -212,7 +218,6 @@ export function SectionHub({
               </div>
             ) : null}
             {/* District fronts get the full edition rail. */}
-            {districtSlug && <DistrictNewsTabs districtSlug={districtSlug} />}
             {districtSlug && <TopicChips />}
             {/* Ad below the widgets - page-targetable from Admin → Ads. */}
             <RailAd position="SIDEBAR_SQUARE" />
