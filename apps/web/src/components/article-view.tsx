@@ -172,14 +172,6 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
       )}
 
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 12px" }}>
-        <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5f6672", marginBottom: 16 }}>
-          <Link href="/" style={{ color: "#5f6672", textDecoration: "none" }}>Home</Link>
-          <span>/</span>
-          <Link href={categoryHref(article.category.slug)} style={{ color: "#5f6672", textDecoration: "none" }}>{article.category.name}</Link>
-          <span>/</span>
-          <span style={{ color: "#555" }}>{article.title.substring(0, 40)}...</span>
-        </nav>
-
         <div className="article-layout" style={{ display: "flex", gap: 24 }}>
           {/* Left rail (Eenadu anatomy #2): district latest, geo articles only.
               Hidden on mobile via the existing .article-layout responsive CSS
@@ -190,9 +182,18 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
           {/* Boxed Eenadu card look (owner screenshots, 2026-08-10): the
               article body sits in a white bordered card; geo articles center
               the headline/standfirst like a print daily. */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Breadcrumb aligned with the article card's left edge (Eenadu
+              alignment - it starts at the article column, not the page edge). */}
+          <nav style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5f6672", marginBottom: 10, flexWrap: "wrap" }}>
+            <Link href="/" style={{ color: "#5f6672", textDecoration: "none", fontWeight: 700 }}>తెలుగు వార్తలు</Link>
+            <span>/</span>
+            <Link href={categoryHref(article.category.slug)} style={{ color: "#5f6672", textDecoration: "none", fontWeight: 700 }}>{article.category.name}</Link>
+            <span>/</span>
+            <span style={{ color: "#555" }}>{article.title.substring(0, 44)}…</span>
+          </nav>
           <article
             style={{
-              flex: 1, minWidth: 0,
               background: "#fff", border: "1px solid #e2e2e2", borderRadius: 6,
               padding: "18px 20px 22px",
             }}
@@ -440,6 +441,7 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 dead site. Telugu news discussion lives on WhatsApp/ShareChat.
                 Re-add by restoring <CommentsSection articleId={article.id} />. */}
           </article>
+          </div>
           <DialectGlosser />
 
           <aside className="article-sidebar" style={{ width: 320, flexShrink: 0 }}>
