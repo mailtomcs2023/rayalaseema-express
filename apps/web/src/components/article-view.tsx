@@ -164,10 +164,14 @@ export async function ArticleView({ article, related, trending, siteUrl }: Props
     images: article.featuredImage,
   });
 
+  // Schema mirrors the visible trail exactly (Google's guideline): geo
+  // articles crumb through the district, others through the category.
   const breadcrumbLd = buildBreadcrumbListSchema({
     items: [
-      { name: "Home", url: siteUrl },
-      { name: article.category.name, url: `${siteUrl}${categoryHref(article.category.slug)}` },
+      { name: "తెలుగు వార్తలు", url: siteUrl },
+      districtName && article.constituency?.district?.slug
+        ? { name: `${districtName} వార్తలు`, url: `${siteUrl}/${article.constituency.district.slug}` }
+        : { name: article.category.name, url: `${siteUrl}${categoryHref(article.category.slug)}` },
       { name: article.title },
     ],
   });
