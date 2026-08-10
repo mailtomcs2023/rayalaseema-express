@@ -134,9 +134,10 @@ export function AboveFold({
                         )}
                         <h3>{top.title}</h3>
                       </Link>
-                      {/* 4 sub-headlines under the lead = 5 stories per
-                          district (owner 2026-08-10). */}
-                      {d.articles.slice(1, 5).map((a) => (
+                      {/* 5 sub-headlines under the lead card (owner 2026-08-10:
+                          "per district 5 news" - the lead image card doesn't
+                          count toward the five). */}
+                      {d.articles.slice(1, 6).map((a) => (
                         <Link key={a.id} href={articleHref(a)} className="af-dist-sub">
                           {a.title}
                         </Link>

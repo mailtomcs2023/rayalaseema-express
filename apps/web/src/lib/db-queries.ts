@@ -685,9 +685,9 @@ export async function getDistrictArticles(myDistrictSlug?: string | null) {
         a.title.includes(nameL) ||
         a.title.toLowerCase().includes(nameEnL)
       )
-      // 5 per district on the homepage grid (owner 2026-08-10); the reader's
-      // own district (cookie) still gets a bigger allotment.
-      .slice(0, d.slug === myDistrictSlug ? 8 : 5);
+      // Lead + 5 sub-headlines per district on the homepage grid (owner
+      // 2026-08-10); the reader's own district (cookie) still gets more.
+      .slice(0, d.slug === myDistrictSlug ? 8 : 6);
 
     districtArticles[d.slug] = { district: d, articles };
   }
