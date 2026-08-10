@@ -6,9 +6,25 @@
 // Drop-in replacement for <Header />: same config + breakingNews props.
 // Pages that already passed tickerSlot or mastheadAdSlot can override.
 
+import { cache } from "react";
 import { Header } from "./header";
 import { MastheadAdSlot } from "./masthead-ad-slot";
 import { getMenuItems, type MenuItem } from "@/lib/menu";
+import { prisma } from "@rayalaseema/db";
+
+// Breaking ticker rows. Only the homepage used to fetch these and every
+// other route passed [] - so the ticker sat empty across hubs and articles
+// (owner-reported 2026-08-10). Fetched here once per request burst; pages
+// can still pass their own rows (or [] to suppress).
+const getBreaking = cache(async () => {
+  const rows = await prisma.content.findMany({
+    where: { type: "BREAKING_NEWS", status: "PUBLISHED" },
+    orderBy: { createdAt: "desc" },
+    take: 6,
+    select: { id: true, title: true },
+  });
+  return rows.map((b) => ({ id: b.id, text: b.title }));
+});
 
 type Props = {
   config?: Record<string, string>;
@@ -43,10 +59,13 @@ function sectionSlugOf(it: MenuItem): string | null {
 
 export async function SiteHeader({
   config = {},
-  breakingNews = [],
+  breakingNews,
   mastheadAdSlot,
   activeSectionSlug,
 }: Props) {
+  // undefined = caller didn't opt in/out -> self-fetch. An explicit [] still
+  // suppresses the ticker.
+  const breaking = breakingNews ?? (await getBreaking());
   // Fetch the admin-published HEADER + MOBILE menus on the server so the nav is
   // in the initial HTML (no empty-flash on refresh) and always reflects the
   // latest publish. Cached + revalidated via lib/menu.ts.
@@ -75,7 +94,7 @@ export async function SiteHeader({
   return (
     <Header
       config={config}
-      breakingNews={breakingNews}
+      breakingNews={breaking}
       headerItems={headerItems}
       mobileItems={mobileItems}
       secondaryItems={secondaryItems}

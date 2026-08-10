@@ -89,7 +89,9 @@ export function SectionHub({
   return (
     <div className="min-h-screen" style={{ background: "#fff" }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: stringifyJsonLd(breadcrumbLd) }} />
-      {!hideHeader && <SiteHeader config={config} breakingNews={[]} activeSectionSlug={slug} />}
+      {/* No breakingNews prop -> SiteHeader self-fetches the ticker (the
+          explicit [] here was why hubs showed an empty breaking bar). */}
+      {!hideHeader && <SiteHeader config={config} activeSectionSlug={slug} />}
 
       {/* Section header - "Telugu - English" on one line. Font sizes unchanged:
           Telugu big, English small/grey, separated by a dash. */}
