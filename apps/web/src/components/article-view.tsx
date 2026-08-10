@@ -17,6 +17,7 @@ import { DistrictEditionBanner } from "@/components/district-edition-banner";
 import { DistrictLatestRail } from "@/components/district-latest-rail";
 import { DistrictMoreGrid } from "@/components/district-more-grid";
 import { TopicChips } from "@/components/topic-chips";
+import { DistrictNewsTabs } from "@/components/district-news-tabs";
 import { DialectGlosser } from "@/components/dialect-glosser";
 import { injectInlineByline, formatRelativeTelugu } from "@/lib/byline";
 import { sanitizeArticleHtml } from "@/lib/sanitize";
@@ -186,9 +187,23 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
           {article.constituency?.district?.slug && (
             <DistrictLatestRail districtSlug={article.constituency.district.slug} excludeId={article.id} />
           )}
-          <article style={{ flex: 1, minWidth: 0 }}>
+          {/* Boxed Eenadu card look (owner screenshots, 2026-08-10): the
+              article body sits in a white bordered card; geo articles center
+              the headline/standfirst like a print daily. */}
+          <article
+            style={{
+              flex: 1, minWidth: 0,
+              background: "#fff", border: "1px solid #e2e2e2", borderRadius: 6,
+              padding: "18px 20px 22px",
+            }}
+          >
             <Badge color={article.category.color || "#FF2C2C"}>{article.category.name}</Badge>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: "#000", lineHeight: 1.4, marginTop: 10 }}>
+            <h1
+              style={{
+                fontSize: 28, fontWeight: 900, color: "var(--color-brand)", lineHeight: 1.4, marginTop: 10,
+                textAlign: article.constituency ? "center" : "left",
+              }}
+            >
               {article.title}
             </h1>
 
@@ -237,10 +252,19 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 between byline and body - geo keywords up top. */}
             {article.summary && (
               <p
-                style={{
-                  fontSize: 16.5, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.65,
-                  marginTop: 14, paddingLeft: 10, borderLeft: "3px solid var(--color-brand)",
-                }}
+                style={
+                  article.constituency
+                    ? {
+                        // Print-daily standfirst: centered bold lines, like the
+                        // location line under Eenadu headlines.
+                        fontSize: 16.5, fontWeight: 800, color: "#1a1a1a", lineHeight: 1.7,
+                        marginTop: 14, textAlign: "center",
+                      }
+                    : {
+                        fontSize: 16.5, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.65,
+                        marginTop: 14, paddingLeft: 10, borderLeft: "3px solid var(--color-brand)",
+                      }
+                }
               >
                 {article.summary}
               </p>
@@ -286,7 +310,11 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                     style={{ width: "100%", borderRadius: 8, maxHeight: 500, background: "#000" }}
                   />
                 )}
-                {article.imageCaption && <p style={{ fontSize: 12, color: "#5f6672", marginTop: 6, fontStyle: "italic" }}>{article.imageCaption}</p>}
+                {article.imageCaption && (
+                  <p style={{ fontSize: 12, color: "#5f6672", marginTop: 6, fontStyle: "italic", textAlign: article.constituency ? "center" : "left" }}>
+                    {article.imageCaption}
+                  </p>
+                )}
               </div>
             ) : article.featuredImage ? (
               <div style={{ marginTop: 20 }}>
@@ -323,7 +351,11 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                     borderRadius: 8,
                   }}
                 />
-                {article.imageCaption && <p style={{ fontSize: 12, color: "#5f6672", marginTop: 6, fontStyle: "italic" }}>{article.imageCaption}</p>}
+                {article.imageCaption && (
+                  <p style={{ fontSize: 12, color: "#5f6672", marginTop: 6, fontStyle: "italic", textAlign: article.constituency ? "center" : "left" }}>
+                    {article.imageCaption}
+                  </p>
+                )}
               </div>
             ) : null}
 
@@ -430,6 +462,11 @@ export function ArticleView({ article, related, trending, siteUrl }: Props) {
                 </Link>
               ))}
             </div>
+
+            {/* Two-tab జిల్లా వార్తలు widget (owner screenshot) - geo only. */}
+            {article.constituency?.district?.slug && (
+              <DistrictNewsTabs districtSlug={article.constituency.district.slug} />
+            )}
 
             {/* Useful-Topics chip cloud + daily hooks (anatomy #9) - the rail
                 surface for the /tag/ topic hubs. */}

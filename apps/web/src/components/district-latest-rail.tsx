@@ -38,28 +38,47 @@ export async function DistrictLatestRail({ districtSlug, excludeId }: { district
   if (!data || data.articles.length === 0) return null;
 
   return (
-    <aside className="district-latest-rail" style={{ width: 220, flexShrink: 0 }}>
+    <aside className="district-latest-rail" style={{ width: 230, flexShrink: 0 }}>
       <div style={{ position: "sticky", top: 12 }}>
+        {/* Eenadu-style angled tab header. */}
         <h2
           style={{
+            display: "inline-block",
             fontSize: 14, fontWeight: 800, color: "#fff", background: "var(--color-brand)",
-            padding: "6px 10px", margin: 0,
+            padding: "6px 22px 6px 12px", margin: 0,
+            clipPath: "polygon(0 0, 100% 0, 88% 100%, 0 100%)",
           }}
         >
-          {data.name} తాజా వార్తలు
+          తాజా వార్తలు
         </h2>
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, border: "1px solid #eee", borderTop: 0 }}>
+        {/* Each headline is its own boxed card, per the owner's screenshot. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           {data.articles.map((a) => (
-            <li key={a.id} style={{ borderBottom: "1px solid #f2f2f2" }}>
-              <Link
-                href={articleHref(a)}
-                style={{ display: "block", padding: "8px 10px", fontSize: 13, lineHeight: 1.5, color: "#222", textDecoration: "none", fontWeight: 600 }}
-              >
-                {a.title}
-              </Link>
-            </li>
+            <Link
+              key={a.id}
+              href={articleHref(a)}
+              style={{
+                display: "block", padding: "9px 11px", fontSize: 13, lineHeight: 1.55,
+                color: "#222", textDecoration: "none", fontWeight: 700,
+                background: "#fff", border: "1px solid #e2e2e2", borderRadius: 6,
+              }}
+            >
+              • {a.title}
+            </Link>
           ))}
-        </ul>
+          {/* మరిన్ని button, bottom-right - into the district hub. */}
+          <div style={{ textAlign: "right" }}>
+            <Link
+              href={`/${districtSlug}`}
+              style={{
+                display: "inline-block", padding: "5px 14px", fontSize: 12.5, fontWeight: 800,
+                color: "#fff", background: "var(--color-brand)", borderRadius: 4, textDecoration: "none",
+              }}
+            >
+              మరిన్ని ›
+            </Link>
+          </div>
+        </div>
       </div>
     </aside>
   );
