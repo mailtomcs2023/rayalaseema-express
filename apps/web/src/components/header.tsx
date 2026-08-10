@@ -276,7 +276,9 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
                   {breakingNews.map((item, i) => (
                     <span key={item.id || i} style={{ display: "inline-flex", alignItems: "center" }}>
                       {i > 0 && <span style={{ color: "var(--color-brand)", margin: "0 14px", fontSize: 11 }} aria-hidden="true">●</span>}
-                      <a href="#" style={{ color: "#111", fontSize: 15, fontWeight: 700, lineHeight: 1, textDecoration: "none" }}>
+                      {/* Was href="#" - ticker items never navigated
+                          (owner-reported 2026-08-10). */}
+                      <a href={`/breaking-news/${item.id}`} style={{ color: "#111", fontSize: 15, fontWeight: 700, lineHeight: 1, textDecoration: "none" }}>
                         {item.text}
                       </a>
                     </span>
