@@ -230,11 +230,6 @@ export default async function RootLayout({
           </noscript>
         )}
 
-        {/* Site-wide utility strip: gold/silver/USD numbers + daily-habit
-            links (owner plan 2026-08-10). Above every header variant,
-            including the district edition header. */}
-        <UtilityTicker />
-
         {/* Analytics + ads loaded via next/script so they survive client
             navigations and respect Next's loading strategies (and don't
             trip React 19's "raw <script> in component" warning). */}

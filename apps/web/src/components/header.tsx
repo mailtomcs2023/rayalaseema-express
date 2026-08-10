@@ -671,7 +671,9 @@ function ClientDateStrip() {
   return (
     <div
       className="hidden md:flex items-baseline gap-1.5 mt-0.5 self-stretch"
-      style={{ paddingLeft: "14%", minHeight: 20 }}
+      // Flush with the logo's left edge (owner call 2026-08-10) - the old
+      // 14% indent aligned it under the wordmark text instead.
+      style={{ minHeight: 20 }}
       suppressHydrationWarning
     >
       {today && (
