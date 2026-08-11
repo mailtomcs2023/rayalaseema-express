@@ -12,7 +12,7 @@
 //   6. Render button → /api/epaper/render-v2 builds the vector PDF
 
 import { useState, useEffect, useCallback, useRef, useMemo, memo, Suspense } from "react";
-import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Undo2, Redo2, LayoutGrid } from "lucide-react";
+import { Settings, Lock, Unlock, Trash2, AlertTriangle, X, Pencil, FileText, MessageSquare, Users, Copy, Check, History, GripVertical, FilePlus2, SquarePlus, Type, MoreVertical, FolderOpen, RefreshCw, Save, RotateCcw, Sparkles, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Undo2, Redo2, LayoutGrid, Crop } from "lucide-react";
 import { ToastViewport, useToasts } from "@/components/toast";
 import GridLayout, { type Layout as RGLLayout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
@@ -1793,6 +1793,52 @@ function EpaperEditorPage() {
   const [cropRect, setCropRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const cropImgRef = useRef<HTMLImageElement>(null);
   const cropDragStart = useRef<{ x: number; y: number } | null>(null);
+  // Pan-and-zoom crop (default mode, owner decision 2026-08-11): the crop
+  // window is LOCKED to the slot's aspect so a photo can never distort - the
+  // operator drags the photo and zooms, WhatsApp-DP style. "free" keeps the
+  // old draw-a-rectangle mode as the advanced escape hatch.
+  const [cropMode, setCropMode] = useState<"pan" | "free">("pan");
+  const [cropPan, setCropPan] = useState<{ cx: number; cy: number; zoom: number }>({ cx: 0.5, cy: 0.5, zoom: 1 });
+  const [cropImgAspect, setCropImgAspect] = useState(1.5); // natural w/h, set onLoad
+  const [cropSlotAspect, setCropSlotAspect] = useState(1.5); // slot w/h from block geometry
+  const cropPanDrag = useRef<{ mx: number; my: number; cx: number; cy: number } | null>(null);
+
+  // The slot's rendered aspect (w/h) for a block - image strip heights match
+  // the renderer CSS (.lead-img 380px / .maj-img 160px / .sec-img 130px on a
+  // 1782×2760 sheet, 12 cols × 30 rows). Approximate for side images.
+  const slotAspectFor = (b: Block): number => {
+    const colW = EP_IFRAME_W / EP_COLS, rowH = EP_IFRAME_H / EP_ROWS;
+    const wPx = b.w * colW;
+    const pos = b.style?.imagePosition;
+    if (pos === "left" || pos === "right") {
+      const frac = (b.style?.imageSize ?? 40) / 100;
+      return (wPx * frac) / Math.max(80, b.h * rowH * 0.85);
+    }
+    const imgH = b.type === "lead" ? 380 : b.type === "major" ? 160 : b.type === "secondary" ? 130 : b.h * rowH;
+    return wPx / imgH;
+  };
+
+  // Convert pan+zoom state → the fractional imageCrop rect the renderer eats.
+  // Window keeps the slot aspect exactly; zoom=1 = biggest slot-shaped window
+  // that fits the photo.
+  const panToRect = (pan: { cx: number; cy: number; zoom: number }, imgAspect: number, slotAspect: number) => {
+    let w0: number, h0: number;
+    if (slotAspect >= imgAspect) { w0 = 1; h0 = imgAspect / slotAspect; }
+    else { h0 = 1; w0 = slotAspect / imgAspect; }
+    const w = w0 / pan.zoom, h = h0 / pan.zoom;
+    const x = Math.min(Math.max(pan.cx - w / 2, 0), 1 - w);
+    const y = Math.min(Math.max(pan.cy - h / 2, 0), 1 - h);
+    return { x: +x.toFixed(4), y: +y.toFixed(4), w: +w.toFixed(4), h: +h.toFixed(4) };
+  };
+  // Inverse: an existing saved rect → pan state (best-effort; aspect drift
+  // from the old freeform tool just re-locks to the slot shape).
+  const rectToPan = (r: { x: number; y: number; w: number; h: number }, imgAspect: number, slotAspect: number) => {
+    let w0: number, h0: number;
+    if (slotAspect >= imgAspect) { w0 = 1; h0 = imgAspect / slotAspect; }
+    else { h0 = 1; w0 = slotAspect / imgAspect; }
+    const zoom = Math.min(8, Math.max(1, w0 / Math.max(0.05, r.w)));
+    return { cx: r.x + r.w / 2, cy: r.y + r.h / 2, zoom };
+  };
   const openCrop = async (blockId: string) => {
     const b = activePage?.layout.blocks.find((x) => x.id === blockId);
     if (!b?.articleId) { toast("warn", "Block has no article - pick one first"); return; }
@@ -1807,6 +1853,12 @@ function EpaperEditorPage() {
     setCropBlockId(blockId);
     setCropImgUrl(img);
     setCropRect(b.imageCrop || { x: 0, y: 0, w: 1, h: 1 });
+    // Pan-zoom defaults; refined once the image loads (natural aspect) via
+    // the <img onLoad> handler in the dialog.
+    const slotA = slotAspectFor(b);
+    setCropSlotAspect(slotA);
+    setCropMode("pan");
+    setCropPan(b.imageCrop ? rectToPan(b.imageCrop, cropImgAspect, slotA) : { cx: 0.5, cy: 0.5, zoom: 1 });
   };
   const cropOnDown = (e: React.MouseEvent) => {
     const r = cropImgRef.current?.getBoundingClientRect();
@@ -1831,11 +1883,18 @@ function EpaperEditorPage() {
   };
   const cropOnUp = () => { cropDragStart.current = null; };
   const saveCrop = async () => {
-    if (!activePage || !cropBlockId || !cropRect) return;
+    if (!activePage || !cropBlockId) return;
+    // Pan mode derives the rect from pan+zoom at save time (aspect-locked to
+    // the slot, so the renderer's fill transform is always uniform - no
+    // squash). Free mode keeps the drawn rectangle as-is.
+    const rect = cropMode === "pan"
+      ? panToRect(cropPan, cropImgAspect, cropSlotAspect)
+      : cropRect;
+    if (!rect) return;
     // Clamp values; if rectangle ~ full image, treat as "no crop" (remove field)
-    const useCrop = cropRect.w > 0.05 && cropRect.h > 0.05;
+    const useCrop = rect.w > 0.05 && rect.h > 0.05 && !(cropMode === "pan" && cropPan.zoom === 1 && rect.x === 0 && rect.y === 0 && rect.w === 1 && rect.h === 1);
     const blocks = activePage.layout.blocks.map((b) =>
-      b.id === cropBlockId ? { ...b, imageCrop: useCrop ? cropRect : undefined } : b
+      b.id === cropBlockId ? { ...b, imageCrop: useCrop ? rect : undefined } : b
     );
     pushUndo(activePage.id, activePage.layout.blocks);
     setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) => p.id === activePage.id ? { ...p, layout: { blocks } } : p) } : prev);
@@ -2175,10 +2234,66 @@ function EpaperEditorPage() {
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 1200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()}
             style={{ background: "#fff", borderRadius: 10, padding: 22, maxWidth: 720, width: "100%" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>✂ Crop image</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>✂ Adjust image</h2>
             <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
-              Drag a rectangle on the image to define the crop. The block will fill itself with this region.
+              {cropMode === "pan"
+                ? "Drag the photo to position it; scroll or use +/− to zoom. The window is the exact shape of the block, so the photo can never distort."
+                : "Advanced: drag a rectangle to define a free crop region."}
             </p>
+            {cropMode === "pan" ? (() => {
+              // Slot-shaped viewport; the photo pans/zooms behind it.
+              const VW = 560;
+              const VH = Math.max(120, Math.min(480, VW / cropSlotAspect));
+              const r = panToRect(cropPan, cropImgAspect, cropSlotAspect);
+              const imgW = VW / r.w; // uniform: aspect-locked window
+              return (
+                <div
+                  style={{ position: "relative", width: VW, height: VH, maxWidth: "100%", overflow: "hidden", borderRadius: 8, background: "#111", cursor: "grab", touchAction: "none", boxShadow: "inset 0 0 0 2px #FFD400" }}
+                  onMouseDown={(e) => { cropPanDrag.current = { mx: e.clientX, my: e.clientY, cx: cropPan.cx, cy: cropPan.cy }; }}
+                  onMouseMove={(e) => {
+                    const d = cropPanDrag.current; if (!d) return;
+                    const rr = panToRect(cropPan, cropImgAspect, cropSlotAspect);
+                    setCropPan((p) => ({
+                      ...p,
+                      cx: Math.min(1, Math.max(0, d.cx - ((e.clientX - d.mx) / VW) * rr.w)),
+                      cy: Math.min(1, Math.max(0, d.cy - ((e.clientY - d.my) / VH) * rr.h)),
+                    }));
+                  }}
+                  onMouseUp={() => { cropPanDrag.current = null; }}
+                  onMouseLeave={() => { cropPanDrag.current = null; }}
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    setCropPan((p) => ({ ...p, zoom: Math.min(8, Math.max(1, p.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1))) }));
+                  }}
+                >
+                  <img
+                    src={cropImgUrl}
+                    alt="Positioning inside the block window"
+                    draggable={false}
+                    onLoad={(e) => {
+                      const el = e.currentTarget;
+                      if (el.naturalWidth && el.naturalHeight) setCropImgAspect(el.naturalWidth / el.naturalHeight);
+                    }}
+                    style={{
+                      position: "absolute",
+                      width: imgW,
+                      left: -(r.x / r.w) * VW,
+                      top: -(r.y / r.h) * VH,
+                      userSelect: "none",
+                      pointerEvents: "none",
+                      maxWidth: "none",
+                    }}
+                  />
+                  {/* rule-of-thirds guides */}
+                  {["33.3%", "66.6%"].map((p) => (
+                    <span key={`v${p}`} style={{ position: "absolute", left: p, top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.35)", pointerEvents: "none" }} />
+                  ))}
+                  {["33.3%", "66.6%"].map((p) => (
+                    <span key={`h${p}`} style={{ position: "absolute", top: p, left: 0, right: 0, height: 1, background: "rgba(255,255,255,0.35)", pointerEvents: "none" }} />
+                  ))}
+                </div>
+              );
+            })() : (
             <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
               <img ref={cropImgRef} src={cropImgUrl} alt="Page being cropped"
                 onMouseDown={cropOnDown} onMouseMove={cropOnMove} onMouseUp={cropOnUp}
@@ -2194,6 +2309,19 @@ function EpaperEditorPage() {
                 }} />
               )}
             </div>
+            )}
+            {cropMode === "pan" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                <button onClick={() => setCropPan((p) => ({ ...p, zoom: Math.max(1, p.zoom / 1.2) }))}
+                  style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid #d1d5db", background: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>−</button>
+                <input type="range" min={1} max={8} step={0.05} value={cropPan.zoom}
+                  onChange={(e) => setCropPan((p) => ({ ...p, zoom: +e.target.value }))}
+                  style={{ flex: 1 }} aria-label="Zoom" />
+                <button onClick={() => setCropPan((p) => ({ ...p, zoom: Math.min(8, p.zoom * 1.2) }))}
+                  style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid #d1d5db", background: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>+</button>
+                <span style={{ fontSize: 12, color: "#6b7280", minWidth: 42, textAlign: "right" }}>{cropPan.zoom.toFixed(1)}×</span>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 14, flexWrap: "wrap" }}>
               <button onClick={async () => {
                   const r = await fetch("/api/epaper/smart-crop", {
@@ -2203,14 +2331,19 @@ function EpaperEditorPage() {
                   if (r.status === 503) { toast("warn", "Smart-crop disabled - Azure Vision key not set"); return; }
                   if (!r.ok) { toast("error", "Smart-crop failed"); return; }
                   const data = await r.json();
-                  setCropRect(data.crop);
+                  if (cropMode === "pan") setCropPan(rectToPan(data.crop, cropImgAspect, cropSlotAspect));
+                  else setCropRect(data.crop);
                   toast("success", "Auto-cropped to subject");
                 }}
                 style={{ padding: "8px 14px", background: "#ecfdf5", color: "#047857", border: "1px solid #6ee7b7", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                 🤖 Auto-crop
               </button>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => { setCropRect({ x: 0, y: 0, w: 1, h: 1 }); }}
+                <button onClick={() => setCropMode((m) => m === "pan" ? "free" : "pan")}
+                  style={{ padding: "8px 14px", background: cropMode === "free" ? "#eef2ff" : "#fff", color: "#4338ca", border: "1px solid #c7d2fe", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  {cropMode === "pan" ? "Advanced free crop" : "◱ Pan & zoom"}
+                </button>
+                <button onClick={() => { setCropRect({ x: 0, y: 0, w: 1, h: 1 }); setCropPan({ cx: 0.5, cy: 0.5, zoom: 1 }); }}
                   style={{ padding: "8px 16px", background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                   Reset
                 </button>
@@ -3044,6 +3177,7 @@ function EpaperEditorPage() {
                           onToggleLock={sToggleLock}
                           onLayoutChange={sSaveLayout}
                           onDuplicate={sDuplicate}
+                          onAdjustImage={openCrop}
                         />
                         </div>
                       )}
@@ -3386,6 +3520,7 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
   pageId, pageVersion,
   onInlineEdit,
   onDuplicate,
+  onAdjustImage,
   gridWidth,
   columns,
 }: {
@@ -3414,6 +3549,8 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
   onInlineEdit?: (blockId: string, patch: { overrideTitle?: string; overrideDek?: string }) => void;
   /** Duplicate this block onto every other page of the edition. */
   onDuplicate?: (blockId: string) => void;
+  /** Open the pan-and-zoom image adjuster for this block's photo. */
+  onAdjustImage?: (blockId: string) => void;
 }) {
   const [settingsBlockId, setSettingsBlockId] = useState<string | null>(null);
   const activeSettingsBlock = layout.blocks.find(b => b.id === settingsBlockId);
@@ -3699,6 +3836,16 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
                         onClick={(e) => { e.stopPropagation(); onToggleLock(b.id); }}
                         aria-label={b.locked ? "Unlock block" : "Lock block"}>
                         {b.locked ? <Lock /> : <Unlock />}
+                      </button>
+                    </WithTooltip>
+                  )}
+                  {isStory && onAdjustImage && (
+                    <WithTooltip text="Adjust photo (pan & zoom)">
+                      <button
+                        className="epb-btn"
+                        onClick={(e) => { e.stopPropagation(); onAdjustImage(b.id); }}
+                        aria-label="Adjust photo">
+                        <Crop />
                       </button>
                     </WithTooltip>
                   )}
