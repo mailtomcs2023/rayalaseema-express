@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { MarketData, MarketQuote } from "@/lib/market-data";
 
 interface TickerData {
   mandi: any[];
@@ -255,5 +256,115 @@ export function MandiStrip() {
         ))}
       </div>
     </div>
+  );
+}
+
+// =====================================================================
+// PAGE-BUILDER BLOCKS (Task 4, business-market-widgets)
+// MarketTicker / CurrencyCard / GoldSilverCard - live NSE/BSE indices,
+// currency rates, and metal prices sourced from @/lib/market-data
+// (Yahoo Finance chart endpoint, ~15-min delayed). Distinct data source
+// and hook from the /api/tickers widgets above (mandi/bullion/forex/
+// cricket) - these are the page-builder registry blocks.
+// =====================================================================
+
+// One hook, three widgets: poll /api/market every 60s while market open.
+// Initial data arrives server-rendered via the block fetcher, so the page is
+// never empty at first paint and the numbers are crawlable.
+function useMarketData(initial: MarketData): MarketData {
+  const [data, setData] = useState(initial);
+  useEffect(() => {
+    if (!data.marketOpen) return;
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch("/api/market");
+        if (res.ok) setData(await res.json());
+      } catch {
+        /* keep last values */
+      }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [data.marketOpen]);
+  return data;
+}
+
+const inr = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 });
+
+function asOfLabel(d: MarketData): string {
+  const t = new Date(d.asOf).toLocaleTimeString("en-IN", {
+    hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata",
+  });
+  return `${t} నాటికి · 15 నిమి. ఆలస్యం`;
+}
+
+function QuoteRow({ label, q }: { label: string; q: MarketQuote }) {
+  const up = q.change >= 0;
+  return (
+    <div className="flex items-center justify-between py-1.5 text-sm">
+      <span className="font-medium">{label}</span>
+      <span className="text-right">
+        <span className="font-semibold">{inr.format(q.price)}</span>{" "}
+        <span className={up ? "text-green-600" : "text-red-600"}>
+          {up ? "▲" : "▼"} {inr.format(Math.abs(q.change))} ({q.changePercent.toFixed(2)}%)
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function WidgetShell({ title, d, children }: { title: string; d: MarketData; children: React.ReactNode }) {
+  return (
+    <div className="rounded border bg-white p-3">
+      <div className="mb-1 flex items-center justify-between border-b pb-1.5">
+        <h3 className="text-sm font-bold">{title}</h3>
+        {!d.marketOpen && (
+          <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600">
+            మార్కెట్ ముగిసింది
+          </span>
+        )}
+      </div>
+      {children}
+      <p className="mt-1.5 text-[11px] text-gray-500">{asOfLabel(d)}</p>
+    </div>
+  );
+}
+
+export function MarketTicker({ data }: { data: MarketData }) {
+  const d = useMarketData(data);
+  return (
+    <WidgetShell title="స్టాక్ మార్కెట్" d={d}>
+      <QuoteRow label="నిఫ్టీ 50" q={d.indices.nifty} />
+      <QuoteRow label="సెన్సెక్స్" q={d.indices.sensex} />
+      <QuoteRow label="బ్యాంక్ నిఫ్టీ" q={d.indices.bankNifty} />
+    </WidgetShell>
+  );
+}
+
+export function CurrencyCard({ data }: { data: MarketData }) {
+  const d = useMarketData(data);
+  return (
+    <WidgetShell title="కరెన్సీ రేట్లు (₹)" d={d}>
+      <QuoteRow label="డాలర్ (USD)" q={d.currencies.usdInr} />
+      <QuoteRow label="యూరో (EUR)" q={d.currencies.eurInr} />
+      <QuoteRow label="దిర్హం (AED)" q={d.currencies.aedInr} />
+    </WidgetShell>
+  );
+}
+
+export function GoldSilverCard({ data }: { data: MarketData }) {
+  const d = useMarketData(data);
+  const row = (label: string, value: number, unit: string) => (
+    <div className="flex items-center justify-between py-1.5 text-sm">
+      <span className="font-medium">{label}</span>
+      <span className="font-semibold">₹{inr.format(Math.round(value))} <span className="text-xs font-normal text-gray-500">{unit}</span></span>
+    </div>
+  );
+  return (
+    <WidgetShell title="బంగారం · వెండి" d={d}>
+      {row("బంగారం 24K", d.metals.gold24kPer10g, "/10గ్రా")}
+      {row("బంగారం 22K", d.metals.gold22kPer10g, "/10గ్రా")}
+      {row("వెండి", d.metals.silverPerKg, "/కేజీ")}
+      <p className="mt-1 text-[11px] text-gray-500">సూచిక ధర (అంతర్జాతీయ మార్కెట్ ఆధారంగా)</p>
+    </WidgetShell>
   );
 }

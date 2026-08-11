@@ -16,6 +16,7 @@ import {
   layoutSchema,
   compositeBlocksSchema,
   blockSchema,
+  BUILTIN_BLOCK_TYPES,
 } from "../src";
 
 // --- matchPattern ---
@@ -222,5 +223,34 @@ describe("compositeBlocksSchema", () => {
 
   test("rejects non-array input", () => {
     expect(compositeBlocksSchema.safeParse({} as never).success).toBe(false);
+  });
+});
+
+// --- market widget blocks ---
+
+describe("market widget blocks", () => {
+  test("layoutSchema accepts the four new block types", () => {
+    const layout = {
+      version: 1 as const,
+      blocks: [
+        { id: "mkt1", type: "MarketTicker", config: {}, mobileVariant: "show" },
+        { id: "cur1", type: "CurrencyCard", config: {}, mobileVariant: "show" },
+        { id: "gld1", type: "GoldSilverCard", config: {}, mobileVariant: "show" },
+        { id: "gov1", type: "GovtFeed", config: { count: 5 }, mobileVariant: "show" },
+      ],
+    };
+    expect(layoutSchema.safeParse(layout).success).toBe(true);
+  });
+  test("GovtFeed rejects out-of-range count", () => {
+    const layout = {
+      version: 1 as const,
+      blocks: [{ id: "gov1", type: "GovtFeed", config: { count: 99 }, mobileVariant: "show" }],
+    };
+    expect(layoutSchema.safeParse(layout).success).toBe(false);
+  });
+  test("BUILTIN_BLOCK_TYPES includes the new types", () => {
+    for (const t of ["MarketTicker", "CurrencyCard", "GoldSilverCard", "GovtFeed"]) {
+      expect(BUILTIN_BLOCK_TYPES).toContain(t);
+    }
   });
 });

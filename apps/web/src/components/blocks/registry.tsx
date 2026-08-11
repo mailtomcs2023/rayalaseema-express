@@ -18,6 +18,8 @@ import { LatestNews } from "@/components/latest-news";
 import { CategoryColumn, CategoryPair } from "@/components/category-column";
 import { WebStories } from "@/components/web-stories";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { MarketTicker, CurrencyCard, GoldSilverCard } from "@/components/market-widgets";
+import { GovtFeed } from "@/components/govt-feed";
 import type { PageContext } from "./types";
 import * as F from "./fetchers";
 
@@ -125,6 +127,26 @@ export const REGISTRY: Record<Exclude<BuiltinBlockType, "Columns" | "Loop">, Reg
     fetcher: (config) => F.fetchAdInFeedBanner(config as never) as never,
     // No placeholder: suppress the whole block when no ad is configured.
     hideWhenEmpty: (data) => !data || ((data as { ads?: unknown[] }).ads?.length ?? 0) === 0,
+  },
+  MarketTicker: {
+    component: MarketTicker as AnyComponent,
+    fetcher: (config, ctx) => F.fetchMarketTicker() as never,
+    hideWhenEmpty: (data) => !data,
+  },
+  CurrencyCard: {
+    component: CurrencyCard as AnyComponent,
+    fetcher: (config, ctx) => F.fetchCurrencyCard() as never,
+    hideWhenEmpty: (data) => !data,
+  },
+  GoldSilverCard: {
+    component: GoldSilverCard as AnyComponent,
+    fetcher: (config, ctx) => F.fetchGoldSilverCard() as never,
+    hideWhenEmpty: (data) => !data,
+  },
+  GovtFeed: {
+    component: GovtFeed as AnyComponent,
+    fetcher: (config, ctx) => F.fetchGovtFeed(config as never) as never,
+    hideWhenEmpty: (data) => !data,
   },
 };
 

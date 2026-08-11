@@ -166,6 +166,15 @@ export const textConfig = z
   })
   .strict();
 
+// Market widget blocks (business section). Ticker/currency/metals have no
+// config — all data comes from /api/market; strict() keeps stray keys out.
+export const marketTickerConfig = z.object({}).strict();
+export const currencyCardConfig = z.object({}).strict();
+export const goldSilverCardConfig = z.object({}).strict();
+export const govtFeedConfig = z
+  .object({ count: z.number().int().min(1).max(20).optional() })
+  .strict();
+
 export const loopConfig = z
   .object({
     source: z.literal("latest-news").default("latest-news"),
@@ -190,6 +199,10 @@ const adHeaderLeaderboardBlock = z.object({ ...baseBlock, type: z.literal("AdHea
 const aboveFoldBlock = z.object({ ...baseBlock, type: z.literal("AboveFold"), config: aboveFoldConfig });
 const adBannerMidBlock = z.object({ ...baseBlock, type: z.literal("AdBannerMid"), config: adBannerMidConfig });
 const sectionBandBlock = z.object({ ...baseBlock, type: z.literal("SectionBand"), config: sectionBandConfig });
+const marketTickerBlock = z.object({ ...baseBlock, type: z.literal("MarketTicker"), config: marketTickerConfig });
+const currencyCardBlock = z.object({ ...baseBlock, type: z.literal("CurrencyCard"), config: currencyCardConfig });
+const goldSilverCardBlock = z.object({ ...baseBlock, type: z.literal("GoldSilverCard"), config: goldSilverCardConfig });
+const govtFeedBlock = z.object({ ...baseBlock, type: z.literal("GovtFeed"), config: govtFeedConfig });
 const cinemaBandBlock = z.object({ ...baseBlock, type: z.literal("CinemaBand"), config: cinemaBandConfig });
 const videoSectionBlock = z.object({ ...baseBlock, type: z.literal("VideoSection"), config: videoSectionConfig });
 const latestNewsBlock = z.object({ ...baseBlock, type: z.literal("LatestNews"), config: latestNewsConfig });
@@ -205,6 +218,7 @@ export const leafBlockSchema = z.discriminatedUnion("type", [
   adHeaderLeaderboardBlock, aboveFoldBlock, adBannerMidBlock, sectionBandBlock,
   cinemaBandBlock, videoSectionBlock, latestNewsBlock, categoryPairBlock, webStoriesBlock,
   photoGalleryBlock, adLeaderboardBlock, adInFeedBannerBlock, compositeBlock,
+  marketTickerBlock, currencyCardBlock, goldSilverCardBlock, govtFeedBlock,
 ]);
 export type LeafBlock = z.infer<typeof leafBlockSchema>;
 
@@ -250,6 +264,7 @@ export const blockSchema = z.discriminatedUnion("type", [
   adHeaderLeaderboardBlock, aboveFoldBlock, adBannerMidBlock, sectionBandBlock,
   cinemaBandBlock, videoSectionBlock, latestNewsBlock, categoryPairBlock, webStoriesBlock,
   photoGalleryBlock, adLeaderboardBlock, adInFeedBannerBlock, compositeBlock,
+  marketTickerBlock, currencyCardBlock, goldSilverCardBlock, govtFeedBlock,
   columnsBlock, headingBlock, imageBlock, textBlock, loopBlock,
 ]);
 
@@ -286,6 +301,10 @@ export const BUILTIN_BLOCK_TYPES = [
   "PhotoGallery",
   "AdLeaderboard",
   "AdInFeedBanner",
+  "MarketTicker",
+  "CurrencyCard",
+  "GoldSilverCard",
+  "GovtFeed",
   "Columns",
   "Loop",
 ] as const satisfies readonly BlockType[];

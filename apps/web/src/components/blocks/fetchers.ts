@@ -19,6 +19,7 @@ import type {
   adLeaderboardConfig,
   categoryPairConfig,
   cinemaBandConfig,
+  govtFeedConfig,
   latestNewsConfig,
   loopConfig,
   photoGalleryConfig,
@@ -714,6 +715,58 @@ export async function fetchWebStories(
 }
 
 // --- PhotoGallery ---
+
+// --- Market widgets ---
+
+// Market widgets: all three blocks share one server fetch (market-data.ts
+// dedupes concurrent calls onto a single in-flight promise, and serves from
+// its TTL cache thereafter). Returning null lets hideWhenEmpty drop the
+// block — no dummy numbers, ever.
+export async function fetchMarketTicker() {
+  const { getMarketData } = await import("@/lib/market-data");
+  const data = await getMarketData();
+  return data ? { data } : null;
+}
+export const fetchCurrencyCard = fetchMarketTicker;
+export const fetchGoldSilverCard = fetchMarketTicker;
+
+// --- GovtFeed ---
+
+// PIB/RBI/SEBI-tagged articles (Task 6 import pipeline creates these tags).
+// No dummy fallback: an empty result returns null so hideWhenEmpty drops the
+// block rather than rendering an empty shell.
+const GOVT_TAG_SLUGS = ["pib", "rbi", "sebi"];
+
+export async function fetchGovtFeed(config: z.infer<typeof govtFeedConfig>) {
+  const items = await prisma.content.findMany({
+    where: {
+      type: "ARTICLE",
+      status: "PUBLISHED",
+      deletedAt: null,
+      tags: { some: { tag: { slug: { in: GOVT_TAG_SLUGS } } } },
+    },
+    orderBy: { publishedAt: "desc" },
+    take: config.count ?? 6,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      publishedAt: true,
+      category: { select: { slug: true } },
+      tags: { select: { tag: { select: { slug: true } } } },
+    },
+  });
+  if (!items.length) return null;
+  return {
+    items: items.map((c) => ({
+      id: c.id,
+      title: c.title,
+      href: articleHref({ slug: c.slug, category: c.category }),
+      publishedAt: teluguTimeAgoIso(c.publishedAt),
+      tag: c.tags.map((t) => t.tag.slug).find((s) => GOVT_TAG_SLUGS.includes(s)) ?? "",
+    })),
+  };
+}
 
 export async function fetchPhotoGallery(
   config: z.infer<typeof photoGalleryConfig>,

@@ -1808,16 +1808,21 @@ function EpaperEditorPage() {
   // the renderer CSS (.lead-img 380px / .maj-img 160px / .sec-img 130px on a
   // 1782×2760 sheet, 12 cols × 30 rows). Approximate for side images.
   const slotAspectFor = (b: Block): number => {
-    const colW = EP_IFRAME_W / EP_COLS, rowH = EP_IFRAME_H / EP_ROWS;
-    const wPx = b.w * colW;
+    // Net cell sizes: the sheet grid has 14px column / 12px row gaps, so a
+    // block spanning w cells is w*cell + (w-1)*gap wide - matching the real
+    // strip the renderer draws (ignoring gaps skewed the adjuster's window
+    // aspect vs the printed strip).
+    const colW = (EP_IFRAME_W - (EP_COLS - 1) * EP_COL_GAP) / EP_COLS;
+    const rowH = EP_ROW_PX;
+    const wPx = b.w * colW + (b.w - 1) * EP_COL_GAP;
     const pos = b.style?.imagePosition;
     if (pos === "left" || pos === "right") {
       const frac = (b.style?.imageSize ?? 40) / 100;
-      return (wPx * frac) / Math.max(80, b.h * rowH * 0.85);
+      return (wPx * frac) / Math.max(80, (b.h * rowH + (b.h - 1) * EP_ROW_GAP) * 0.85);
     }
     const imgH = (b.style?.imageHeight && b.style.imageHeight > 0)
       ? b.style.imageHeight
-      : b.type === "lead" ? 380 : b.type === "major" ? 160 : b.type === "secondary" ? 130 : b.h * rowH;
+      : b.type === "lead" ? 380 : b.type === "major" ? 160 : b.type === "secondary" ? 130 : b.h * rowH + (b.h - 1) * EP_ROW_GAP;
     return wPx / imgH;
   };
 

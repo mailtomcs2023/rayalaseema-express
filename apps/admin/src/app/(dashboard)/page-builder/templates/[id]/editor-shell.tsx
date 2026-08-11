@@ -101,6 +101,10 @@ const DEFAULT_CONFIG: Record<string, Record<string, unknown>> = {
   Heading: { binding: "title", level: "h3", linkToItem: true },
   Image: { binding: "image", linkToItem: true },
   Text: { binding: "summary" },
+  MarketTicker: {},
+  CurrencyCard: {},
+  GoldSilverCard: {},
+  GovtFeed: { count: 6 },
 };
 
 // --- Columns container helpers (one level of nesting) ---
@@ -1646,6 +1650,16 @@ function BlockConfigForm({
           )}
           <SmallCheckbox label="Link to article" value={cfg.linkToItem !== false} onChange={(v) => setCfg({ linkToItem: v })} />
         </>
+      );
+    case "MarketTicker":
+    case "CurrencyCard":
+    case "GoldSilverCard":
+      return <p className="text-xs text-gray-500">No options — shows live market data.</p>;
+    case "GovtFeed":
+      return (
+        <div>
+          <SmallNumber label="Article count" value={(cfg.count as number) ?? 6} onChange={(v) => setCfg({ count: v })} min={1} max={20} />
+        </div>
       );
     default:
       return (

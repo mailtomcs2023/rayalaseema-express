@@ -51,9 +51,9 @@ function stripHtml(s: string): string {
     .trim();
 }
 
-// GET /api/fetch-news?provider=newsdata|googlenews|pti&q=...
+// GET /api/fetch-news?provider=newsdata|googlenews|pti|govt&q=...
 //
-// Three providers shipped:
+// Four providers shipped:
 //   newsdata   - NewsData.io REST API. Requires NEWSDATA_API_KEY.
 //   googlenews - Google News RSS endpoint. No key required, no rate limit
 //                docs but treated as zero-trust public surface.
@@ -61,6 +61,10 @@ function stripHtml(s: string): string {
 //                has no keyword search - we pull a time window and filter
 //                title/body for `q` after fetch. Optional `from`/`to`
 //                ISO timestamps; default is the last 24h.
+//   govt       - Official PIB/RBI/SEBI press-release RSS feeds (see
+//                src/lib/govt-feeds.ts). No key required. Each article
+//                carries a `sourceTag` (pib|rbi|sebi) that POST can turn
+//                into a Tag on import.
 //
 // All return the same shape: { articles: [{ externalId, title, description,
 // imageUrl, sourceUrl, source, language, publishedAt, keywords }] }. POST
@@ -154,6 +158,36 @@ export async function GET(req: NextRequest) {
         } catch { /* timeout / network / parse - leave imageUrl null */ }
       }));
       return NextResponse.json({ total: items.length, articles: items, provider: "googlenews" });
+    }
+
+    if (provider === "govt") {
+      const { GOVT_FEEDS, parseGovtRss } = await import("@/lib/govt-feeds");
+      const results = await Promise.allSettled(
+        GOVT_FEEDS.map(async (f) => {
+          const res = await fetch(f.url, {
+            headers: { "User-Agent": "Mozilla/5.0" },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (!res.ok) return [];
+          return parseGovtRss(await res.text(), f.source).map((it) => ({
+            externalId: it.link,
+            title: it.title,
+            description: it.description,
+            content: it.description,
+            imageUrl: null,
+            sourceUrl: it.link,
+            source: f.source,
+            sourceTag: f.tag,
+            language: "english",
+            category: "business",
+            publishedAt: it.pubDate,
+            keywords: [],
+          }));
+        }),
+      );
+      const articles = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+      articles.sort((a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime());
+      return NextResponse.json({ total: articles.length, articles, provider: "govt" });
     }
 
     if (provider === "pti") {
@@ -297,6 +331,7 @@ export async function POST(req: NextRequest) {
       byline,
       edNote,
       categorySlug,
+      sourceTag,
     } = body as {
       title?: string;
       description?: string;
@@ -307,6 +342,7 @@ export async function POST(req: NextRequest) {
       byline?: string | null;
       edNote?: string | null;
       categorySlug?: string;
+      sourceTag?: "pib" | "rbi" | "sebi";
     };
 
     if (!title) return NextResponse.json({ error: "Title required" }, { status: 400 });
@@ -374,6 +410,23 @@ export async function POST(req: NextRequest) {
         status: "DRAFT",
         authorId: admin?.id || "",
         categoryId,
+        // Govt provider (PIB/RBI/SEBI) items carry a sourceTag so the
+        // Tag/Content relation is populated on import, before the
+        // editor's Telugu rewrite pass.
+        ...(sourceTag && ["pib", "rbi", "sebi"].includes(sourceTag)
+          ? {
+              tags: {
+                create: [{
+                  tag: {
+                    connectOrCreate: {
+                      where: { slug: sourceTag },
+                      create: { name: sourceTag.toUpperCase(), slug: sourceTag },
+                    },
+                  },
+                }],
+              },
+            }
+          : {}),
       },
     });
 
