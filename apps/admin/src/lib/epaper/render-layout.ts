@@ -10,6 +10,7 @@
 // existing ad creatives still fit), with each cell = 100 × 72 px.
 
 import { prisma } from "@rayalaseema/db";
+import { getFocalMap } from "./image-focal";
 import { hyphenateTelugu } from "./telugu-hyphenation";
 import { migrateLegacyLayout, isLegacyLayout } from "./migrate-layout";
 import { TELUGU_FONTS_HREF, isUnicodeSelfHostedFont } from "./telugu-fonts";
@@ -102,6 +103,9 @@ interface ResolvedArticle {
   title: string;
   summary: string | null;
   featuredImage: string | null;
+  // Saliency focal point (0..1) for the featured image - smart default crop.
+  // Null → CSS default (center). Manual block imageCrop always overrides.
+  focal?: { focalX: number; focalY: number } | null;
   bodyText: string;    // plain-text body for continuation rendering
   categoryName: string;
   deskName: string | null;
@@ -379,7 +383,7 @@ function hlInlineStyle(s: Block["style"] | undefined, basePx: number): string {
   return out.length ? ` style="${out.join(";")}"` : "";
 }
 
-function imageOrFallback(url: string | null | undefined, className: string, crop?: { x: number; y: number; w: number; h: number }): string {
+function imageOrFallback(url: string | null | undefined, className: string, crop?: { x: number; y: number; w: number; h: number }, focal?: { focalX: number; focalY: number } | null): string {
   if (url) {
     // When an imageCrop is set, scale the image so the crop rect fills the
     // container, then offset so the crop window starts at (0,0). Simple
@@ -391,6 +395,10 @@ function imageOrFallback(url: string | null | undefined, className: string, crop
       const offsetX = -crop.x * 100 * scaleX;
       const offsetY = -crop.y * 100 * scaleY;
       imgStyle = ` style="transform: translate(${offsetX}%, ${offsetY}%) scale(${scaleX}, ${scaleY}); transform-origin: 0 0;"`;
+    } else if (focal) {
+      // No manual crop → smart default: the cover-crop window centers on the
+      // saliency focal point instead of the frame's dead center.
+      imgStyle = ` style="object-position: ${(focal.focalX * 100).toFixed(1)}% ${(focal.focalY * 100).toFixed(1)}%;"`;
     }
     // NB: do NOT set crossorigin="anonymous" here. The render is captured
     // server-side by Playwright (page.pdf / screenshot) - there is no canvas
@@ -486,12 +494,12 @@ function leadBlock(b: Block, a: ResolvedArticle): string {
   const cols = b.style?.textColumns ?? 2;
   const dropCap = b.style?.dropCap === true;
   const isWrap = imgPos === "wrap";
-  const img = imgPos === "none" || isWrap ? "" : imageOrFallback(a.featuredImage, "lead-img", b.imageCrop);
+  const img = imgPos === "none" || isWrap ? "" : imageOrFallback(a.featuredImage, "lead-img", b.imageCrop, a.focal);
   // Wrap-mode renders the image inline inside the multi-column body so text
   // flows around it (CSS shape-outside). The wrap markup is emitted by
   // dekHtml below instead of as a sibling.
   const wrapImageMarkup = isWrap && a.featuredImage
-    ? `<span class="wrap-img">${imageOrFallback(a.featuredImage, "lead-img", b.imageCrop)}</span>`
+    ? `<span class="wrap-img">${imageOrFallback(a.featuredImage, "lead-img", b.imageCrop, a.focal)}</span>`
     : "";
   const useFlex = imgPos === "left" || imgPos === "right";
   const wrapClass = imgPos === "left" ? "lead-flex-row"
@@ -577,7 +585,7 @@ function majorBlock(b: Block, a: ResolvedArticle, bannerColor: string | null = n
     <div class="block-inner">
       <h2 class="maj-hl fit-head"${hlStyle}>${headlineHtml(displayTitle, b)}</h2>
       ${subBannerHtml(b, displaySummary)}
-      ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "maj-img", b.imageCrop)}
+      ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "maj-img", b.imageCrop, a.focal)}
       ${dekHtml}
     </div>`;
   return `<article class="major block" style="${blockStyle(b, tintExtra)}">${articleOverlay(a, inner)}</article>`;
@@ -715,7 +723,7 @@ function secondaryBlock(b: Block, a: ResolvedArticle, bannerColor: string | null
     <div class="block-inner">
       <h3 class="sec-hl fit-head"${hlStyle}>${headlineHtml(displayTitle, b)}</h3>
       ${subBannerHtml(b, displaySummary)}
-      ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "sec-img", b.imageCrop)}
+      ${b.style?.imagePosition === "none" ? "" : imageOrFallback(a.featuredImage, "sec-img", b.imageCrop, a.focal)}
       ${dek}
     </div>`;
   return `<article class="secondary block" style="${blockStyle(b, tintExtra)}">${articleOverlay(a, inner)}</article>`;
@@ -889,6 +897,10 @@ async function resolveArticles(blocks: Block[]): Promise<Map<string, ResolvedArt
       desk: { select: { name: true } },
     },
   });
+  // Smart-crop focal points for every featured image on the page (lazy-cached
+  // in ImageFocal; first render computes, later renders hit the cache).
+  const focalMap = await getFocalMap(rows.map((r) => r.featuredImage).filter((u): u is string => !!u));
+
   const map = new Map<string, ResolvedArticle>();
   for (const r of rows) {
     const slug = r.slug ?? "";
@@ -898,6 +910,7 @@ async function resolveArticles(blocks: Block[]): Promise<Map<string, ResolvedArt
       title: r.title,
       summary: r.summary,
       featuredImage: r.featuredImage,
+      focal: r.featuredImage ? focalMap.get(r.featuredImage) ?? null : null,
       bodyText: stripHtml(r.body || ""),
       categoryName: r.category?.name ?? "",
       deskName: r.desk?.name ?? null,

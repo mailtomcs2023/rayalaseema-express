@@ -330,6 +330,22 @@ model Media {
   @@map("media")
 }
 
+/// Saliency focal point per image URL (epaper smart crop). Computed lazily
+/// with sharp's attention strategy the first time a render needs the image,
+/// then cached here forever. focalX/focalY are 0..1 fractions of the image;
+/// the renderer maps them to CSS object-position so cover-crops center on
+/// the interesting region (faces/podium) instead of dead center. A manual
+/// per-block imageCrop in the epaper editor always overrides this.
+model ImageFocal {
+  id        String   @id @default(cuid())
+  url       String   @unique
+  focalX    Float
+  focalY    Float
+  createdAt DateTime @default(now())
+
+  @@map("image_focal")
+}
+
 // ============ ePAPER ============
 
 /// Telugu spell-check ignore-list (#91). Tokens that should NOT trigger
