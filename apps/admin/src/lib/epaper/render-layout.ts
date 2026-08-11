@@ -124,7 +124,7 @@ interface RenderInput {
     volumeNumber?: number;      // సంపుటి N
     issueNumber?: number;       // సంచిక N
     priceInPaise?: number;      // 650 → "రూ. 6-50"
-    logoUrl?: string;           // /logo.png on the web origin
+    logoUrl?: string;           // /logo-horizontal-red.webp on the web origin
     sideAdLeft?: { imageUrl: string; href?: string | null };
     sideAdRight?: { imageUrl: string; href?: string | null };
   };
@@ -407,9 +407,11 @@ function masthead(b: Block, opts: { dateLabel: string; totalPages: number; meta?
   const day = meta.dayLabel || "";
   const vol = meta.volumeNumber ?? 1;
   const iss = meta.issueNumber ?? 1;
-  const priceRupees = Math.floor((meta.priceInPaise ?? 650) / 100);
-  const pricePaise = ((meta.priceInPaise ?? 650) % 100).toString().padStart(2, "0");
-  const logoSrc = meta.logoUrl || `${SITE_URL}/logo.png`;
+  const priceRupees = Math.floor((meta.priceInPaise ?? 400) / 100);
+  const pricePaise = ((meta.priceInPaise ?? 400) % 100).toString().padStart(2, "0");
+  // New horizontal wordmark (map + RSN + మన గళం మన కలం). logo.png is the
+  // retired pre-2026-08 mark - never fall back to it.
+  const logoSrc = meta.logoUrl || `${SITE_URL}/logo-horizontal-red.webp`;
   const leftAd = meta.sideAdLeft;
   const rightAd = meta.sideAdRight;
 
@@ -446,7 +448,7 @@ function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNum
   // Inner-page header (Andhra-Prabha style): page number + section/city on the
   // left, the masthead logo CENTERED, date on the right - white band, rule
   // below. 3-column grid so the logo stays optically centered on the page.
-  const logoSrc = `${SITE_URL}/logo.png`;
+  const logoSrc = `${SITE_URL}/logo-horizontal-red.webp`;
   return `<div class="secbar" style="${blockStyle(b)}">
     <div class="secbar-left">
       <span class="secbar-pageno">${opts.pageNumber}</span>
@@ -1719,7 +1721,7 @@ export async function renderEpaperPageById(pageId: string, opts?: { withMargin?:
       volumeNumber: (page.edition as any).volumeNumber ?? undefined,
       issueNumber: (page.edition as any).issueNumber ?? undefined,
       priceInPaise: (page.edition as any).priceInPaise ?? undefined,
-      logoUrl: `${SITE_URL}/logo.png`,
+      logoUrl: `${SITE_URL}/logo-horizontal-red.webp`,
       sideAdLeft: mastheadLeft,
       sideAdRight: mastheadRight,
     },

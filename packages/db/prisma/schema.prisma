@@ -457,7 +457,7 @@ model EpaperEdition {
   // operator or autoincremented from a known epoch.
   volumeNumber  Int?
   issueNumber   Int?
-  priceInPaise  Int?                    @default(650) // Rs 6.50 default
+  priceInPaise  Int?                    @default(400) // Rs 4.00 default
   // v2 editor (#108): per-edition PageGeometry override (defaults apply if
   // null). Lets ops run a special-format edition (e.g. tabloid Sunday) w/o
   // re-templating the whole system.

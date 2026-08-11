@@ -143,7 +143,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Rayalaseema News" className="h-12 mx-auto" />
+          <img src="/logo-horizontal-red.webp" alt="Rayalaseema News" className="h-12 mx-auto" />
           <CardTitle className="text-xl">Admin CMS</CardTitle>
           <CardDescription>Sign in to manage content</CardDescription>
         </CardHeader>

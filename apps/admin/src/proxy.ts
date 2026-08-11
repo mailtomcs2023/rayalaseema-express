@@ -31,6 +31,8 @@ export async function proxy(req: NextRequest) {
     pathname === "/favicon.ico" ||
     pathname === "/logo.png" ||
     pathname === "/logo-inverse.png" ||
+    pathname === "/logo-horizontal-red.webp" ||
+    pathname === "/logo-horizontal-white.webp" ||
     pathname.startsWith("/uploads")
   ) {
     return passthrough;
@@ -88,5 +90,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo-inverse.png|logo.png|uploads).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|logo-inverse.png|logo.png|logo-horizontal-red.webp|logo-horizontal-white.webp|uploads).*)"],
 };

@@ -108,7 +108,7 @@ export function Footer({ config: initialConfig = {}, footerItems, megaColumns }:
               {/* Footer sits on bg-gray-900; the inverse masthead (white wordmark
                   on transparent) reads cleanly without a white card around it. */}
               <Image
-                src="/logo-inverse.png"
+                src="/logo-horizontal-white.webp"
                 alt="రాయలసీమ న్యూస్"
                 width={240}
                 height={48}

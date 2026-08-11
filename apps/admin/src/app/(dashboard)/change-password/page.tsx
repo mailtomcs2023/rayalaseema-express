@@ -97,7 +97,7 @@ export default function ChangePasswordPage() {
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-inverse.png" alt="Rayalaseema News" style={{ height: 32, display: "block" }} />
+          <img src="/logo-horizontal-white.webp" alt="Rayalaseema News" style={{ height: 32, display: "block" }} />
           <Button
             type="button"
             variant="ghost"
@@ -112,7 +112,7 @@ export default function ChangePasswordPage() {
         <header className="flex items-center justify-between border-b border-border bg-white px-6 py-3">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Rayalaseema News" style={{ height: 32, width: "auto" }} />
+            <img src="/logo-horizontal-red.webp" alt="Rayalaseema News" style={{ height: 32, width: "auto" }} />
           </div>
           <Button
             type="button"
