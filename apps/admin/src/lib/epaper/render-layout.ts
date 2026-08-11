@@ -1513,19 +1513,33 @@ const FIT_DECK_SCRIPT = `<script>
     // HEADLINES: a cropped headline is a broken front page. Before any
     // truncation, step the font DOWN (to a 55% floor) until the whole
     // headline fits - the newspaper way: the head gets smaller, never "..".
-    // data-basefs caches the designed size so editor re-fits (block resized
-    // bigger again) can step back UP toward it.
+    //
+    // Budget = a fraction of the BLOCK's height, measured in the script (CSS
+    // %-max-height silently resolves to none inside the flex chain, which let
+    // heads grow past their box and get clipped by the block with the fitter
+    // never firing - the exact crop this pass exists to prevent). The body
+    // dek below re-fits into whatever height the head ends up using.
     if (el.classList.contains('fit-head')) {
+      var blk = el.closest ? el.closest('.block') : null;
+      var capPx = blk ? blk.getBoundingClientRect().height * 0.55 : el.getBoundingClientRect().height;
+      var headOver = function () {
+        var rg2 = document.createRange(); rg2.selectNodeContents(el);
+        var cr2 = rg2.getBoundingClientRect();
+        var r2 = el.getBoundingClientRect();
+        return cr2.height > capPx + 2 || cr2.right > r2.right + 2 || cr2.bottom > r2.bottom + 2;
+      };
       var baseFs = parseFloat(el.getAttribute('data-basefs') || '');
       if (!baseFs) { baseFs = parseFloat(getComputedStyle(el).fontSize) || 16; el.setAttribute('data-basefs', String(baseFs)); }
       el.style.fontSize = '';                    // start from the designed size
+      el.style.maxHeight = 'none';               // script enforces the cap, not CSS
       var fs = baseFs, floorFs = baseFs * 0.55, hguard = 0;
-      while (overflows(el) && fs > floorFs && hguard++ < 40) {
+      while (headOver() && fs > floorFs && hguard++ < 40) {
         fs = fs * 0.94;
         el.style.fontSize = fs.toFixed(2) + 'px';
       }
-      if (!overflows(el)) return;                // whole headline visible
-      // Still overflowing at the floor: fall through to the truncation path.
+      if (!headOver()) return;                   // whole headline visible
+      // Still over budget at the floor: clamp and fall through to truncation.
+      el.style.maxHeight = capPx.toFixed(0) + 'px';
     }
     if (!overflows(el)) return;                  // fits already (short copy)
     var units = letters(full);                   // array of whole letters
