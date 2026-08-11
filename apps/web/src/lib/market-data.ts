@@ -31,6 +31,11 @@ const UA =
 let cache: MarketData | null = null;
 let cacheTime = 0;
 
+// Concurrent callers (e.g. multiple market blocks rendering as async server
+// components on the same request) share this in-flight promise instead of
+// each firing their own round of Yahoo fetches. Cleared once settled.
+let inFlight: Promise<MarketData | null> | null = null;
+
 function ttlMs(): number {
   return isMarketOpen() ? 60_000 : 30 * 60_000;
 }
@@ -88,6 +93,17 @@ export async function getMarketData(): Promise<MarketData | null> {
     return { ...cache, marketOpen: isMarketOpen() };
   }
 
+  if (inFlight) return inFlight;
+
+  inFlight = fetchMarketData();
+  try {
+    return await inFlight;
+  } finally {
+    inFlight = null;
+  }
+}
+
+async function fetchMarketData(): Promise<MarketData | null> {
   const entries = Object.entries(SYMBOLS) as [keyof typeof SYMBOLS, string][];
   const results = await Promise.all(entries.map(([, sym]) => fetchChartQuote(sym)));
   const bySym = Object.fromEntries(entries.map(([key], i) => [key, results[i]])) as Record<

@@ -718,9 +718,10 @@ export async function fetchWebStories(
 
 // --- Market widgets ---
 
-// Market widgets: all three blocks share one server fetch (module cache in
-// market-data.ts makes repeat calls within a request cycle free). Returning
-// null lets hideWhenEmpty drop the block — no dummy numbers, ever.
+// Market widgets: all three blocks share one server fetch (market-data.ts
+// dedupes concurrent calls onto a single in-flight promise, and serves from
+// its TTL cache thereafter). Returning null lets hideWhenEmpty drop the
+// block — no dummy numbers, ever.
 export async function fetchMarketTicker() {
   const { getMarketData } = await import("@/lib/market-data");
   const data = await getMarketData();
