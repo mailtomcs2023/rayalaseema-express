@@ -1,9 +1,10 @@
-// Official press-release feeds. PIB ministry RIDs: verify against
-// https://pib.gov.in/RssMain.aspx at implementation time; the reg-ids below
-// are the documented Commerce and Finance feeds.
+// Official press-release feeds. PIB's RssMain.aspx ignores its ModId/Lang/
+// Regid parameters (verified 2026-08-12) and serves one all-ministry feed
+// with Hindi titles behind a redirect, so there is a single PIB entry;
+// editors pick the trade/finance items in the fetch-news UI and the AI
+// rewrite produces Telugu regardless of source language.
 export const GOVT_FEEDS: { url: string; source: "PIB" | "RBI" | "SEBI"; tag: string }[] = [
-  { url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=23", source: "PIB", tag: "pib" }, // Commerce & Industry
-  { url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=28", source: "PIB", tag: "pib" }, // Finance
+  { url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3", source: "PIB", tag: "pib" },
   { url: "https://www.rbi.org.in/pressreleases_rss.xml", source: "RBI", tag: "rbi" },
   { url: "https://www.sebi.gov.in/sebirss.xml", source: "SEBI", tag: "sebi" },
 ];
