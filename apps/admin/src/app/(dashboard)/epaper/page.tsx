@@ -1826,8 +1826,11 @@ function EpaperEditorPage() {
     if (slotAspect >= imgAspect) { w0 = 1; h0 = imgAspect / slotAspect; }
     else { h0 = 1; w0 = slotAspect / imgAspect; }
     const w = w0 / pan.zoom, h = h0 / pan.zoom;
-    const x = Math.min(Math.max(pan.cx - w / 2, 0), 1 - w);
-    const y = Math.min(Math.max(pan.cy - h / 2, 0), 1 - h);
+    // zoom < 1 → the window is BIGGER than the photo on one axis: the whole
+    // image fits with white bands (letterbox), centered on that axis. The
+    // renderer's transform handles negative offsets natively.
+    const x = w <= 1 ? Math.min(Math.max(pan.cx - w / 2, 0), 1 - w) : (1 - w) / 2;
+    const y = h <= 1 ? Math.min(Math.max(pan.cy - h / 2, 0), 1 - h) : (1 - h) / 2;
     return { x: +x.toFixed(4), y: +y.toFixed(4), w: +w.toFixed(4), h: +h.toFixed(4) };
   };
   // Inverse: an existing saved rect → pan state (best-effort; aspect drift
@@ -1836,7 +1839,7 @@ function EpaperEditorPage() {
     let w0: number, h0: number;
     if (slotAspect >= imgAspect) { w0 = 1; h0 = imgAspect / slotAspect; }
     else { h0 = 1; w0 = slotAspect / imgAspect; }
-    const zoom = Math.min(8, Math.max(1, w0 / Math.max(0.05, r.w)));
+    const zoom = Math.min(8, Math.max(0.5, w0 / Math.max(0.05, r.w)));
     return { cx: r.x + r.w / 2, cy: r.y + r.h / 2, zoom };
   };
   const openCrop = async (blockId: string) => {
@@ -1900,7 +1903,7 @@ function EpaperEditorPage() {
     setEdition((prev) => prev ? { ...prev, pages: prev.pages.map((p) => p.id === activePage.id ? { ...p, layout: { blocks } } : p) } : prev);
     await patchPage({ blocks });
     setCropBlockId(null);
-    toast("success", useCrop ? "Crop saved" : "Crop removed");
+    toast("success", useCrop ? "Image adjusted" : "Adjustment removed");
   };
 
   // Per-placement headline / dek override. Lets operator trim a CMS title
@@ -2248,7 +2251,7 @@ function EpaperEditorPage() {
               const imgW = VW / r.w; // uniform: aspect-locked window
               return (
                 <div
-                  style={{ position: "relative", width: VW, height: VH, maxWidth: "100%", overflow: "hidden", borderRadius: 8, background: "#111", cursor: "grab", touchAction: "none", boxShadow: "inset 0 0 0 2px #FFD400" }}
+                  style={{ position: "relative", width: VW, height: VH, maxWidth: "100%", overflow: "hidden", borderRadius: 8, background: "#fff", cursor: "grab", touchAction: "none", boxShadow: "inset 0 0 0 2px #FFD400" }}
                   onMouseDown={(e) => { cropPanDrag.current = { mx: e.clientX, my: e.clientY, cx: cropPan.cx, cy: cropPan.cy }; }}
                   onMouseMove={(e) => {
                     const d = cropPanDrag.current; if (!d) return;
@@ -2263,7 +2266,7 @@ function EpaperEditorPage() {
                   onMouseLeave={() => { cropPanDrag.current = null; }}
                   onWheel={(e) => {
                     e.preventDefault();
-                    setCropPan((p) => ({ ...p, zoom: Math.min(8, Math.max(1, p.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1))) }));
+                    setCropPan((p) => ({ ...p, zoom: Math.min(8, Math.max(0.5, p.zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1))) }));
                   }}
                 >
                   <img
@@ -2286,10 +2289,10 @@ function EpaperEditorPage() {
                   />
                   {/* rule-of-thirds guides */}
                   {["33.3%", "66.6%"].map((p) => (
-                    <span key={`v${p}`} style={{ position: "absolute", left: p, top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.35)", pointerEvents: "none" }} />
+                    <span key={`v${p}`} style={{ position: "absolute", left: p, top: 0, bottom: 0, width: 1, background: "rgba(0,0,0,0.22)", mixBlendMode: "difference", pointerEvents: "none" }} />
                   ))}
                   {["33.3%", "66.6%"].map((p) => (
-                    <span key={`h${p}`} style={{ position: "absolute", top: p, left: 0, right: 0, height: 1, background: "rgba(255,255,255,0.35)", pointerEvents: "none" }} />
+                    <span key={`h${p}`} style={{ position: "absolute", top: p, left: 0, right: 0, height: 1, background: "rgba(0,0,0,0.22)", mixBlendMode: "difference", pointerEvents: "none" }} />
                   ))}
                 </div>
               );
@@ -2312,14 +2315,16 @@ function EpaperEditorPage() {
             )}
             {cropMode === "pan" && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-                <button onClick={() => setCropPan((p) => ({ ...p, zoom: Math.max(1, p.zoom / 1.2) }))}
+                <button onClick={() => setCropPan((p) => ({ ...p, zoom: Math.max(0.5, p.zoom / 1.2) }))}
                   style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid #d1d5db", background: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>−</button>
-                <input type="range" min={1} max={8} step={0.05} value={cropPan.zoom}
+                <input type="range" min={0.5} max={8} step={0.05} value={cropPan.zoom}
                   onChange={(e) => setCropPan((p) => ({ ...p, zoom: +e.target.value }))}
                   style={{ flex: 1 }} aria-label="Zoom" />
                 <button onClick={() => setCropPan((p) => ({ ...p, zoom: Math.min(8, p.zoom * 1.2) }))}
                   style={{ width: 32, height: 32, borderRadius: 6, border: "1px solid #d1d5db", background: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>+</button>
-                <span style={{ fontSize: 12, color: "#6b7280", minWidth: 42, textAlign: "right" }}>{cropPan.zoom.toFixed(1)}×</span>
+                <span style={{ fontSize: 12, color: "#6b7280", minWidth: 56, textAlign: "right" }}>
+                  {cropPan.zoom < 1 ? `fit ${cropPan.zoom.toFixed(1)}×` : `${cropPan.zoom.toFixed(1)}×`}
+                </span>
               </div>
             )}
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 14, flexWrap: "wrap" }}>
@@ -2353,7 +2358,7 @@ function EpaperEditorPage() {
                 </button>
                 <button onClick={saveCrop}
                   style={{ padding: "8px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  Save crop
+                  Save
                 </button>
               </div>
             </div>
