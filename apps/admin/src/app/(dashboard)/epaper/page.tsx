@@ -264,6 +264,14 @@ function EpaperEditorPage() {
   const [pickerQuery, setPickerQuery] = useState("");
   const [pickerFilters, setPickerFilters] = useState<PickerFilters>(DEFAULT_FILTERS);
   const [pickerTotal, setPickerTotal] = useState(0);  // total in window before chip filters - for empty-state hints
+  // All categories for the picker's CATEGORY chip row (fetched once).
+  const [pickerCategories, setPickerCategories] = useState<Array<{ slug: string; name: string }>>([]);
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((rows) => Array.isArray(rows) && setPickerCategories(rows.map((c: any) => ({ slug: c.slug, name: c.name }))))
+      .catch(() => {});
+  }, []);
 
   const { toasts, push: toast, dismiss: dismissToast } = useToasts();
   const { guard: kycGuard } = useKycGate();
@@ -3157,6 +3165,27 @@ function EpaperEditorPage() {
                         {label}
                       </Chip>
                     ))}
+                  </ChipRow>
+
+                  {/* Category chips - pick any category to filter the list.
+                      "Ad slot" is a peer item: converts the selected block to
+                      an ad (same as Type → Ad slot) so ads sit alongside
+                      categories in the picker, per the owner's request. */}
+                  <ChipRow label="CATEGORY">
+                    <Chip active={!pickerFilters.categorySlug}
+                      onClick={() => setPickerFilters((f) => ({ ...f, categorySlug: "" }))}>
+                      All
+                    </Chip>
+                    {pickerCategories.map((c) => (
+                      <Chip key={c.slug} active={pickerFilters.categorySlug === c.slug}
+                        onClick={() => setPickerFilters((f) => ({ ...f, categorySlug: f.categorySlug === c.slug ? "" : c.slug }))}>
+                        {c.name}
+                      </Chip>
+                    ))}
+                    <Chip active={false}
+                      onClick={() => selectedBlockId && changeBlockType(selectedBlockId, "ad")}>
+                      📢 Ad slot
+                    </Chip>
                   </ChipRow>
 
                   {/* Slot-derived chips that operator can disable */}

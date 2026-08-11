@@ -99,11 +99,11 @@ export async function POST(req: NextRequest) {
     // Wipe any existing pages from a previous generate run.
     await prisma.epaperPage.deleteMany({ where: { editionId: edition.id } });
 
-    // On thin-content days most section/district templates fill 0-1 slots.
-    // Publishing 30+ near-blank pages looks broken, so we PRUNE any page that
-    // doesn't reach this many filled stories. The front page is always kept.
-    const MIN_FILL_PER_PAGE = 3;
-
+    // Owner decision 2026-08-11: generate EVERY template page even when its
+    // slots are mostly empty. Empty slots render as visible "వార్త కావాలి"
+    // placeholders, so the newsroom can SEE how many stories each section
+    // still needs before the paper can go out. (The old behaviour pruned
+    // pages below 3 filled stories, which hid the demand signal.)
     const usedArticles = new Set<string>();
     const summary: Array<{ pageNumber: number; templateSlug: string; label: string; filled: number; unfilled: number }> = [];
     const skipped: Array<{ templateSlug: string; filled: number }> = [];
@@ -121,14 +121,6 @@ export async function POST(req: NextRequest) {
         window: contentWindow,
         referenceTime,
       });
-
-      // Skip near-empty pages (keep the front no matter what). Articles that
-      // were tentatively assigned to a skipped page are NOT marked used, so
-      // they stay available for later pages that do make the cut.
-      if (t.slug !== "front" && result.filledCount < MIN_FILL_PER_PAGE) {
-        skipped.push({ templateSlug: t.slug, filled: result.filledCount });
-        continue;
-      }
 
       for (const id of result.usedArticleIds) usedArticles.add(id);
       pageNumber++;
@@ -199,8 +191,21 @@ export async function POST(req: NextRequest) {
 
     // Content-aware reflow for inner pages: drop unfilled slots, size blocks
     // to their article's copy, re-tile the grid so no gaps remain. The front
-    // page always fills and is operator-tuned, so it's skipped.
-    const pagesAdjusted = await autoAdjustEditionPages(edition.id, { skipTemplateSlugs: ["front"] });
+    // page always fills and is operator-tuned, so it's skipped - and so is any
+    // page that STILL has empty story slots after top-up: those pages must
+    // keep their template geometry so the "వార్త కావాలి" placeholders stay
+    // visible as the newsroom's demand signal (reflow would silently delete
+    // the empty slots and hide how much copy the page still needs).
+    const pagesAfterTopUp = await prisma.epaperPage.findMany({
+      where: { editionId: edition.id },
+      select: { templateSlug: true, layout: true },
+    });
+    const slugsWithEmpties = pagesAfterTopUp
+      .filter((p) => ((((p.layout as unknown as { blocks?: BlockSlot[] }) ?? {}).blocks ?? [])
+        .some((b) => STORY.has(b.type) && !b.articleId && !b.locked)))
+      .map((p) => p.templateSlug ?? "")
+      .filter(Boolean);
+    const pagesAdjusted = await autoAdjustEditionPages(edition.id, { skipTemplateSlugs: ["front", ...slugsWithEmpties] });
     // Blocks were resized - re-sync each continuation's split point with its
     // source block's new capacity (buildContinuations's refresh pass).
     if (pagesAdjusted > 0) await buildContinuations(edition.id);

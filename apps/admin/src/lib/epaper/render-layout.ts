@@ -462,6 +462,21 @@ function sectionBand(b: Block, label: string, opts: { dateLabel: string; pageNum
   </div>`;
 }
 
+// Unfilled story slot: a loud, print-obvious placeholder instead of silent
+// white space. The newsroom reads these off the draft page to know exactly
+// how many stories each section still needs (owner request, 2026-08-11).
+// Grid units double as a size hint so a reporter knows roughly how big a
+// story to file (w×h in template grid cells).
+function needStoryBlock(b: Block, kind: string): string {
+  const KIND_TE: Record<string, string> = { lead: "ప్రధాన వార్త", major: "ముఖ్య వార్త", secondary: "సాధారణ వార్త" };
+  return `<div class="need-story block" style="${blockStyle(b)}">
+    <div class="need-story-inner">
+      <span class="need-story-title">వార్త కావాలి</span>
+      <span class="need-story-kind">${esc(KIND_TE[kind] || kind)} · ${b.w}×${b.h}</span>
+    </div>
+  </div>`;
+}
+
 function leadBlock(b: Block, a: ResolvedArticle): string {
   const displayTitle = b.overrideTitle?.trim() || a.title;
   const displaySummary = b.overrideDek?.trim() || a.summary || "";
@@ -1005,16 +1020,22 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
       case "lead":
         if (b.articleId && articles.has(b.articleId)) {
           blockHtml.push(leadBlock(b, artFor(b)));
+        } else {
+          blockHtml.push(needStoryBlock(b, "lead"));
         }
         break;
       case "major":
         if (b.articleId && articles.has(b.articleId)) {
           blockHtml.push(majorBlock(b, artFor(b), bannerColors.get(b.id) ?? null));
+        } else {
+          blockHtml.push(needStoryBlock(b, "major"));
         }
         break;
       case "secondary":
         if (b.articleId && articles.has(b.articleId)) {
           blockHtml.push(secondaryBlock(b, artFor(b), bannerColors.get(b.id) ?? null));
+        } else {
+          blockHtml.push(needStoryBlock(b, "secondary"));
         }
         break;
       case "continuation":
@@ -1173,6 +1194,16 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      (e.g. a full-resolution logo image) blew the row past its declared
      height. Force min-height: 0 so the row sticks to its grid track. */
   .block { overflow: hidden; min-height: 0; min-width: 0; max-height: 100%; max-width: 100%; }
+  /* Unfilled story slot - the newsroom's demand signal. Amber dashed frame +
+     diagonal hatching so it can never be mistaken for finished layout. */
+  .need-story {
+    display: flex; align-items: center; justify-content: center;
+    border: 3px dashed #d97706; border-radius: 4px;
+    background: repeating-linear-gradient(45deg, #fffbeb, #fffbeb 14px, #fef3c7 14px, #fef3c7 28px);
+  }
+  .need-story-inner { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 8px; }
+  .need-story-title { font-family: 'Ramabhadra', serif; font-size: 30px; color: #b45309; line-height: 1; }
+  .need-story-kind { font-size: 15px; font-weight: 700; color: #92400e; }
   /* Story blocks fill their (definite-height) block as a flex column so the
      body dek - flex:1 + min-height:0 + overflow:hidden - clips cleanly INSIDE
      the block's padding instead of bleeding flush past the bottom edge into
@@ -1472,6 +1503,23 @@ const FIT_DECK_SCRIPT = `<script>
     var full = el.getAttribute('data-full');
     if (full === null) { full = el.textContent; el.setAttribute('data-full', full); }
     el.textContent = full;
+    // HEADLINES: a cropped headline is a broken front page. Before any
+    // truncation, step the font DOWN (to a 55% floor) until the whole
+    // headline fits - the newspaper way: the head gets smaller, never "..".
+    // data-basefs caches the designed size so editor re-fits (block resized
+    // bigger again) can step back UP toward it.
+    if (el.classList.contains('fit-head')) {
+      var baseFs = parseFloat(el.getAttribute('data-basefs') || '');
+      if (!baseFs) { baseFs = parseFloat(getComputedStyle(el).fontSize) || 16; el.setAttribute('data-basefs', String(baseFs)); }
+      el.style.fontSize = '';                    // start from the designed size
+      var fs = baseFs, floorFs = baseFs * 0.55, hguard = 0;
+      while (overflows(el) && fs > floorFs && hguard++ < 40) {
+        fs = fs * 0.94;
+        el.style.fontSize = fs.toFixed(2) + 'px';
+      }
+      if (!overflows(el)) return;                // whole headline visible
+      // Still overflowing at the floor: fall through to the truncation path.
+    }
     if (!overflows(el)) return;                  // fits already (short copy)
     var units = letters(full);                   // array of whole letters
     // Binary-search the most WHOLE LETTERS that fit alongside "...".
