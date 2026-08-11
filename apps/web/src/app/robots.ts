@@ -6,12 +6,16 @@
 // Google-Extended (Google AI training, separate from Search), Bytespider
 // (ByteDance / TikTok), anthropic-ai (older Anthropic identifier).
 //
-// We intentionally allow the Search-side bots from the same companies -
-// Perplexity's user-facing search crawler is distinct from PerplexityBot
-// and uses a different user agent; we want our content cited in AI Mode
-// answers, just not free-mined for training.
+// We intentionally allow the Search/citation-side bots from the same
+// companies - we want our content cited in AI answers (with links back),
+// just not free-mined for training.
 //
 // Reference: docs/superpowers/specs/2026-05-26-seo-research.md sec 4.
+// 2026-08-11: unblocked OAI-SearchBot, ChatGPT-User, PerplexityBot and
+// Claude-Web/ClaudeBot - those are citation/fetch bots that drive AI-search
+// visibility, not training scrapers. The original list conflated the two
+// (and wrongly assumed PerplexityBot wasn't the search indexer - it is;
+// Perplexity-User is the on-demand fetcher).
 
 import type { MetadataRoute } from "next";
 
@@ -37,13 +41,8 @@ const PUBLIC_DISALLOW = [
 // model training and send back no traffic and no citation.
 const AI_TRAINING_BOTS = [
   "GPTBot",
-  "ChatGPT-User",
-  "OAI-SearchBot",
-  "ClaudeBot",
   "anthropic-ai",
-  "Claude-Web",
   "CCBot",
-  "PerplexityBot",
   "Bytespider",
   "Applebot-Extended",
   "Meta-ExternalAgent",
@@ -55,6 +54,19 @@ const AI_TRAINING_BOTS = [
   "Cohere-ai",
   "ImagesiftBot",
   "YouBot",
+];
+
+// AI search / citation bots: explicitly allowed. These index or fetch pages
+// to answer user queries WITH source links - visibility we want. Kept as an
+// explicit allow (not just wildcard fall-through) so the policy is legible
+// in the generated robots.txt.
+const AI_SEARCH_BOTS = [
+  "OAI-SearchBot",   // ChatGPT Search index (not used for training)
+  "ChatGPT-User",    // on-demand fetch when a ChatGPT user cites a page
+  "PerplexityBot",   // Perplexity's search indexer - produces cited answers
+  "Perplexity-User", // Perplexity's on-demand fetcher
+  "ClaudeBot",       // Anthropic crawler honoring citation surfaces
+  "Claude-Web",      // Claude's on-demand web fetch
 ];
 
 export default function robots(): MetadataRoute.Robots {
@@ -77,10 +89,10 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: "Bingbot", allow: "/", disallow: PUBLIC_DISALLOW },
       { userAgent: "DuckDuckBot", allow: "/", disallow: PUBLIC_DISALLOW },
       { userAgent: "YandexBot", allow: "/", disallow: PUBLIC_DISALLOW },
+      // AI search / citation bots: allowed with the standard exclusions.
+      ...AI_SEARCH_BOTS.map((bot) => ({ userAgent: bot, allow: "/", disallow: PUBLIC_DISALLOW })),
       // AI training crawlers: blanket disallow. These don't drive traffic;
-      // they ingest text for model training. We re-enter the conversation
-      // about specific AI engines (Perplexity user-search, Brave Search,
-      // Kagi Sherpa, etc.) via the wildcard rule above which permits them.
+      // they ingest text for model training and send back no citation.
       ...AI_TRAINING_BOTS.map((bot) => ({ userAgent: bot, disallow: "/" })),
     ],
     // The index only. It references the section sitemap, every monthly article
