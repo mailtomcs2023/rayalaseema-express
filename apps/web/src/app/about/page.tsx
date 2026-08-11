@@ -39,9 +39,10 @@ export default async function AboutPage() {
           <h2>కవరేజీ పరిధి</h2>
           <p>
             కర్నూలు, నంద్యాల, అనంతపురం, శ్రీ సత్యసాయి, వైఎస్సార్ కడప, అన్నమయ్య, తిరుపతి, చిత్తూరు —
-            రాయలసీమలోని ఈ ఎనిమిది జిల్లాలు మా కవరేజీ పరిధి. రాజకీయాలు, వ్యవసాయం, విద్య, క్రీడలు, సినిమా,
-            వ్యాపారం తదితర రంగాల వార్తలను మండల స్థాయి వరకు అందిస్తున్నాం. జిల్లాల వారీ వార్తల కోసం
-            హోమ్ పేజీలోని జిల్లాల విభాగం చూడవచ్చు.
+            రాయలసీమలోని ఈ ఎనిమిది జిల్లాల వార్తలు మా ప్రధాన దృష్టి. వీటిని మండల స్థాయి వరకు అందిస్తున్నాం.
+            దీంతో పాటు ఆంధ్రప్రదేశ్ రాష్ట్ర వార్తలు, జాతీయ, అంతర్జాతీయ పరిణామాలు, సినిమా, క్రీడలు,
+            వ్యాపారం, రాశి ఫలాలు, మార్కెట్ ధరలు తదితర విభాగాలలో కూడా వార్తలు ప్రచురిస్తున్నాం.
+            జిల్లాల వారీ వార్తల కోసం హోమ్ పేజీలోని జిల్లాల విభాగం చూడవచ్చు.
           </p>
 
           <h2>సంపాదకీయ ప్రమాణాలు</h2>
@@ -56,10 +57,12 @@ export default async function AboutPage() {
 
           <h2>Who we are</h2>
           <p>
-            {brand} is a digital Telugu news publication covering the Rayalaseema region of Andhra
-            Pradesh — Kurnool, Nandyal, Anantapur, Sri Sathya Sai, YSR Kadapa, Annamayya, Tirupati and
-            Chittoor districts — with hyper-local reporting down to the mandal level. The publication
-            is operated by {legal}. Details of ownership and funding are published on our{" "}
+            {brand} is a digital Telugu news publication with a primary focus on the Rayalaseema
+            region of Andhra Pradesh — Kurnool, Nandyal, Anantapur, Sri Sathya Sai, YSR Kadapa,
+            Annamayya, Tirupati and Chittoor districts — with hyper-local reporting down to the
+            mandal level. Alongside its regional focus, it covers Andhra Pradesh state news, national
+            and international developments, cinema, sports and business. The publication is operated
+            by {legal}. Details of ownership and funding are published on our{" "}
             <Link href="/ownership">ownership page</Link>, and the editorial team on the{" "}
             <Link href="/masthead">masthead</Link>.
           </p>

@@ -15,7 +15,7 @@ export default function PrivacyPage() {
       <main style={{ maxWidth: 800, margin: "0 auto", padding: "40px 16px" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 24, color: "#111" }}>Privacy Policy</h1>
         <div className="article-body" style={{ fontSize: 15, lineHeight: 1.8, color: "#333" }}>
-          <p><strong>Last Updated:</strong> April 2026</p>
+          <p><strong>Last Updated:</strong> August 2026</p>
 
           <h2>1. Information We Collect</h2>
           <p>Rayalaseema News ("we", "our") collects the following information when you visit our website:</p>
@@ -54,20 +54,24 @@ export default function PrivacyPage() {
           <h2>5. Data Security</h2>
           <p>We implement appropriate technical and organizational measures to protect your personal data.</p>
 
-          <h2>6. Your Rights</h2>
-          <p>You have the right to:</p>
+          <h2>6. Your Rights (Digital Personal Data Protection Act, 2023)</h2>
+          <p>As a Data Principal under India's Digital Personal Data Protection Act, 2023, you have the right to:</p>
           <ul>
-            <li>Access your personal data</li>
-            <li>Request deletion of your data</li>
-            <li>Opt-out of marketing communications</li>
-            <li>Disable cookies through your browser</li>
+            <li>Access a summary of the personal data we hold about you and how it is processed</li>
+            <li>Request correction or erasure of your personal data</li>
+            <li>Withdraw consent for processing at any time</li>
+            <li>Nominate a person to exercise these rights on your behalf</li>
+            <li>Opt-out of marketing communications and disable cookies through your browser</li>
           </ul>
+          <p>Data requests are acknowledged within 72 hours and fulfilled within 30 days.</p>
 
-          <h2>7. Grievance Officer (IT Act, 2000)</h2>
-          <p>In accordance with the Information Technology Act, 2000, the Grievance Officer for this website is:</p>
-          <p><strong>Rayalaseema News Editor</strong><br />
-          Email: editor@rayalaseemanews.com<br />
-          Response time: Within 36 hours of receiving the complaint</p>
+          <h2>7. Grievance Officer</h2>
+          <p>
+            In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics
+            Code) Rules, 2021, the Grievance Officer for this website can be reached at:
+          </p>
+          <p>Email: <a href="mailto:grievance@rayalaseemanews.com">grievance@rayalaseemanews.com</a><br />
+          Complaints are acknowledged within 36 hours and resolved within 15 days, as the Rules require.</p>
 
           <h2>8. Contact Us</h2>
           <p>For privacy-related queries, contact us at: <a href="mailto:privacy@rayalaseemanews.com">privacy@rayalaseemanews.com</a></p>

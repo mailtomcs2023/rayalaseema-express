@@ -32,16 +32,16 @@ export default function OwnershipPage() {
 
         <div className="article-body" style={{ fontSize: 16, lineHeight: 1.85, color: "#333" }}>
           <p>
-            Rayalaseema News is published by Medha Hosting OPC Pvt Ltd, an Indian private limited company
-            registered in Andhra Pradesh. This page discloses ownership, funding sources, and related properties.
+            Rayalaseema News is published by Medha Publications Private Limited, an Indian private limited
+            company. This page discloses ownership, funding sources, and related properties.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 32, marginBottom: 10 }}>Publishing entity</h2>
           <p>
-            <strong>Medha Hosting OPC Pvt Ltd</strong> &mdash; an Indian One Person Company (OPC) registered with the
-            Ministry of Corporate Affairs. The company is registered for the operation of digital news publications
-            and related technology services. Registered office and CIN details are available on request from the
-            editorial address below; we publish them on this page once the full filing record is complete.
+            <strong>Medha Publications Private Limited</strong> &mdash; an Indian private limited company registered
+            with the Ministry of Corporate Affairs, established to operate digital news publications. Registered
+            office and CIN details are available on request from the editorial address below; we publish them on
+            this page once the full filing record is complete.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 32, marginBottom: 10 }}>Editorial independence</h2>
@@ -70,16 +70,16 @@ export default function OwnershipPage() {
 
           <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 32, marginBottom: 10 }}>Related properties</h2>
           <p>
-            Medha Hosting OPC Pvt Ltd operates additional digital properties unrelated to news, including hosting,
-            cloud-infrastructure, and Microsoft 365 partner services. None of those properties are involved in
-            editorial decisions for Rayalaseema News.
+            Companies affiliated with the Medha group operate digital businesses unrelated to news, including
+            hosting, cloud-infrastructure, and Microsoft 365 partner services. None of those businesses are
+            involved in editorial decisions for Rayalaseema News.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 32, marginBottom: 10 }}>Conflicts of interest</h2>
           <p>
-            When we report on Medha Hosting, its directors, or any related entity, we disclose the relationship
-            inside the article and have an independent editor sign off. Stories that materially affect related
-            parties are escalated to the Editor-in-Chief.
+            When we report on Medha Publications, its directors, or any related entity, we disclose the
+            relationship inside the article and have an independent editor sign off. Stories that materially
+            affect related parties are escalated to the Editor-in-Chief.
           </p>
 
           <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 32, marginBottom: 10 }}>Contact</h2>
