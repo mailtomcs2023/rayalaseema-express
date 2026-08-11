@@ -100,6 +100,7 @@ export default function robots(): MetadataRoute.Robots {
     // invite crawlers to fetch the same URLs by two routes and would keep the
     // retired flat /sitemap.xml alive as a discovery path.
     sitemap: [`${siteUrl}/sitemap-index.xml`],
-    host: siteUrl,
+    // No `host:` - it emitted a Yandex-only directive (deprecated since 2018)
+    // that GSC flags as an unknown rule on every robots.txt variant.
   };
 }
