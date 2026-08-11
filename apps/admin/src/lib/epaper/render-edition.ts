@@ -146,14 +146,30 @@ async function renderEditionAttempt(
       });
       await page.waitForTimeout(300);
 
-      // Harvest clickable article hotspots from the rendered DOM.
+      // Harvest clickable hotspots from the rendered DOM:
+      //   a.story-link  → article hotspot (opens the story on the website)
+      //   a.jump-link   → "మిగతా కథనం పేజీ N" hotspot (viewer navigates to
+      //                   page N in place - a reader mid-paper wants the rest
+      //                   of the story, not a website detour)
       const hotspots = await page.$$eval(
-        "a.story-link",
+        "a.story-link, a.jump-link",
         (els, dims) =>
           els
             .map((el) => {
               const r = el.getBoundingClientRect();
               const raw = el.getAttribute("href") || "";
+              const jump = raw.match(/#page=(\d+)/);
+              if (jump) {
+                return {
+                  slug: "",
+                  href: "",
+                  targetPage: +jump[1],
+                  x: +(r.x / dims.w).toFixed(4),
+                  y: +(r.y / dims.h).toFixed(4),
+                  w: +(r.width / dims.w).toFixed(4),
+                  h: +(r.height / dims.h).toFixed(4),
+                };
+              }
               let href = raw;
               try { href = new URL(raw, "http://x").pathname; } catch { /* keep raw */ }
               const slug = href.split("/").filter(Boolean).pop() || "";

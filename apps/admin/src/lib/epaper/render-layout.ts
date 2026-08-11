@@ -624,7 +624,7 @@ function continuationBlock(b: Block, a: ResolvedArticle): string {
     <div class="block-inner">
       <div class="cont-header">
         <span class="cont-from">← ${from}వ పేజీ తరువాత</span>
-        <span class="cont-hl"${hlStyle}>${headlineHtml(b.overrideTitle?.trim() || a.title, b)}</span>
+        <span class="cont-hl fit-head"${hlStyle}>${headlineHtml(b.overrideTitle?.trim() || a.title, b)}</span>
       </div>
       <p class="cont-body fit-deck">${esc(slice)}</p>
     </div>`;
@@ -1312,7 +1312,12 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Right column-rule: 2px so it survives the editor's CSS zoom (a 1px rule
      rasterises to sub-pixel at <1 zoom and vanishes). */
   .lead { padding: 6px 0; border-right: 2px solid var(--rule-soft); padding-right: 12px; }
-  .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin-bottom:10px;max-height:3.4em;overflow:hidden;flex:0 0 auto}
+  /* Headline height caps are PERCENT of the block, not em line-counts: a long
+     head takes the lines it needs (up to ~half the block) and the body dek's
+     own fitter absorbs whatever height remains - so adjusting the heading
+     auto-adjusts the story under it (owner request 2026-08-11). The fit-head
+     font-shrink still runs first; the cap only bites truly huge heads. */
+  .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin:5px 0 12px;max-height:48%;overflow:hidden;flex:0 0 auto}
   .lead-img{flex:0 0 380px;margin-bottom:10px}
   .lead-dek{
     font-size:20px;line-height:1.65;color:#34302a;text-align:justify;
@@ -1329,7 +1334,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Same right-side gutter as .secondary so all story columns breathe evenly. */
   .major { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); border-right: 1px solid var(--rule-soft); padding-right: 10px; }
   .maj-img{flex:0 0 160px;margin-bottom:8px}
-  .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin-bottom:6px;max-height:2.35em;overflow:hidden;flex:0 0 auto}
+  .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin:4px 0 10px;max-height:46%;overflow:hidden;flex:0 0 auto}
   .maj-dek{font-size:18px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   /* Continuation source: body fills, the "→ page" jump link stays pinned below. */
   .cont-src{display:flex;flex-direction:column;overflow:hidden}
@@ -1341,7 +1346,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Secondary */
   .secondary { padding: 6px 0; border-right: 1px solid var(--rule-soft); padding-right: 10px;}
   .sec-img{flex:0 0 130px;margin-bottom:6px}
-  .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin-bottom:5px;max-height:2.4em;overflow:hidden}
+  .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin:4px 0 10px;max-height:46%;overflow:hidden}
   .sec-dek{font-size:17.5px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0; text-indent:1.2em; }
   .sec-dek p:first-child{ text-indent:0; }
@@ -1357,7 +1362,9 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .continuation { padding: 6px 0; border-top: 2px solid #14110b; border-right: 1px solid var(--rule-soft); padding-right: 10px; }
   .cont-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
   .cont-from { font-family: 'Noto Sans Telugu', sans-serif; font-size: 11px; font-weight: 700; color: #A50D0D; text-transform: uppercase; letter-spacing: 1px; }
-  .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 45px; line-height: 1.12; color: var(--ink); }
+  /* display:block so the fitter's rect measurement + max-height bite on the
+     span; breathing room above/below per owner review 2026-08-11. */
+  .cont-hl { font-family: 'Pragathi-Special', 'Ramabhadra', 'Noto Serif Telugu', serif; font-weight: 400; font-size: 45px; line-height: 1.12; color: var(--ink); display: block; max-height: 50%; overflow: hidden; margin: 4px 0 8px; }
   .cont-body { font-size: 18px; line-height: 1.55; color: #34302a; text-align: justify;
     column-count: 2; column-gap: 14px; column-rule: 1px solid #d8d0bd; flex: 1 1 auto; overflow: hidden; }
   .cont-body p{ margin:0; text-indent:1.2em; }

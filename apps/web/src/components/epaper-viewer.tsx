@@ -22,6 +22,9 @@ const HANDLES: Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 function mergeHotspots(spots: Hotspot[]): Hotspot[] {
   const groups = new Map<string, Hotspot[]>();
   for (const h of spots) {
+    // Page-jump hotspots stay solo: merging one into its article's bounding
+    // region would erase the jump zone (it sits INSIDE the story block).
+    if (h.targetPage) { groups.set(`__jump-${groups.size}`, [h]); continue; }
     const key = (h.href || h.slug || "").trim();
     if (!key) { groups.set(`__solo-${groups.size}`, [h]); continue; }
     const arr = groups.get(key);
@@ -39,7 +42,14 @@ function mergeHotspots(spots: Hotspot[]): Hotspot[] {
   return out;
 }
 
-interface Hotspot { slug: string; href?: string; x: number; y: number; w: number; h: number; }
+interface Hotspot {
+  slug: string;
+  href?: string;
+  // Present on "మిగతా కథనం పేజీ N" jump links - viewer flips to that page
+  // in place instead of leaving for the website.
+  targetPage?: number;
+  x: number; y: number; w: number; h: number;
+}
 interface EpaperPage {
   pageNumber: number;
   label: string;
@@ -424,7 +434,19 @@ export function EpaperViewer({
             <img key={idx} ref={imgRef} className="ev-page" src={cur.imageUrl || undefined} alt={`${cur.label} - page ${cur.pageNumber}`} draggable={false} />
 
             {!clipMode &&
-              mergeHotspots(cur.hotspots).map((h, i) => (
+              mergeHotspots(cur.hotspots).map((h, i) => h.targetPage ? (
+                // Page-jump: flip the viewer to the continuation page in
+                // place. Sits above article hotspots so the jump wins.
+                <button
+                  key={i}
+                  type="button"
+                  className="ev-hotspot ev-hotspot-jump"
+                  onClick={() => go((h.targetPage as number) - 1)}
+                  style={{ left: `${h.x * 100}%`, top: `${h.y * 100}%`, width: `${h.w * 100}%`, height: `${h.h * 100}%` }}
+                  title={`పేజీ ${h.targetPage}కి వెళ్లండి`}
+                  aria-label={`Go to page ${h.targetPage}`}
+                />
+              ) : (
                 <a key={i} className="ev-hotspot" href={h.href || articleHref(h)}
                   onClick={() => {
                     if (editionId) {

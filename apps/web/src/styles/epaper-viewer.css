@@ -157,6 +157,13 @@
           -webkit-tap-highlight-color: rgba(0,120,255,0.25);
         }
         .ev-hotspot:hover { background: rgba(0,120,255,0.16); outline: 1px solid rgba(0,120,255,0.6); }
+        /* Page-jump hotspot ("మిగతా కథనం పేజీ N") - sits ABOVE article
+           hotspots so the jump wins where they overlap; brand-red hint. */
+        .ev-hotspot-jump {
+          z-index: 3; border: none; padding: 0; cursor: pointer;
+          background: rgba(185,20,20,0);
+        }
+        .ev-hotspot-jump:hover { background: rgba(185,20,20,0.18); outline: 1px solid rgba(185,20,20,0.7); }
         .ev-hotspot:active { background: rgba(0,120,255,0.22); }
         /* On touch devices (no hover) hint tappable stories faintly. */
         @media (hover: none) {
