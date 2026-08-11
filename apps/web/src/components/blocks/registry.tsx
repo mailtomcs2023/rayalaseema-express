@@ -19,6 +19,7 @@ import { CategoryColumn, CategoryPair } from "@/components/category-column";
 import { WebStories } from "@/components/web-stories";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { MarketTicker, CurrencyCard, GoldSilverCard } from "@/components/market-widgets";
+import { GovtFeed } from "@/components/govt-feed";
 import type { PageContext } from "./types";
 import * as F from "./fetchers";
 
@@ -140,6 +141,11 @@ export const REGISTRY: Record<Exclude<BuiltinBlockType, "Columns" | "Loop">, Reg
   GoldSilverCard: {
     component: GoldSilverCard as AnyComponent,
     fetcher: (config, ctx) => F.fetchGoldSilverCard() as never,
+    hideWhenEmpty: (data) => !data,
+  },
+  GovtFeed: {
+    component: GovtFeed as AnyComponent,
+    fetcher: (config, ctx) => F.fetchGovtFeed(config as never) as never,
     hideWhenEmpty: (data) => !data,
   },
 };
