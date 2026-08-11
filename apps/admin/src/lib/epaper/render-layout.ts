@@ -395,11 +395,15 @@ function imageOrFallback(url: string | null | undefined, className: string, crop
     // transform - works in PDF render because Playwright honors CSS transforms.
     let imgStyle = "";
     if (crop && crop.w > 0 && crop.h > 0) {
-      const scaleX = 1 / crop.w;
-      const scaleY = 1 / crop.h;
-      const offsetX = -crop.x * 100 * scaleX;
-      const offsetY = -crop.y * 100 * scaleY;
-      imgStyle = ` style="transform: translate(${offsetX}%, ${offsetY}%) scale(${scaleX}, ${scaleY}); transform-origin: 0 0;"`;
+      // Operator crop: a wrapper carries the strip's class (so the flex
+      // sizing / --img-h rules keep applying) and the inner img is placed by
+      // the ev-crop script - UNIFORM scale, covering the strip, centered on
+      // the saved window. The old transform-scale(x,y) path stretched the
+      // photo whenever the rect aspect differed from the strip aspect AND
+      // fought `.block img { object-fit: cover }` (it scaled an already
+      // cover-cropped image), which shifted the framing entirely.
+      return `<span class="${className} crop-wrap"><img class="crop-img" src="${esc(url)}"
+        data-crop="${crop.x},${crop.y},${crop.w},${crop.h}" alt="" loading="eager" /></span>`;
     } else if (focal) {
       // No manual crop → smart default: the cover-crop window centers on the
       // saliency focal point instead of the frame's dead center.
@@ -1240,6 +1244,11 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   .block .block-inner { width:100%; display:flex; flex-direction:column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
   /* Belt-and-braces: any image anywhere inside a block can't exceed the block. */
   .block img { max-width: 100%; max-height: 100%; object-fit: cover; }
+  /* Operator-cropped image: wrapper takes the strip's box (its class list
+     includes .lead-img/.maj-img/.sec-img so the flex sizing still applies);
+     the ev-crop script places the inner img uniformly. */
+  .crop-wrap { position: relative; overflow: hidden; display: block; width: 100%; }
+  .crop-wrap .crop-img { position: absolute; max-width: none; max-height: none; object-fit: unset; }
 
   /* Masthead */
   /* Eenadu-style masthead: 3-col [ad | logo+tag | ad] band on top,
@@ -1634,6 +1643,54 @@ const FIT_DECK_SCRIPT = `<script>
     window.addEventListener('load', function () {
       var els = document.querySelectorAll('.fit-deck, .fit-head');
       for (var i = 0; i < els.length; i++) ro.observe(els[i]);
+    });
+  }
+})();
+</script>
+<script>
+// ev-crop: place operator-cropped images (see imageOrFallback). UNIFORM scale
+// only - the saved window (x,y,w,h fractions of the natural image) is scaled
+// so it COVERS the strip and its center stays centered; overflow clips
+// symmetrically. Distortion is impossible: one scale factor for both axes.
+(function () {
+  function place(img) {
+    var parts = (img.getAttribute('data-crop') || '').split(',').map(Number);
+    if (parts.length !== 4 || !img.naturalWidth || !img.naturalHeight) return;
+    var x = parts[0], y = parts[1], w = parts[2], h = parts[3];
+    var box = img.parentElement; if (!box) return;
+    var cw = box.clientWidth, ch = box.clientHeight;
+    if (!cw || !ch) return;
+    // Scale so the window width fills the strip width...
+    var scale = cw / (w * img.naturalWidth);
+    // ...and bump it up if that leaves the window shorter than the strip.
+    var winH = h * img.naturalHeight * scale;
+    if (winH < ch) scale = scale * (ch / winH);
+    var iw = img.naturalWidth * scale, ih = img.naturalHeight * scale;
+    var left = -(x * iw) - (w * iw - cw) / 2;
+    var top = -(y * ih) - (h * ih - ch) / 2;
+    // Never expose blank strip: clamp so the image always covers the box.
+    left = Math.min(0, Math.max(cw - iw, left));
+    top = Math.min(0, Math.max(ch - ih, top));
+    img.style.width = iw.toFixed(1) + 'px';
+    img.style.height = ih.toFixed(1) + 'px';
+    img.style.left = left.toFixed(1) + 'px';
+    img.style.top = top.toFixed(1) + 'px';
+  }
+  function runCrop() {
+    var imgs = document.querySelectorAll('img.crop-img');
+    for (var i = 0; i < imgs.length; i++) {
+      if (imgs[i].complete) { try { place(imgs[i]); } catch (e) {} }
+      else imgs[i].addEventListener('load', (function (el) { return function () { try { place(el); } catch (e) {} }; })(imgs[i]));
+    }
+  }
+  if (document.readyState !== 'loading') runCrop();
+  else document.addEventListener('DOMContentLoaded', runCrop);
+  window.addEventListener('load', runCrop);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function (ents) { for (var i = 0; i < ents.length; i++) { var im = ents[i].target.querySelector('img.crop-img'); if (im) try { place(im); } catch (e) {} } });
+    window.addEventListener('load', function () {
+      var wraps = document.querySelectorAll('.crop-wrap');
+      for (var i = 0; i < wraps.length; i++) ro.observe(wraps[i]);
     });
   }
 })();
