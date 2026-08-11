@@ -82,7 +82,9 @@ export function EpaperViewer({
   const [clipLocalUrl, setClipLocalUrl] = useState<string | null>(null);
   const clipLocalUrlRef = useRef<string | null>(null);
   const clipImgCache = useRef<{ src: string; img: HTMLImageElement } | null>(null);
-  const [showThumbs, setShowThumbs] = useState(false); // all-pages thumbnail strip - hidden until the reader asks (పేజీలు button)
+  // All-pages thumbnail strip - visible by default (Eenadu-style film strip);
+  // the పేజీలు button collapses it for readers who want a taller stage.
+  const [showThumbs, setShowThumbs] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -291,14 +293,14 @@ export function EpaperViewer({
         {/* Page navigation */}
         <div className="ev-grp ev-nav">
           <Button
-            variant="secondary" size="icon-sm"
+            variant="secondary" size="icon-sm" className="ev-btn"
             onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous page"
           >
             <ChevronLeft className="size-4" />
           </Button>
           <span className="ev-pageno">పేజీ {idx + 1} / {pages.length}</span>
           <Button
-            variant="secondary" size="icon-sm"
+            variant="secondary" size="icon-sm" className="ev-btn"
             onClick={() => go(idx + 1)} disabled={idx === pages.length - 1} aria-label="Next page"
           >
             <ChevronRight className="size-4" />
@@ -308,23 +310,23 @@ export function EpaperViewer({
         {/* Zoom + tools */}
         <div className="ev-grp">
           <Button
-            variant="secondary" size="icon-sm"
+            variant="secondary" size="icon-sm" className="ev-btn"
             onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} aria-label="Zoom out"
           >
             <ZoomOut className="size-4" />
           </Button>
           <span className="ev-z">{Math.round(zoom * 100)}%</span>
           <Button
-            variant="secondary" size="icon-sm"
+            variant="secondary" size="icon-sm" className="ev-btn"
             onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in"
           >
             <ZoomIn className="size-4" />
           </Button>
 
           <Button
-            variant={clipMode ? "default" : "secondary"}
+            variant="secondary"
             size="sm"
-            className={clipMode ? "bg-yellow-400 text-red-800 hover:bg-yellow-300 font-bold" : "font-bold"}
+            className={clipMode ? "ev-btn is-on" : "ev-btn"}
             onClick={() => {
               if (clipMode) { setClipMode(false); setSel(null); setClipUrl(null); return; }
               // Entering clip mode: drop a default selection box near the TOP of
@@ -361,7 +363,7 @@ export function EpaperViewer({
           </Button>
 
           {pdfUrl && (
-            <Button variant="secondary" size="sm" className="font-bold" asChild>
+            <Button variant="secondary" size="sm" className="ev-btn" asChild>
               <a href={pdfUrl} target="_blank" rel="noopener">
                 <FileDown className="size-4" />
                 PDF
@@ -371,9 +373,9 @@ export function EpaperViewer({
 
           {/* Show / hide the all-pages thumbnail strip */}
           <Button
-            variant={showThumbs ? "default" : "secondary"}
+            variant="secondary"
             size="sm"
-            className={showThumbs ? "bg-yellow-400 text-red-800 hover:bg-yellow-300 font-bold" : "font-bold"}
+            className={showThumbs ? "ev-btn is-on" : "ev-btn"}
             onClick={() => setShowThumbs((v) => !v)}
             title={showThumbs ? "పేజీలను దాచండి" : "అన్ని పేజీలు చూడండి"}
           >
@@ -418,7 +420,8 @@ export function EpaperViewer({
             onMouseMove={onMove}
             onMouseUp={onUp}
           >
-            <img ref={imgRef} className="ev-page" src={cur.imageUrl || undefined} alt={`${cur.label} - page ${cur.pageNumber}`} draggable={false} />
+            {/* key={idx} re-triggers the ev-pagein settle animation per page turn */}
+            <img key={idx} ref={imgRef} className="ev-page" src={cur.imageUrl || undefined} alt={`${cur.label} - page ${cur.pageNumber}`} draggable={false} />
 
             {!clipMode &&
               mergeHotspots(cur.hotspots).map((h, i) => (

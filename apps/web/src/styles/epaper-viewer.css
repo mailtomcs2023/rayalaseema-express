@@ -1,39 +1,89 @@
 /* Styles for components/epaper-viewer.tsx.
  *
- * Imported by that component so Next ships it only on routes that render
- * it. These used to sit in an inline <style> tag (re-sent per render), then
- * briefly in globals.css (downloaded on every route, including article
- * pages that use none of it). Plain CSS, not a module: the class names are
- * referenced as string literals in the markup.
+ * "Printing-press reading room" chrome: deep ink toolbar + film-strip
+ * thumbnails + vignetted paper stage. Brand red appears only as a sharp
+ * accent (active states, the press rule under the toolbar) - the chrome
+ * itself stays ink-dark so the newspaper page is the brightest thing on
+ * screen, the way a lit broadsheet reads in a dark press hall.
+ *
+ * Imported by that component so Next ships it only on routes that render it.
  */
-        .ev { background: #f4f4f5; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .ev {
+          background: #17181c;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 10px 40px rgba(10, 10, 14, 0.35);
+        }
         .ev-empty {
           background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
           padding: 60px; text-align: center;
           font-family: var(--font-telugu-body), sans-serif; color: #6b7280;
         }
 
-        /* TOP TOOLBAR */
+        /* TOP TOOLBAR - ink bar with a press-red rule underneath */
         .ev-bar {
           display: flex; align-items: center; justify-content: space-between;
-          background: linear-gradient(180deg, #B91414 0%, #9c0f0f 100%);
-          color: #fff; padding: 10px 16px; gap: 12px; flex-wrap: wrap;
+          background: linear-gradient(180deg, #1d1e24 0%, #141519 100%);
+          border-bottom: 3px solid var(--brand, #B91414);
+          color: #f4f2ec; padding: 10px 16px; gap: 14px; flex-wrap: wrap;
         }
         .ev-grp { display: flex; align-items: center; gap: 8px; }
-        .ev-nav { background: rgba(0,0,0,0.18); border-radius: 6px; padding: 2px 6px; }
-        .ev-title { font-family: var(--font-telugu-heading), serif; font-size: 22px; font-weight: 800; color: #fff; padding-right: 4px; }
+        .ev-nav {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.09);
+          border-radius: 999px; padding: 3px 8px;
+        }
+        .ev-title {
+          font-family: var(--font-telugu-heading), serif; font-size: 22px; font-weight: 800;
+          color: #fff; padding-right: 14px; position: relative;
+        }
+        /* Hairline divider after the masthead title */
+        .ev-title::after {
+          content: ""; position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+          width: 1px; height: 22px; background: rgba(255,255,255,0.14);
+        }
         .ev-search { flex: 0 1 auto; margin-left: auto; min-width: 0; }
-        .ev-date { font-family: var(--font-telugu-heading), serif; font-size: 15px; font-weight: 800; }
-        .ev-pageno { font-family: var(--font-telugu-body), sans-serif; font-size: 13px; font-weight: 700; min-width: 90px; text-align: center; }
-        /* toolbar buttons now use shadcn Button - no custom CSS needed */
-        .ev-z { font-size: 12px; min-width: 42px; text-align: center; font-weight: 700; }
+        .ev-date { font-family: var(--font-telugu-heading), serif; font-size: 15px; font-weight: 800; color: #f4f2ec; }
+        .ev-pageno {
+          font-family: var(--font-telugu-body), sans-serif; font-size: 13px; font-weight: 700;
+          min-width: 90px; text-align: center; color: #e9e6dd;
+          font-variant-numeric: tabular-nums;
+        }
+        .ev-z {
+          font-size: 12px; min-width: 42px; text-align: center; font-weight: 700;
+          color: #b9b6ac; font-variant-numeric: tabular-nums;
+        }
 
-        /* HORIZONTAL THUMBNAIL STRIP */
+        /* Unified toolbar buttons. The TSX renders shadcn <Button> with these
+           classes appended; the !important overrides flatten every variant
+           (secondary gray, yellow toggle) into one ink-chrome system:
+           ghost at rest, red when hovered, solid red when the tool is ON. */
+        .ev-bar .ev-btn {
+          background: rgba(255,255,255,0.06) !important;
+          border: 1px solid rgba(255,255,255,0.12) !important;
+          color: #f4f2ec !important;
+          box-shadow: none !important;
+          font-weight: 700;
+          transition: background-color .15s ease, border-color .15s ease !important;
+        }
+        .ev-bar .ev-btn:hover:not(:disabled) {
+          background: rgba(185,20,20,0.55) !important;
+          border-color: rgba(224,27,27,0.65) !important;
+        }
+        .ev-bar .ev-btn:disabled { opacity: .35 !important; }
+        .ev-bar .ev-btn.is-on {
+          background: var(--brand, #B91414) !important;
+          border-color: #E01B1B !important;
+          color: #fff !important;
+        }
+
+        /* HORIZONTAL THUMBNAIL STRIP - film strip on ink */
         .ev-thumbs-h {
-          display: flex; gap: 8px; padding: 12px 14px;
-          background: #fff; border-bottom: 1px solid rgba(0,0,0,0.06);
+          display: flex; gap: 10px; padding: 14px 16px;
+          background: #1f2026;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
           overflow-x: auto; overflow-y: hidden; scrollbar-width: thin;
-          /* Smooth collapse/expand when toggled with the "పేజీలు" button. */
+          scrollbar-color: rgba(255,255,255,0.25) transparent;
           max-height: 220px; opacity: 1;
           transition: max-height .3s ease, opacity .22s ease, padding .3s ease, border-width .3s ease;
         }
@@ -43,52 +93,64 @@
           overflow: hidden; pointer-events: none;
         }
         .ev-thumbs-h::-webkit-scrollbar { height: 6px; }
-        .ev-thumbs-h::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 3px; }
+        .ev-thumbs-h::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 3px; }
         .ev-thumb {
-          position: relative; flex: 0 0 88px; border: 2px solid transparent;
-          border-radius: 6px; padding: 0; cursor: pointer; background: #f3f4f6;
+          position: relative; flex: 0 0 92px; border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 5px; padding: 0; cursor: pointer; background: #26272d;
           overflow: hidden; display: flex; flex-direction: column;
-          transition: border-color 0.15s, transform 0.15s;
+          transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
         }
-        .ev-thumb:hover { transform: translateY(-1px); }
-        .ev-thumb.active { border-color: #E01B1B; box-shadow: 0 0 0 2px rgba(224,27,27,0.18); }
+        .ev-thumb:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.3); }
+        .ev-thumb.active {
+          border-color: #E01B1B;
+          box-shadow: 0 0 0 2px rgba(224,27,27,0.35), 0 6px 16px rgba(0,0,0,0.4);
+          transform: translateY(-2px);
+        }
         .ev-thumb img {
           /* Match the broadsheet page trim (1890×2868 = 381×578mm, 1:1.517). */
           width: 100%; aspect-ratio: 1890 / 2868; object-fit: cover; display: block; background: #eee;
         }
         .ev-thumb-no {
-          position: absolute; top: 3px; left: 3px;
-          background: rgba(224,27,27,0.95); color: #fff;
+          position: absolute; top: 0; left: 0;
+          background: var(--brand, #B91414); color: #fff;
           font-family: var(--font-telugu-body), sans-serif; font-size: 11px; font-weight: 800;
-          padding: 2px 7px; border-radius: 3px; line-height: 1;
+          padding: 3px 8px; border-radius: 0 0 4px 0; line-height: 1;
         }
         .ev-thumb-label {
-          padding: 5px 4px;
+          padding: 6px 4px;
           font-family: var(--font-telugu-body), sans-serif; font-size: 10px; font-weight: 700;
-          color: #374151; text-align: center;
+          color: #c9c6bc; text-align: center; background: #1b1c21;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+        .ev-thumb.active .ev-thumb-label { color: #fff; }
 
-        /* STAGE */
+        /* STAGE - vignetted press-hall backdrop; the page is the light source */
         .ev-stage-wrap { position: relative; }
         .ev-stage {
-          background: #2a2a2a; padding: 10px 8px; overflow: auto;
+          background:
+            radial-gradient(120% 90% at 50% 0%, #33343b 0%, #232429 55%, #1a1b1f 100%);
+          padding: 18px 8px 24px; overflow: auto;
           display: flex; align-items: flex-start; justify-content: center;
           /* Fixed height (min == max) so the stage NEVER collapses while the
-             next page image is loading. The side arrows are anchored to this
-             box at top:50%; a collapsing stage made them jump/"bounce" on every
-             page change. A stable height keeps them dead still. */
+             next page image is loading - keeps the side arrows dead still. */
           height: 78vh; min-height: 78vh; max-height: 78vh;
-          /* Allow native one-finger pan/scroll; two-finger pinch is handled in JS. */
           touch-action: pan-x pan-y;
         }
-        /* Base page caps at 1000px at 100% zoom; the inline width = min(zoom*100%,
-           zoom*1000px) scales that cap with zoom so the page actually grows.
-           flex-shrink:0 stops the flex container from shrinking the zoomed page
-           back to fit (that was why zoom did nothing); margin:auto centers it
-           when it fits and lets it scroll from the left when it overflows. */
         .ev-pagewrap { position: relative; user-select: none; flex: 0 0 auto; margin: 0 auto; }
-        .ev-page { width: 100%; height: auto; display: block; box-shadow: 0 8px 30px rgba(0,0,0,0.5); background: #FFFFFF; }
+        .ev-page {
+          width: 100%; height: auto; display: block; background: #FFFFFF;
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow:
+            0 1px 2px rgba(0,0,0,0.5),
+            0 12px 34px rgba(0,0,0,0.55),
+            0 30px 70px rgba(0,0,0,0.4);
+          animation: ev-pagein .28s ease both;
+        }
+        /* Page-turn: new page settles in with a small rise + fade. */
+        @keyframes ev-pagein {
+          from { opacity: 0.35; transform: translateY(6px); }
+          to   { opacity: 1;    transform: translateY(0); }
+        }
         .ev-hotspot {
           position: absolute; display: block;
           background: rgba(0,120,255,0); transition: background 0.15s;
@@ -96,15 +158,13 @@
         }
         .ev-hotspot:hover { background: rgba(0,120,255,0.16); outline: 1px solid rgba(0,120,255,0.6); }
         .ev-hotspot:active { background: rgba(0,120,255,0.22); }
-        /* On touch devices (no hover) make tappable stories faintly visible so
-           readers know where to tap, the way Eenadu/Sakshi hint article zones. */
+        /* On touch devices (no hover) hint tappable stories faintly. */
         @media (hover: none) {
           .ev-hotspot { background: rgba(0,120,255,0.05); outline: 1px solid rgba(0,120,255,0.18); }
         }
+
         /* CLIP SELECTION BOX + resize handles */
-        /* Animated "marching ants" dashed border (Sakshi-style). The four
-           edges are drawn as repeating gradients and the background-position is
-           animated so the dashes crawl. Interior stays transparent. */
+        /* Animated "marching ants" dashed border. Interior stays transparent. */
         .ev-sel {
           position: absolute; z-index: 6; cursor: move;
           background:
@@ -119,8 +179,6 @@
         @keyframes ev-march {
           to { background-position: 10px 0, -10px 100%, 0 -10px, 100% 10px; }
         }
-        /* Resize handles - larger, translucent black fill, white outline (with a
-           thin dark ring so they read on any background). */
         .ev-handle {
           position: absolute; width: 15px; height: 15px; background: rgba(0,0,0,0.4);
           border: 2px solid #fff; border-radius: 1px; z-index: 7;
@@ -135,62 +193,68 @@
         .ev-h-sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
         .ev-h-w  { left: -7px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
 
-        /* Floating share toolbar (ABN-style), anchored to the box's right edge */
+        /* Floating share toolbar, anchored to the box's right edge */
         .ev-cliptools {
           position: absolute; z-index: 8;
           display: flex; flex-direction: column; gap: 3px;
-          background: rgba(255,255,255,0.96); padding: 4px; border-radius: 8px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+          background: rgba(23,24,28,0.94); padding: 4px; border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.12);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+          backdrop-filter: blur(6px);
         }
         .ev-ct {
           width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
-          border: none; border-radius: 6px; color: #fff; cursor: pointer; text-decoration: none;
+          border: none; border-radius: 8px; color: #fff; cursor: pointer; text-decoration: none;
           transition: filter .12s ease, transform .12s ease;
         }
-        .ev-ct:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .ev-ct:hover { filter: brightness(1.12); transform: translateY(-1px); }
         .ev-ct svg { width: 17px; height: 17px; }
         .ev-ct.is-disabled { opacity: .4; pointer-events: none; }
         .ev-ct-wa { background: #25D366; }
         .ev-ct-fb { background: #1877F2; }
-        .ev-ct-x  { background: #111; }
+        .ev-ct-x  { background: #111; border: 1px solid rgba(255,255,255,0.25); }
         .ev-ct-mail { background: #EA4335; }
         .ev-ct-copy { background: #6b7280; }
         .ev-ct-dl { background: #0EA5E9; }
         .ev-ct-close { background: #B91414; }
         .ev-ct-spin {
           width: 18px; height: 18px; margin: 8px auto 4px; border-radius: 50%;
-          border: 2px solid #d1d5db; border-top-color: #B91414; animation: ev-spin .7s linear infinite;
+          border: 2px solid rgba(255,255,255,0.3); border-top-color: #E01B1B; animation: ev-spin .7s linear infinite;
         }
         @keyframes ev-spin { to { transform: rotate(360deg); } }
 
-        /* SIDE NAV ARROWS - professional & dead-still: the transform is pinned
-           so NOTHING moves on hover/click; feedback is a colour change only.
-           Brand red at rest, dark red on hover. */
+        /* SIDE NAV ARROWS - translucent ink discs that light up red on hover.
+           Transform pinned so NOTHING moves on hover/click (the shadcn base
+           has active:translate-y-px via the translate property). */
         .ev-stage-arrow {
           position: absolute !important;
           top: 50% !important;
-          /* Pin BOTH transform and the separate CSS translate property: the
-             shadcn Button base has active:translate-y-px (a press-down effect)
-             which uses the translate property - pinning transform alone could
-             not stop the button moving down on click. */
           transform: translateY(-50%) !important;
           translate: none !important;
           width: 48px !important;
           height: 48px !important;
-          background: #B91414 !important;
+          background: rgba(20, 21, 26, 0.72) !important;
+          border: 1px solid rgba(255,255,255,0.18) !important;
           color: #fff !important;
-          transition: background-color .15s ease !important;
+          backdrop-filter: blur(4px);
+          transition: background-color .15s ease, border-color .15s ease !important;
         }
-        .ev-stage-arrow:hover:not(:disabled) { background: #7F0D0D !important; }
-        .ev-stage-arrow:active:not(:disabled) { background: #6B0B0B !important; transform: translateY(-50%) !important; translate: none !important; }
+        .ev-stage-arrow:hover:not(:disabled) {
+          background: var(--brand, #B91414) !important;
+          border-color: #E01B1B !important;
+        }
+        .ev-stage-arrow:active:not(:disabled) {
+          background: #8f0f0f !important;
+          transform: translateY(-50%) !important; translate: none !important;
+        }
         .ev-stage-arrow.left { left: 16px; }
         .ev-stage-arrow.right { right: 16px; }
 
         @media (max-width: 768px) {
           .ev-thumb { flex: 0 0 64px; }
-          .ev-stage { padding: 14px 6px; height: 70vh; min-height: 70vh; max-height: 70vh; }
-          .ev-stage-arrow { width: 38px; height: 38px; font-size: 24px; }
+          .ev-stage { padding: 14px 6px 18px; height: 70vh; min-height: 70vh; max-height: 70vh; }
+          .ev-stage-arrow { width: 38px !important; height: 38px !important; }
           .ev-stage-arrow.left { left: 6px; }
           .ev-stage-arrow.right { right: 6px; }
+          .ev-title { font-size: 18px; padding-right: 10px; }
         }
-      
