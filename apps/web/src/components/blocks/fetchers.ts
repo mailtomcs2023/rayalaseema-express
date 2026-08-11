@@ -715,6 +715,19 @@ export async function fetchWebStories(
 
 // --- PhotoGallery ---
 
+// --- Market widgets ---
+
+// Market widgets: all three blocks share one server fetch (module cache in
+// market-data.ts makes repeat calls within a request cycle free). Returning
+// null lets hideWhenEmpty drop the block — no dummy numbers, ever.
+export async function fetchMarketTicker() {
+  const { getMarketData } = await import("@/lib/market-data");
+  const data = await getMarketData();
+  return data ? { data } : null;
+}
+export const fetchCurrencyCard = fetchMarketTicker;
+export const fetchGoldSilverCard = fetchMarketTicker;
+
 export async function fetchPhotoGallery(
   config: z.infer<typeof photoGalleryConfig>,
   _ctx: PageContext,
