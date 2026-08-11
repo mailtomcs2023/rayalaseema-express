@@ -6,6 +6,7 @@ import { autofillTemplate, type BlockSlot } from "@/lib/epaper/autofill";
 import { autoAdjustEditionPages } from "@/lib/epaper/auto-adjust";
 import { buildContinuations } from "@/lib/epaper/continuation";
 import { createSnapshot } from "@/lib/epaper/snapshots";
+import { computeVolumeIssue } from "@/lib/epaper/numbering";
 
 // POST /api/epaper/generate-edition
 // Body: { date: "YYYY-MM-DD" }
@@ -71,15 +72,20 @@ export async function POST(req: NextRequest) {
 
     // One main edition row per day. Per-district editions are now pages within
     // the same edition (v2 simplification - no more 9 separate EpaperEdition rows).
+    // సంపుటి/సంచిక computed from the Sept-2026 launch epoch; set on update too
+    // so re-generating an edition heals rows that predate auto-numbering.
+    const { volumeNumber, issueNumber } = await computeVolumeIssue(date);
     const edition = await prisma.epaperEdition.upsert({
       where: { date_edition: { date, edition: "main" } },
-      update: { status: "draft", pageCount: templates.length },
+      update: { status: "draft", pageCount: templates.length, volumeNumber, issueNumber },
       create: {
         date,
         edition: "main",
         status: "draft",
         pageCount: templates.length,
         title: `${dateStr} Edition`,
+        volumeNumber,
+        issueNumber,
       },
     });
 

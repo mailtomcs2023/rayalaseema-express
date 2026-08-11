@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@rayalaseema/db";
 import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
+import { computeVolumeIssue } from "@/lib/epaper/numbering";
 
 // Auto-builds an EDITABLE layout plan from published articles.
 // Staff then tweak slot assignments in the admin editor before rendering.
@@ -109,13 +110,17 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.epaperEdition.findUnique({
       where: { date_edition: { date: editionDate, edition: editionKey } },
     });
+    // District editions share the day's సంపుటి/సంచిక with the main edition
+    // (one issue of the paper, many editions) - computeVolumeIssue counts
+    // only "main" rows, so the same date always yields the same numbers.
+    const { volumeNumber, issueNumber } = await computeVolumeIssue(editionDate);
     const edition = existing
       ? await prisma.epaperEdition.update({
           where: { id: existing.id },
-          data: { layout: { pages } as any, status: "draft", title },
+          data: { layout: { pages } as any, status: "draft", title, volumeNumber, issueNumber },
         })
       : await prisma.epaperEdition.create({
-          data: { date: editionDate, edition: editionKey, layout: { pages } as any, status: "draft", title, pdfUrl: null },
+          data: { date: editionDate, edition: editionKey, layout: { pages } as any, status: "draft", title, pdfUrl: null, volumeNumber, issueNumber },
         });
 
     return NextResponse.json({ success: true, editionId: edition.id, edition: editionKey, pages: pages.length });
