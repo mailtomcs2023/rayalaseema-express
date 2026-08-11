@@ -55,6 +55,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // Absolute base for every relative OG/twitter asset (incl. the shared
+  // opengraph-image.png). Without this Next resolves them to localhost:3000
+  // in production, so WhatsApp/Facebook link previews had NO image on the
+  // homepage, /epaper, and every page that doesn't hand-build absolute OG
+  // URLs (found 2026-08-11; article pages were unaffected because their
+  // generateMetadata emits absolute /api/og-photo URLs).
+  metadataBase: new URL(process.env.SITE_URL || "https://rayalaseemanews.com"),
   // Title leads with the highest-volume English head term ("Telugu News")
   // then brand, then Telugu phrase. Google truncates around 60 chars on
   // SERP but indexes the full title.

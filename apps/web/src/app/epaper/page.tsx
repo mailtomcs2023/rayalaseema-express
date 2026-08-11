@@ -9,10 +9,23 @@ import { EpaperSearchInline } from "@/components/epaper-search-inline";
 import { EpaperDatePicker } from "@/components/epaper-date-picker";
 import { getSiteConfig } from "@/lib/db-queries";
 
-export const metadata: Metadata = {
-  title: "ఈ-పేపర్",
-  description: "రాయలసీమ న్యూస్ ఈ-పేపర్ - ప్రధాన + జిల్లా ఎడిషన్లు.",
-};
+// Share card shows the CURRENT front page, not a generic logo tile - a
+// WhatsApp/Facebook share of /epaper sells today's actual paper. Falls back
+// to the site-wide OG image (resolved via metadataBase) when nothing is
+// published yet.
+export async function generateMetadata(): Promise<Metadata> {
+  const latest = await prisma.epaperEdition.findFirst({
+    where: { active: true, status: "ready", NOT: { workflowState: "KILLED" } },
+    orderBy: { date: "desc" },
+    select: { pages: { where: { pageNumber: 1 }, select: { imageUrl: true }, take: 1 } },
+  }).catch(() => null);
+  const front = latest?.pages[0]?.imageUrl;
+  return {
+    title: "ఈ-పేపర్",
+    description: "రాయలసీమ న్యూస్ ఈ-పేపర్ - ప్రధాన + జిల్లా ఎడిషన్లు.",
+    ...(front ? { openGraph: { images: [front] }, twitter: { card: "summary_large_image", images: [front] } } : {}),
+  };
+}
 
 const EDITION_NAMES: Record<string, string> = {
   main: "ప్రధాన ఎడిషన్",
