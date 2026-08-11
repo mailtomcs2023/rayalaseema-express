@@ -54,6 +54,7 @@ interface Block {
   // exposes a strict subset (no "wrap" image-position).
   style?: {
     imagePosition?: "top" | "left" | "right" | "none";
+    imageHeight?: number;     // px on the sheet - top-image strip height override
     imageSize?: number;
     textColumns?: 1 | 2 | 3;
     hlScale?: number;
@@ -1814,7 +1815,9 @@ function EpaperEditorPage() {
       const frac = (b.style?.imageSize ?? 40) / 100;
       return (wPx * frac) / Math.max(80, b.h * rowH * 0.85);
     }
-    const imgH = b.type === "lead" ? 380 : b.type === "major" ? 160 : b.type === "secondary" ? 130 : b.h * rowH;
+    const imgH = (b.style?.imageHeight && b.style.imageHeight > 0)
+      ? b.style.imageHeight
+      : b.type === "lead" ? 380 : b.type === "major" ? 160 : b.type === "secondary" ? 130 : b.h * rowH;
     return wPx / imgH;
   };
 
@@ -3763,6 +3766,10 @@ const DraggableBlockGrid = memo(function DraggableBlockGrid({
         margin={[GRID_MARGIN_X, GRID_MARGIN_Y]}
         containerPadding={[0, 0]}
         compactType="vertical"
+        // Resize from any edge/corner, not just bottom-right (owner request
+        // 2026-08-11) - a block against the right page edge could only grow
+        // by dragging a handle that sat off-canvas.
+        resizeHandles={["se", "sw", "e", "w", "s"]}
         // Selection via the grid's OWN drag lifecycle: react-grid-layout wraps
         // every tile in a draggable, which makes a plain onClick on the tile
         // unreliable (the drag layer consumes the mouse interaction, so clicks

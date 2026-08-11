@@ -57,6 +57,8 @@ export interface BlockStyleSettings {
   blockBgColor?: string;
   // "none" = heading + content only (no image).
   imagePosition?: "top" | "left" | "right" | "none";
+  // px on the sheet - top-image strip height override (<80 = auto/default).
+  imageHeight?: number;
   // Photoshop-style heading type controls.
   hlLetterSpacing?: number;
   hlLineHeight?: number;
@@ -185,7 +187,7 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
       const g = (k: string) => initialStyle?.[k] ?? "";
       setSettings({
         hlFontFamily: g("hlFontFamily"), hlFontSize: g("hlFontSize"), hlColor: g("hlColor"), hlBgColor: g("hlBgColor"), blockBgColor: g("blockBgColor"),
-        imagePosition: g("imagePosition"),
+        imagePosition: g("imagePosition"), imageHeight: g("imageHeight"),
         hlLetterSpacing: g("hlLetterSpacing"), hlLineHeight: g("hlLineHeight"),
         hlShadowX: g("hlShadowX"), hlShadowY: g("hlShadowY"), hlShadowBlur: g("hlShadowBlur"), hlShadowColor: g("hlShadowColor"),
         hlStrokeWidth: g("hlStrokeWidth"), hlStrokeColor: g("hlStrokeColor"),
@@ -212,9 +214,12 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
     for (const k of ["hlFontFamily", "hlColor", "hlBgColor", "blockBgColor", "imagePosition", "hlShadowColor", "hlStrokeColor", "hlGradFrom", "hlGradTo", "hlBgGradFrom", "hlBgGradTo", "accentColor", "bannerText", "subDeck"]) {
       c[k] = settings[k] ? settings[k] : undefined;
     }
-    for (const k of ["hlFontSize", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle"]) {
+    for (const k of ["hlFontSize", "hlLetterSpacing", "hlLineHeight", "hlShadowX", "hlShadowY", "hlShadowBlur", "hlStrokeWidth", "hlGradAngle", "hlBgGradAngle", "imageHeight"]) {
       c[k] = (settings[k] !== "" && settings[k] != null) ? Number(settings[k]) : undefined;
     }
+    // Slider parked below 80 = "auto": drop the override so the block's
+    // per-type default height applies again.
+    if (typeof c.imageHeight === "number" && c.imageHeight < 80) c.imageHeight = undefined;
     // Sakshi block toggles. showBanner is tri-state: "" → undefined (auto).
     c.showBanner = settings.showBanner === "on" ? true : settings.showBanner === "off" ? false : undefined;
     c.bulletBody = settings.bulletBody ? true : undefined;
@@ -412,6 +417,18 @@ export function BlockSettingsDialog({ open, onOpenChange, initialStyle, onSave, 
                   <SelectItem value="none">Hide — heading &amp; content only</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Image height</Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <input type="range" min={70} max={900} step={10} className="flex-1"
+                value={settings.imageHeight === "" || settings.imageHeight == null ? 0 : settings.imageHeight}
+                onChange={(e) => handleChange("imageHeight", e.target.value)} />
+              <span className="w-16 text-right text-sm tabular-nums">
+                {settings.imageHeight === "" || settings.imageHeight == null || Number(settings.imageHeight) < 80 ? "auto" : `${Number(settings.imageHeight)}px`}
+              </span>
             </div>
           </div>
 

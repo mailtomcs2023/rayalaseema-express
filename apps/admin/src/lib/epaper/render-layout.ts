@@ -63,6 +63,7 @@ export interface Block {
   style?: {
     imagePosition?: "top" | "left" | "right" | "none" | "wrap";
     imageSize?: number;       // percent 10..70
+    imageHeight?: number;     // px on the sheet - top-image strip height override
     textColumns?: 1 | 2 | 3;
     hlScale?: number;
     hlFontFamily?: string;
@@ -328,6 +329,10 @@ function blockStyle(b: Block, extra = ""): string {
       ];
   if (s.blockBgColor) parts.push(`background-color: ${s.blockBgColor}`);
   if (s.textColor) parts.push(`color: ${s.textColor}`);
+  // Per-block image strip height (px on the sheet). The .lead-img/.maj-img/
+  // .sec-img rules read --img-h with their type default as fallback, so an
+  // operator can size any block's photo area; the body flexes around it.
+  if (typeof s.imageHeight === "number" && s.imageHeight > 0) parts.push(`--img-h: ${s.imageHeight}px`);
   // Per-block accent (sub-banner bg, bullets, dateline). Overrides the page
   // --accent-red for this block + its children so each story can carry its own
   // Sakshi accent (red / blue / green / purple).
@@ -1331,7 +1336,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
      auto-adjusts the story under it (owner request 2026-08-11). The fit-head
      font-shrink still runs first; the cap only bites truly huge heads. */
   .lead-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:50px;line-height:1.08;letter-spacing:-0.5px;color:var(--ink);margin:5px 0 12px;max-height:48%;overflow:hidden;flex:0 0 auto}
-  .lead-img{flex:0 0 380px;margin-bottom:10px}
+  .lead-img{flex:0 0 var(--img-h, 380px);margin-bottom:10px}
   .lead-dek{
     font-size:20px;line-height:1.65;color:#34302a;text-align:justify;
     column-count:2;column-gap:18px;column-rule:1px solid #d8d0bd;column-fill:auto;
@@ -1346,7 +1351,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
   /* Major */
   /* Same right-side gutter as .secondary so all story columns breathe evenly. */
   .major { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); border-right: 1px solid var(--rule-soft); padding-right: 10px; }
-  .maj-img{flex:0 0 160px;margin-bottom:8px}
+  .maj-img{flex:0 0 var(--img-h, 160px);margin-bottom:8px}
   .maj-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.1;color:var(--ink);margin:4px 0 10px;max-height:46%;overflow:hidden;flex:0 0 auto}
   .maj-dek{font-size:18px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   /* Continuation source: body fills, the "→ page" jump link stays pinned below. */
@@ -1358,7 +1363,7 @@ export async function renderLayoutToHtml(input: RenderInput, opts?: { withMargin
 
   /* Secondary */
   .secondary { padding: 6px 0; border-right: 1px solid var(--rule-soft); padding-right: 10px;}
-  .sec-img{flex:0 0 130px;margin-bottom:6px}
+  .sec-img{flex:0 0 var(--img-h, 130px);margin-bottom:6px}
   .sec-hl{font-family:'Pragathi-Special','Ramabhadra','Noto Serif Telugu',serif;font-weight:400;font-size:45px;line-height:1.12;color:var(--ink);flex:0 0 auto;margin:4px 0 10px;max-height:46%;overflow:hidden}
   .sec-dek{font-size:17.5px;line-height:1.45;color:#4a443c;text-align:justify;flex:1 1 auto;overflow:hidden}
   .sec-dek p{ margin:0; text-indent:1.2em; }
