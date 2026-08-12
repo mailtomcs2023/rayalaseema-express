@@ -12,7 +12,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@rayalaseema/db";
-import { buildCategoryMetadata, CategoryHubView } from "@/lib/category-render";
+import { buildCategoryMetadata, CategoryHubView, CategoryView } from "@/lib/category-render";
 import { buildDistrictMetadata, DistrictView } from "@/lib/district-render";
 
 // Re-render at most once a minute so newly tagged/published articles appear on
@@ -51,9 +51,18 @@ export default async function RootSectionPage({
 }) {
   const { district: slug } = await params;
   const kind = await classify(slug);
-  // All category hubs use the same district-hub layout (lead + 2-col card grid
-  // + Trending rail) as /kurnool and /district-news.
-  if (kind === "category") return <CategoryHubView slug={slug} />;
+  // Category hubs default to the district-hub layout (lead + 2-col card grid
+  // + Trending rail). A category with its own page-builder template assignment
+  // (exact "/category/<slug>" pattern, e.g. business with market widgets)
+  // renders through TemplateRenderer instead, so admins can shape it.
+  if (kind === "category") {
+    const ownTemplate = await prisma.templateAssignment.findFirst({
+      where: { pattern: `/category/${slug}`, active: true },
+      select: { id: true },
+    });
+    if (ownTemplate) return <CategoryView slug={slug} />;
+    return <CategoryHubView slug={slug} />;
+  }
   if (kind === "district") return <DistrictView slug={slug} />;
   return notFound();
 }
