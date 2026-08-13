@@ -49,16 +49,23 @@ export function DeferredAnalytics({
     };
   }, [armed]);
 
-  if (!armed) return null;
-
   return (
     <>
+      {/* GTM loads on pageview (afterInteractive), NOT behind the interaction
+          gate. Audit 2026-08-13: GA4 had never received data - a bounce
+          visitor who never scrolls/taps was invisible, and the perf saving
+          did not justify losing the pageview baseline. The GA4 tag fires via
+          the published GTM container. */}
       {gtmId && (
         <Script id="gtm" strategy="afterInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
         </Script>
       )}
-      {clarityId && (
+      {/* Clarity stays behind the first-interaction gate: its tag throws an
+          uncaught TypeError on load (their bug), which fails the Lighthouse
+          errors-in-console audit - and a session replay of a visitor who
+          never interacts is worthless anyway. */}
+      {armed && clarityId && (
         <Script id="clarity" strategy="afterInteractive">
           {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${clarityId}");`}
         </Script>
