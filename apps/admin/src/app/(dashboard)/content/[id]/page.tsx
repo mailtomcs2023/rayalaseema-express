@@ -123,6 +123,7 @@ export default function ContentEditorPage() {
   const loadedAsPlaceholderRef = useRef(false);
   const isDirtyRef = useRef(false);
   const [featured, setFeatured] = useState(false);
+  const [breaking, setBreaking] = useState(false);
   const [language, setLanguage] = useState("TELUGU");
   const [tagsInput, setTagsInput] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -559,6 +560,7 @@ export default function ContentEditorPage() {
       setConstituencyId(row.constituencyId || "");
       setStatus(row.status || "DRAFT");
       setFeatured(!!row.featured);
+      setBreaking(!!(row as any).breaking);
       setLanguage(row.language || "TELUGU");
       setSourceUrl(row.sourceUrl || "");
       const initialScheduledAt = formatScheduledForInput(row.scheduledAt);
@@ -598,6 +600,7 @@ export default function ContentEditorPage() {
         constituencyId: row.constituencyId || "",
         status: row.status || "DRAFT",
         featured: !!row.featured,
+        breaking: !!(row as any).breaking,
         language: row.language || "TELUGU",
         sourceUrl: row.sourceUrl || "",
         scheduledAt: initialScheduledAt,
@@ -740,6 +743,7 @@ export default function ContentEditorPage() {
       constituencyId: constituencyId || null,
       status: finalStatus,
       featured,
+      breaking,
       language,
       sourceUrl: sourceUrl || null,
       payload,
@@ -875,6 +879,7 @@ export default function ContentEditorPage() {
     constituencyId,
     status,
     featured,
+    breaking,
     language,
     sourceUrl,
     scheduledAt,
@@ -1368,6 +1373,17 @@ export default function ContentEditorPage() {
                 />
                 <Label htmlFor="featured-flag" className="cursor-pointer text-sm font-medium">
                   Featured
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="breaking-flag"
+                  checked={breaking}
+                  onCheckedChange={(v) => setBreaking(v === true)}
+                />
+                <Label htmlFor="breaking-flag" className="cursor-pointer text-sm font-medium">
+                  ⚡ Breaking <span className="text-xs text-muted-foreground">(ticker, 24h)</span>
                 </Label>
               </div>
             </Section>

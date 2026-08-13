@@ -251,6 +251,7 @@ export async function POST(req: NextRequest) {
       deskId,
       status,
       featured,
+      breaking,
       scheduledAt,
       sourceUrl,
       tagNames,
@@ -350,6 +351,7 @@ export async function POST(req: NextRequest) {
           constituencyId: constituencyId || null,
           status: finalStatus as any,
           featured: featured ?? false,
+          breaking: breaking ?? false,
           language: "TELUGU",
           sourceUrl: sourceUrl?.trim() || null,
           needsPibApproval: needsPibApproval ?? false,
@@ -386,7 +388,13 @@ export async function POST(req: NextRequest) {
           // reuses the existing row instead.
           let tag = await tx.tag.findFirst({ where: { OR: [{ name }, { slug: tagSlug }] } });
           if (!tag) tag = await tx.tag.create({ data: { name, slug: tagSlug } });
-          await tx.contentTag.create({ data: { contentId: created.id, tagId: tag.id } });
+          // Upsert: the NER hook can race this loop on freshly created
+          // content; a duplicate (contentId, tagId) must not 500 the save.
+          await tx.contentTag.upsert({
+            where: { contentId_tagId: { contentId: created.id, tagId: tag.id } },
+            update: {},
+            create: { contentId: created.id, tagId: tag.id },
+          });
         }
       }
 

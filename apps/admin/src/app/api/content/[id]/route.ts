@@ -165,7 +165,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const data: any = {};
     const UPDATABLE = [
       "title", "slug", "summary", "body", "categoryId", "featuredImage",
-      "payload", "status", "featured", "constituencyId", "deskId",
+      "payload", "status", "featured", "breaking", "constituencyId", "deskId",
       "sourceUrl", "needsPibApproval",
     ] as const;
     for (const key of UPDATABLE) {
@@ -443,9 +443,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               create: { name, slug: tagSlug },
             });
           }
-          // source defaults to MANUAL in the schema, which is correct here -
-          // this is the editor's explicit tag list, never GAZETTEER-owned.
-          await tx.contentTag.create({ data: { contentId: id, tagId: tag.id, source: "MANUAL" } });
+          // Upsert, not create: the NER hook may have already attached this
+          // tag as GAZETTEER - a plain create then 500'd the whole save on
+          // the (contentId, tagId) PK (looked like "can't upload image" to
+          // the editor, 2026-08-12). The editor explicitly listing the tag
+          // claims it as MANUAL.
+          await tx.contentTag.upsert({
+            where: { contentId_tagId: { contentId: id, tagId: tag.id } },
+            update: { source: "MANUAL" },
+            create: { contentId: id, tagId: tag.id, source: "MANUAL" },
+          });
         }
       }
 

@@ -225,15 +225,25 @@ export async function getHomepageData() {
     getLatestArticles(12, true),
     // Breaking news now lives in Content with type=BREAKING_NEWS. Project to
     // the old BreakingNews shape so the ticker doesn't have to change.
-    prisma.content.findMany({
-      where: { type: "BREAKING_NEWS", status: "PUBLISHED" },
-      orderBy: { createdAt: "desc" },
-    }).then((rows) => {
+    // Ticker = standalone BREAKING_NEWS flashes + ARTICLEs ticked breaking in
+    // the editor (24h window) - same union as /api/breaking-news.
+    Promise.all([
+      prisma.content.findMany({
+        where: { type: "BREAKING_NEWS", status: "PUBLISHED" },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.content.findMany({
+        where: { type: "ARTICLE", status: "PUBLISHED", breaking: true, publishedAt: { gte: homepageFreshCutoff() } },
+        orderBy: { publishedAt: "desc" },
+      }),
+    ]).then(([flashes, brk]) => {
       const now = new Date();
-      return rows
+      const flashRows = flashes
         .map(projectBreakingNews)
         .filter((b) => !b.expiresAt || b.expiresAt > now)
         .sort((a, b) => a.priority - b.priority);
+      const brkRows = brk.map((r) => ({ ...r, headline: r.title, priority: -1, expiresAt: null }));
+      return [...brkRows, ...flashRows];
     }),
     prisma.category.findMany({
       where: { active: true },

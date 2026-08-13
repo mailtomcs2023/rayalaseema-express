@@ -1,18 +1,45 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@rayalaseema/db";
+import { articleHref } from "@/lib/article-href";
 
-// GET /api/breaking-news - Spec #1 #133: reads Content with type=BREAKING_NEWS
-// and projects to the old BreakingNews row shape so the header ticker
-// (apps/web/src/components/header.tsx) doesn't need to change. The legacy
-// BreakingNews table is dropped in #189.
+// GET /api/breaking-news - header ticker items. Two sources, unioned:
+//   1. Standalone BREAKING_NEWS rows (headline-only flashes with no article
+//      yet; expire via payload.expiresAt)
+//   2. ARTICLEs ticked "breaking" in the editor (owner 2026-08-12 - one
+//      checkbox next to Featured instead of duplicating the headline as a
+//      separate row). These auto-expire 24h after publish and link to the
+//      article.
+// Articles first (they carry links), then flashes, each newest-first.
 export async function GET() {
   const now = new Date();
-  const rows = await prisma.content.findMany({
-    where: { type: "BREAKING_NEWS", status: "PUBLISHED" },
-    orderBy: { createdAt: "desc" },
-  });
+  const dayAgo = new Date(now.getTime() - 24 * 3600 * 1000);
 
-  const items = rows
+  const [flashes, breakingArticles] = await Promise.all([
+    prisma.content.findMany({
+      where: { type: "BREAKING_NEWS", status: "PUBLISHED" },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.content.findMany({
+      where: { type: "ARTICLE", status: "PUBLISHED", breaking: true, publishedAt: { gte: dayAgo } },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        id: true, title: true, slug: true,
+        category: { select: { slug: true } },
+        constituency: { select: { slug: true, district: { select: { slug: true } } } },
+      },
+    }),
+  ]);
+
+  const articleItems = breakingArticles.map((a) => ({
+    id: a.id,
+    headline: a.title,
+    priority: -1, // ahead of flashes
+    active: true,
+    expiresAt: null,
+    url: articleHref({ ...a, slug: a.slug || "" }),
+  }));
+
+  const flashItems = flashes
     .map((r) => {
       const p = (r.payload as Record<string, unknown> | null) || {};
       const expiresAt = p.expiresAt ? new Date(p.expiresAt as string) : null;
@@ -28,7 +55,7 @@ export async function GET() {
     .filter((b) => !b.expiresAt || b.expiresAt > now)
     .sort((a, b) => a.priority - b.priority);
 
-  return NextResponse.json(items, {
+  return NextResponse.json([...articleItems, ...flashItems], {
     headers: { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=10" },
   });
 }

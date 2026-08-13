@@ -1247,6 +1247,12 @@ model Content {
 
   status    ArticleStatus @default(DRAFT)
   featured  Boolean       @default(false)
+  // Owner 2026-08-12: articles tick straight into the breaking ticker (like
+  // `featured`), instead of duplicating the headline as a separate
+  // BREAKING_NEWS row. Standalone BREAKING_NEWS items still work for flashes
+  // that have no article yet; the ticker unions both. Auto-expires from the
+  // ticker 24h after publishedAt - no manual cleanup.
+  breaking  Boolean       @default(false)
   language  Language      @default(TELUGU)
   viewCount Int           @default(0)
 

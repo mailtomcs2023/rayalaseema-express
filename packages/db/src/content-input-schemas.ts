@@ -58,6 +58,7 @@ const contentCommonShape = {
   deskId: emptyStringToNull.optional(),
   status: z.enum(STATUS_VALUES).optional(),
   featured: z.boolean().optional(),
+  breaking: z.boolean().optional(),
   language: z.enum(LANGUAGE_VALUES).optional(),
   sourceUrl: z.string().trim().max(URL_MAX).optional().nullable(),
   scheduledAt: z.string().datetime({ offset: true }).optional().nullable()
