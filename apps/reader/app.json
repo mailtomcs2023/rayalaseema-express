@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "RE News",
+    "name": "Rayalaseema News",
     "slug": "re-news",
     "scheme": "renews",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon-512.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/icon-512.png",
