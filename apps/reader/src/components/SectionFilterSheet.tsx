@@ -5,7 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import type { Category } from "../api/client";
 import { useT } from "../i18n";
 import { categoryLabel } from "../lib/format";
-import { colors, radius, spacing, withAlpha } from "../theme";
+import { radius, spacing, withAlpha } from "../theme";
+import { useTheme } from "../theme-context";
 
 interface Props {
   visible: boolean;
@@ -26,6 +27,7 @@ export default function SectionFilterSheet({
   onClose,
 }: Props) {
   const { t, lang } = useT();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   const Row = ({
@@ -45,7 +47,10 @@ export default function SectionFilterSheet({
       android_ripple={{ color: colors.surfaceAlt }}
     >
       <View style={[styles.dot, { backgroundColor: accent }]} />
-      <Text style={[styles.rowText, selected && styles.rowTextActive]} numberOfLines={1}>
+      <Text
+        style={[styles.rowText, { color: colors.text }, selected && styles.rowTextActive]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
       {selected ? <Ionicons name="checkmark" size={20} color={accent} /> : null}
@@ -55,10 +60,15 @@ export default function SectionFilterSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
-        <View style={styles.handle} />
+      <View
+        style={[
+          styles.sheet,
+          { backgroundColor: colors.bg, paddingBottom: insets.bottom + spacing.lg },
+        ]}
+      >
+        <View style={[styles.handle, { backgroundColor: colors.border }]} />
         <View style={styles.headerRow}>
-          <Text style={styles.title}>{t("saved.filterTitle")}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t("saved.filterTitle")}</Text>
           <Pressable hitSlop={10} onPress={onClose}>
             <Ionicons name="close" size={22} color={colors.textMuted} />
           </Pressable>
@@ -87,7 +97,6 @@ export default function SectionFilterSheet({
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
   sheet: {
-    backgroundColor: colors.bg,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     paddingHorizontal: spacing.lg,
@@ -99,7 +108,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.border,
     marginBottom: spacing.md,
   },
   headerRow: {
@@ -108,7 +116,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: spacing.sm,
   },
-  title: { fontSize: 17, fontWeight: "800", color: colors.text },
+  title: { fontSize: 17, fontWeight: "800" },
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -118,6 +126,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   dot: { width: 12, height: 12, borderRadius: 6 },
-  rowText: { flex: 1, fontSize: 15, fontWeight: "600", color: colors.text },
+  rowText: { flex: 1, fontSize: 15, fontWeight: "600" },
   rowTextActive: { fontWeight: "800" },
 });
