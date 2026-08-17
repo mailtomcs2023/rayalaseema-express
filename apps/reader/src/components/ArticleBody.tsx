@@ -2,7 +2,10 @@ import React, { useMemo } from "react";
 import { View, Text, Linking, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { parseHtmlBlocks, type Block, type Span } from "../lib/html";
-import { colors, radius, spacing } from "../theme";
+import { useTheme } from "../theme-context";
+import { radius, spacing, type Palette } from "../theme";
+
+type Styles = ReturnType<typeof makeStyles>;
 
 // Renders a CMS article's HTML body as native views - no WebView. Parses the
 // HTML into blocks once, then maps each to Text/Image. `title` lets us drop a
@@ -15,6 +18,9 @@ export default function ArticleBody({
   html: string | null | undefined;
   title?: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const blocks = useMemo(() => {
     let b = parseHtmlBlocks(html);
     if (title && b.length) {
@@ -24,7 +30,7 @@ export default function ArticleBody({
           .trim()
           .toLowerCase()
           // strip common punctuation that CMS / headline sources differ on
-          .replace(/[.!?:,;"'\u2018\u2019\u201c\u201d\u2026\u2014\u2013-]/g, "");
+          .replace(/[.!?:,;"'‘’“”…—–-]/g, "");
       const normTitle = norm(title);
       const first = b[0];
       const firstText =
@@ -48,13 +54,13 @@ export default function ArticleBody({
   return (
     <View>
       {blocks.map((b, i) => (
-        <BlockView key={i} block={b} />
+        <BlockView key={i} block={b} styles={styles} />
       ))}
     </View>
   );
 }
 
-function BlockView({ block }: { block: Block }) {
+function BlockView({ block, styles }: { block: Block; styles: Styles }) {
   switch (block.kind) {
     case "image":
       return (
@@ -68,14 +74,14 @@ function BlockView({ block }: { block: Block }) {
     case "heading":
       return (
         <Text style={[styles.heading, block.level <= 2 ? styles.h2 : styles.h3]}>
-          <Spans spans={block.spans} />
+          <Spans spans={block.spans} styles={styles} />
         </Text>
       );
     case "quote":
       return (
         <View style={styles.quote}>
           <Text style={styles.quoteText}>
-            <Spans spans={block.spans} />
+            <Spans spans={block.spans} styles={styles} />
           </Text>
         </View>
       );
@@ -84,7 +90,7 @@ function BlockView({ block }: { block: Block }) {
         <View style={styles.listRow}>
           <Text style={styles.bullet}>{block.ordered ? `${block.index}.` : "•"}</Text>
           <Text style={styles.paragraph}>
-            <Spans spans={block.spans} />
+            <Spans spans={block.spans} styles={styles} />
           </Text>
         </View>
       );
@@ -92,19 +98,23 @@ function BlockView({ block }: { block: Block }) {
     default:
       return (
         <Text style={styles.paragraph}>
-          <Spans spans={block.spans} />
+          <Spans spans={block.spans} styles={styles} />
         </Text>
       );
   }
 }
 
-function Spans({ spans }: { spans: Span[] }) {
+function Spans({ spans, styles }: { spans: Span[]; styles: Styles }) {
   return (
     <>
       {spans.map((s, i) => {
         if (s.href) {
           return (
-            <Text key={i} style={styles.link} onPress={() => Linking.openURL(s.href!).catch(() => {})}>
+            <Text
+              key={i}
+              style={styles.link}
+              onPress={() => Linking.openURL(s.href!).catch(() => {})}
+            >
               {s.text}
             </Text>
           );
@@ -122,38 +132,42 @@ function Spans({ spans }: { spans: Span[] }) {
   );
 }
 
-const styles = StyleSheet.create({
-  paragraph: {
-    fontSize: 17,
-    lineHeight: 27,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  heading: {
-    fontWeight: "800",
-    color: colors.text,
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  h2: { fontSize: 21, lineHeight: 29 },
-  h3: { fontSize: 18, lineHeight: 25 },
-  bold: { fontWeight: "800" },
-  italic: { fontStyle: "italic" },
-  link: { color: colors.brand, textDecorationLine: "underline" },
-  image: {
-    width: "100%",
-    aspectRatio: 16 / 9,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceAlt,
-    marginBottom: spacing.md,
-  },
-  quote: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.brand,
-    paddingLeft: spacing.md,
-    marginBottom: spacing.md,
-  },
-  quoteText: { fontSize: 17, lineHeight: 27, color: colors.textMuted, fontStyle: "italic" },
-  listRow: { flexDirection: "row", marginBottom: spacing.sm, paddingRight: spacing.sm },
-  bullet: { fontSize: 17, lineHeight: 27, color: colors.brand, width: 24, fontWeight: "700" },
-});
+// Line heights are >= 1.6x the font size throughout: Telugu glyphs carry tall
+// vowel marks above and below the baseline and clip at tighter leading.
+function makeStyles(colors: Palette) {
+  return StyleSheet.create({
+    paragraph: {
+      fontSize: 17,
+      lineHeight: 28,
+      color: colors.text,
+      marginBottom: spacing.md,
+    },
+    heading: {
+      fontWeight: "800",
+      color: colors.text,
+      marginTop: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    h2: { fontSize: 21, lineHeight: 34 },
+    h3: { fontSize: 18, lineHeight: 29 },
+    bold: { fontWeight: "800" },
+    italic: { fontStyle: "italic" },
+    link: { color: colors.brand, textDecorationLine: "underline" },
+    image: {
+      width: "100%",
+      aspectRatio: 16 / 9,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceAlt,
+      marginBottom: spacing.md,
+    },
+    quote: {
+      borderLeftWidth: 3,
+      borderLeftColor: colors.brand,
+      paddingLeft: spacing.md,
+      marginBottom: spacing.md,
+    },
+    quoteText: { fontSize: 17, lineHeight: 28, color: colors.textMuted, fontStyle: "italic" },
+    listRow: { flexDirection: "row", marginBottom: spacing.sm, paddingRight: spacing.sm },
+    bullet: { fontSize: 17, lineHeight: 28, color: colors.brand, width: 24, fontWeight: "700" },
+  });
+}
