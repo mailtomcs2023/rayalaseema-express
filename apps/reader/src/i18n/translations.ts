@@ -9,7 +9,7 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
 // language; English is the fallback / toggle.
 export const translations: Record<Lang, Record<string, any>> = {
   te: {
-    appName: "రాయలసీమ ఎక్స్‌ప్రెస్",
+    appName: "రాయలసీమ న్యూస్",
     tabs: {
       feed: "వార్తలు",
       categories: "విభాగాలు",
@@ -39,6 +39,11 @@ export const translations: Record<Lang, Record<string, any>> = {
       language: "భాష",
       about: "గురించి",
       version: "వెర్షన్",
+      appearance: "రూపం",
+      themeSystem: "సిస్టమ్",
+      themeLight: "లైట్",
+      themeDark: "డార్క్",
+      shareApp: "యాప్ షేర్ చేయండి",
     },
     actions: {
       share: "షేర్",
@@ -53,7 +58,7 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
   },
   en: {
-    appName: "Rayalaseema Express",
+    appName: "Rayalaseema News",
     tabs: {
       feed: "News",
       categories: "Sections",
@@ -83,6 +88,11 @@ export const translations: Record<Lang, Record<string, any>> = {
       language: "Language",
       about: "About",
       version: "Version",
+      appearance: "Appearance",
+      themeSystem: "System",
+      themeLight: "Light",
+      themeDark: "Dark",
+      shareApp: "Share app",
     },
     actions: {
       share: "Share",
