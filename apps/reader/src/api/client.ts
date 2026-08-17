@@ -45,6 +45,7 @@ export interface Article {
   viewCount: number;
   category: Category | null;
   author: { id: string; name: string } | null;
+  isBreaking?: boolean;
 }
 
 // Full article incl. the HTML body - returned by GET /api/articles/:id and
@@ -89,12 +90,13 @@ const PAGE_SIZE = 20;
 
 // One page of the public news feed, newest first. Pass a category slug to
 // filter; omit it for the mixed "all news" feed.
-export async function fetchArticles(opts: { category?: string; offset?: number } = {}) {
+export async function fetchArticles(opts: { category?: string; breaking?: boolean; offset?: number; limit?: number } = {}) {
   const params = new URLSearchParams({
-    limit: String(PAGE_SIZE),
+    limit: String(opts.limit ?? PAGE_SIZE),
     offset: String(opts.offset ?? 0),
   });
   if (opts.category) params.set("category", opts.category);
+  if (opts.breaking) params.set("breaking", "1");
   const data = await get<ArticlesResponse>(`/api/articles?${params.toString()}`);
   return {
     articles: data.articles,
