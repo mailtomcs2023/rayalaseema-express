@@ -54,6 +54,9 @@ export const translations: Record<Lang, Record<string, any>> = {
     search: {
       soon: "శోధన త్వరలో…",
     },
+    stories: {
+      breaking: "బ్రేకింగ్",
+    },
     toggle: {
       title: "భాష మార్చండి",
       message: "యాప్‌ను {lang}లో చూపించాలా?",
@@ -106,6 +109,9 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
     search: {
       soon: "Search coming soon",
+    },
+    stories: {
+      breaking: "Breaking",
     },
     toggle: {
       title: "Change language",

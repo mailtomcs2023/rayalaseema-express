@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenHeader from "../../src/components/ScreenHeader";
 import HomeFeed, { type HomeFeedHandle } from "../../src/components/HomeFeed";
+import StoriesRow from "../../src/components/StoriesRow";
 import { useTabPress } from "../../src/lib/use-tab-press";
 import { useTheme } from "../../src/theme-context";
 
@@ -20,7 +21,7 @@ export default function FeedScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <ScreenHeader right={right} />
-      <HomeFeed ref={feedRef} category={null} />
+      <HomeFeed ref={feedRef} category={null} ListHeaderComponent={<StoriesRow />} />
     </View>
   );
 }

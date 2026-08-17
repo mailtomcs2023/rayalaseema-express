@@ -7,6 +7,7 @@ export interface ReaderPagination {
   category: string | null; // null = the mixed "all" feed
   offset: number; // next offset to request
   hasMore: boolean; // whether the server has more pages
+  breaking?: boolean; // true = this is the breaking-news list, not further paginated
 }
 
 interface ReaderFeed {
