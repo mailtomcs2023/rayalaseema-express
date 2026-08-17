@@ -23,6 +23,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       error: "వార్తలు తీసుకురాలేకపోయాం",
       retry: "మళ్ళీ ప్రయత్నించండి",
       end: "మీరు చివరికి చేరుకున్నారు",
+      more: "మరిన్ని",
     },
     reader: {
       readFull: "పూర్తి కథనం చదవండి",
@@ -50,6 +51,9 @@ export const translations: Record<Lang, Record<string, any>> = {
       save: "సేవ్",
       saved: "సేవ్ చేయబడింది",
     },
+    search: {
+      soon: "శోధన త్వరలో…",
+    },
     toggle: {
       title: "భాష మార్చండి",
       message: "యాప్‌ను {lang}లో చూపించాలా?",
@@ -72,6 +76,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       error: "Couldn't load news",
       retry: "Try again",
       end: "You're all caught up",
+      more: "more",
     },
     reader: {
       readFull: "Read full story",
@@ -98,6 +103,9 @@ export const translations: Record<Lang, Record<string, any>> = {
       share: "Share",
       save: "Save",
       saved: "Saved",
+    },
+    search: {
+      soon: "Search coming soon",
     },
     toggle: {
       title: "Change language",
