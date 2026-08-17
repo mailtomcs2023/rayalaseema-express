@@ -114,5 +114,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tileInitial: { color: "#FFF", fontWeight: "800", fontSize: 16 },
-  tileText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  tileText: { color: "#FFF", fontSize: 16, fontWeight: "800", lineHeight: 22 },
 });

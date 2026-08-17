@@ -77,7 +77,9 @@ export default function ArticleScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      {/* The hero runs under the status bar, so its icons must stay light. */}
+      {/* The hero runs under the status bar, so its icons must stay light -
+          which means the status-bar strip needs its own scrim once the body
+          (light in light mode) has scrolled up under it. */}
       <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={{
@@ -194,6 +196,12 @@ export default function ArticleScreen() {
         </View>
       </ScrollView>
 
+      <LinearGradient
+        colors={["rgba(0,0,0,0.45)", "transparent"]}
+        style={[styles.statusScrim, { height: insets.top }]}
+        pointerEvents="none"
+      />
+
       {/* Sticky action bar, lifted clear of the gesture area. */}
       <View
         style={[
@@ -253,6 +261,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   heroWrap: { width: "100%", aspectRatio: 16 / 9, overflow: "hidden" },
   heroFallback: { width: "100%", height: 200, overflow: "hidden" },
+  statusScrim: { position: "absolute", left: 0, right: 0, top: 0 },
   scrimTop: { position: "absolute", left: 0, right: 0, top: 0, height: 120 },
   scrimBottom: { position: "absolute", left: 0, right: 0, bottom: 0, height: 90 },
   heroBar: {
