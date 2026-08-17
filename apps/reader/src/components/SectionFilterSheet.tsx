@@ -42,7 +42,7 @@ export default function SectionFilterSheet({
     <Pressable
       style={[styles.row, selected && { backgroundColor: withAlpha(accent, 0.1) }]}
       onPress={onPress}
-      android_ripple={{ color: colors.bgMuted }}
+      android_ripple={{ color: colors.surfaceAlt }}
     >
       <View style={[styles.dot, { backgroundColor: accent }]} />
       <Text style={[styles.rowText, selected && styles.rowTextActive]} numberOfLines={1}>

@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     width: "100%",
     aspectRatio: 16 / 9,
     borderRadius: radius.md,
-    backgroundColor: colors.bgMuted,
+    backgroundColor: colors.surfaceAlt,
     marginBottom: spacing.md,
   },
   quote: {

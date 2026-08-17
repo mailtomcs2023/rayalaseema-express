@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconBtn: { padding: 2 },
-  imageWrap: { width: "100%", aspectRatio: 16 / 9, backgroundColor: colors.bgMuted },
+  imageWrap: { width: "100%", aspectRatio: 16 / 9, backgroundColor: colors.surfaceAlt },
   hero: { width: "100%", height: "100%" },
   heroPlaceholder: {
     width: "100%",

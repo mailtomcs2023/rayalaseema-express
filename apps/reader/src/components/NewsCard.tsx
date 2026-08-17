@@ -39,7 +39,7 @@ function NewsCard({ article, onPress, saved, onToggleSave, style }: Props) {
   };
 
   return (
-    <Pressable style={[styles.card, style]} onPress={onPress} android_ripple={{ color: colors.bgMuted }}>
+    <Pressable style={[styles.card, style]} onPress={onPress} android_ripple={{ color: colors.surfaceAlt }}>
       <View style={styles.imageWrap}>
         <Image
           source={hasImage ? { uri: article.featuredImage! } : LOGO_PLACEHOLDER}
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   imageWrap: {
     width: "100%",
     aspectRatio: 16 / 9,
-    backgroundColor: colors.bgMuted,
+    backgroundColor: colors.surfaceAlt,
   },
   image: {
     width: "100%",

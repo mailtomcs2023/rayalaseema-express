@@ -25,7 +25,7 @@ function SavedCard({ article, onPress, saved, onToggleSave }: Props) {
   const hasImage = !!article.featuredImage;
 
   return (
-    <Pressable style={styles.card} onPress={onPress} android_ripple={{ color: colors.bgMuted }}>
+    <Pressable style={styles.card} onPress={onPress} android_ripple={{ color: colors.surfaceAlt }}>
       <View style={styles.imageWrap}>
         <Image
           source={hasImage ? { uri: article.featuredImage! } : LOGO_PLACEHOLDER}
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   imageWrap: {
     width: 124,
     alignSelf: "stretch",
-    backgroundColor: colors.bgMuted,
+    backgroundColor: colors.surfaceAlt,
     // Image is absolutely filled (below) so it can't drive the card's height -
     // the card sizes to its text, and the image just fills the left column.
     position: "relative",

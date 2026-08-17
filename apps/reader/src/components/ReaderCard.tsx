@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   imageWrap: {
     height: "42%",
-    backgroundColor: colors.bgMuted,
+    backgroundColor: colors.surfaceAlt,
     position: "relative",
   },
   image: { flex: 1, width: "100%" },

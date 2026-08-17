@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
   },
   segment: {
     flexDirection: "row",
-    backgroundColor: colors.bgMuted,
+    backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md,
     padding: 4,
     gap: 4,
