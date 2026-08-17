@@ -56,7 +56,7 @@ export default function StoriesRow() {
           <Ring ring={storyGradient}>
             <Image source={a.featuredImage ? { uri: a.featuredImage } : LOGO} style={styles.thumb} contentFit="cover" />
           </Ring>
-          <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>{t("stories.breaking")}</Text>
+          <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>{categoryLabel(a.category, lang) || t("stories.breaking")}</Text>
         </Pressable>
       ))}
       {cats.map((c) => {

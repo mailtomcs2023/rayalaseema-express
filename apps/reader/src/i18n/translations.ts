@@ -10,6 +10,9 @@ export const LANGUAGE_NAMES: Record<Lang, string> = {
 export const translations: Record<Lang, Record<string, any>> = {
   te: {
     appName: "రాయలసీమ న్యూస్",
+    common: {
+      back: "వెనుకకు",
+    },
     tabs: {
       feed: "వార్తలు",
       categories: "విభాగాలు",
@@ -66,6 +69,9 @@ export const translations: Record<Lang, Record<string, any>> = {
   },
   en: {
     appName: "Rayalaseema News",
+    common: {
+      back: "Back",
+    },
     tabs: {
       feed: "News",
       categories: "Sections",

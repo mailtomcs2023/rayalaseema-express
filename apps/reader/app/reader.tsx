@@ -38,6 +38,7 @@ export default function ReaderScreen() {
   const [articles, setArticles] = useState<Article[]>(initial?.articles ?? []);
   const [index, setIndex] = useState(initial?.startIndex ?? 0);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   // Live pagination cursor (feed/category sources only). Held in a ref so
   // loadMore stays a stable, dependency-free callback and never refetches the
@@ -46,16 +47,23 @@ export default function ReaderScreen() {
   const loadingRef = useRef(false);
 
   // Cold entry from a category story: nothing was handed over, so fetch page 1.
-  useEffect(() => {
-    if (articles.length !== 0 || !category) return;
+  // Extracted so the empty/error state can offer a real retry.
+  const loadCold = useCallback(() => {
+    if (!category) return;
+    setLoadError(false);
     setLoading(true);
     fetchArticles({ category })
       .then(({ articles: first, hasMore }) => {
         setArticles(first);
         pageRef.current = { category, offset: first.length, hasMore };
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
+  }, [category]);
+
+  useEffect(() => {
+    if (articles.length !== 0 || !category) return;
+    loadCold();
     // Intentionally mount-only: the reader owns its list after the first fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -125,9 +133,19 @@ export default function ReaderScreen() {
   if (articles.length === 0) {
     return (
       <View style={[styles.empty, { backgroundColor: colors.bg }]}>
-        <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("feed.empty")}</Text>
-        <Pressable style={[styles.backPill, { backgroundColor: colors.brand }]} onPress={() => router.back()}>
-          <Text style={styles.backPillText}>{t("feed.retry")}</Text>
+        <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+          {loadError ? t("feed.error") : t("feed.empty")}
+        </Text>
+        {loadError ? (
+          <Pressable style={[styles.backPill, { backgroundColor: colors.brand }]} onPress={loadCold}>
+            <Text style={styles.backPillText}>{t("feed.retry")}</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          style={[styles.backPill, loadError ? { backgroundColor: colors.surfaceAlt } : { backgroundColor: colors.brand }]}
+          onPress={() => router.back()}
+        >
+          <Text style={[styles.backPillText, loadError ? { color: colors.text } : null]}>{t("common.back")}</Text>
         </Pressable>
       </View>
     );

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, Share } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,7 +31,8 @@ export default function ReaderCard({
   const accent = article.category?.color || c.brand;
 
   const fire = useCallback(() => { setBurst((b) => b + 1); onDoubleTapLike(); }, [onDoubleTapLike]);
-  const doubleTap = Gesture.Tap().numberOfTaps(2).onEnd(() => runOnJS(fire)());
+  // Memoised so the gesture isn't rebuilt (and re-attached) on every render.
+  const doubleTap = useMemo(() => Gesture.Tap().numberOfTaps(2).onEnd(() => runOnJS(fire)()), [fire]);
 
   const onShare = () => {
     const url = articleUrl(article);

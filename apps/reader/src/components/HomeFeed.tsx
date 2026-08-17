@@ -57,22 +57,22 @@ const HomeFeed = forwardRef<HomeFeedHandle, Props>(function HomeFeed({ category,
     </View>
   );
 
-  if (feed.loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        {ListHeaderComponent}
-        <PostSkeleton />
-        <PostSkeleton />
-      </View>
-    );
-  }
+  // While loading we keep the same FlatList (and therefore the same header
+  // element) mounted and swap the body for skeletons - an early return here
+  // would unmount/remount StoriesRow and cause duplicate fetches.
+  const skeletons = (
+    <View>
+      <PostSkeleton />
+      <PostSkeleton />
+    </View>
+  );
 
   return (
-    <FlatList ref={listRef} style={{ backgroundColor: colors.bg }} data={feed.articles} keyExtractor={(a) => a.id}
+    <FlatList ref={listRef} style={{ backgroundColor: colors.bg }} data={feed.loading ? [] : feed.articles} keyExtractor={(a) => a.id}
       renderItem={renderItem} ListHeaderComponent={ListHeaderComponent}
       onEndReached={feed.loadMore} onEndReachedThreshold={0.6}
       refreshControl={<RefreshControl refreshing={feed.refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
-      ListEmptyComponent={empty}
+      ListEmptyComponent={feed.loading ? skeletons : empty}
       ListFooterComponent={feed.loadingMore ? <ActivityIndicator color={colors.brand} style={{ margin: spacing.lg }} /> : <View style={{ height: 96 }} />}
       removeClippedSubviews windowSize={7} />
   );
