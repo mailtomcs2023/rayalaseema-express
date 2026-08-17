@@ -1,38 +1,43 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
+  ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchArticles, type Article } from "../src/api/client";
 import { takeReaderFeed, type ReaderPagination } from "../src/lib/feed-store";
 import { useBookmarks } from "../src/lib/bookmarks";
+import { useLikes } from "../src/lib/likes";
 import { useT } from "../src/i18n";
 import ReaderCard from "../src/components/ReaderCard";
 import ReelPager from "../src/components/ReelPager";
-import { colors, spacing } from "../src/theme";
+import { useTheme } from "../src/theme-context";
+import { dark, spacing } from "../src/theme";
 
-// Full-screen, horizontally-paged news reader. Reads the list + start index
-// handed over by the feed via the module store, snaps one story per screen, and
-// lets the user swipe left/right (right-to-left = next, left-to-right = previous)
-// through them like turning pages.
+// Full-screen, vertically-paged reels reader. Reads the list + start index
+// handed over by the feed via the module store; when it's handed an empty list
+// with a `?category=` param (story tap) it fetches the first page itself.
 export default function ReaderScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useT();
+  const { colors } = useTheme();
   const { height, width } = useWindowDimensions();
   const { isSaved, toggle } = useBookmarks();
+  const { isLiked, toggle: toggleLike, likeOnly } = useLikes();
+  const { category } = useLocalSearchParams<{ category?: string }>();
 
-  // Snapshot the handed-over feed once on mount. If it's empty (e.g. the route
-  // was reached cold without going through the feed), bounce back.
+  // Snapshot the handed-over feed once on mount.
   const initial = useMemo(() => takeReaderFeed(), []);
   const [articles, setArticles] = useState<Article[]>(initial?.articles ?? []);
   const [index, setIndex] = useState(initial?.startIndex ?? 0);
+  const [loading, setLoading] = useState(false);
 
   // Live pagination cursor (feed/category sources only). Held in a ref so
   // loadMore stays a stable, dependency-free callback and never refetches the
@@ -40,8 +45,22 @@ export default function ReaderScreen() {
   const pageRef = useRef<ReaderPagination | null>(initial?.pagination ?? null);
   const loadingRef = useRef(false);
 
-  // Fetch + append the next page as the user swipes toward the end, mirroring
-  // the feed's infinite scroll so the reader never dead-ends at 20 stories.
+  // Cold entry from a category story: nothing was handed over, so fetch page 1.
+  useEffect(() => {
+    if (articles.length !== 0 || !category) return;
+    setLoading(true);
+    fetchArticles({ category })
+      .then(({ articles: first, hasMore }) => {
+        setArticles(first);
+        pageRef.current = { category, offset: first.length, hasMore };
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    // Intentionally mount-only: the reader owns its list after the first fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch + append the next page as the user swipes toward the end.
   const loadMore = useCallback(async () => {
     const p = pageRef.current;
     if (!p || !p.hasMore || loadingRef.current) return;
@@ -49,10 +68,16 @@ export default function ReaderScreen() {
     try {
       const { articles: more, hasMore } = await fetchArticles({
         category: p.category ?? undefined,
+        breaking: p.breaking,
         offset: p.offset,
       });
       // Advance the cursor and stop if the server returned nothing new.
-      pageRef.current = { category: p.category, offset: p.offset + more.length, hasMore: hasMore && more.length > 0 };
+      pageRef.current = {
+        category: p.category,
+        breaking: p.breaking,
+        offset: p.offset + more.length,
+        hasMore: hasMore && more.length > 0,
+      };
       if (more.length) {
         setArticles((prev) => {
           const seen = new Set(prev.map((a) => a.id));
@@ -76,17 +101,32 @@ export default function ReaderScreen() {
         topInset={insets.top}
         bottomInset={insets.bottom}
         saved={isSaved(item.id)}
+        liked={isLiked(item.id)}
         onToggleSave={() => toggle(item)}
+        onToggleLike={() => {
+          toggleLike(item.id);
+        }}
+        onDoubleTapLike={() => {
+          likeOnly(item.id);
+        }}
       />
     ),
-    [width, height, insets.top, insets.bottom, isSaved, toggle],
+    [width, height, insets.top, insets.bottom, isSaved, toggle, isLiked, toggleLike, likeOnly],
   );
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: dark.readerBg, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={dark.brand} />
+      </View>
+    );
+  }
 
   if (articles.length === 0) {
     return (
-      <View style={[styles.empty]}>
-        <Text style={styles.emptyText}>{t("feed.empty")}</Text>
-        <Pressable style={styles.backPill} onPress={() => router.back()}>
+      <View style={[styles.empty, { backgroundColor: colors.bg }]}>
+        <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("feed.empty")}</Text>
+        <Pressable style={[styles.backPill, { backgroundColor: colors.brand }]} onPress={() => router.back()}>
           <Text style={styles.backPillText}>{t("feed.retry")}</Text>
         </Pressable>
       </View>
@@ -125,7 +165,7 @@ export default function ReaderScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.readerBg },
+  root: { flex: 1, backgroundColor: dark.readerBg },
   topBar: {
     position: "absolute",
     left: spacing.lg,
@@ -138,7 +178,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.overlay,
+    backgroundColor: dark.overlay,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -148,7 +188,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    backgroundColor: colors.overlay,
+    backgroundColor: dark.overlay,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 999,
@@ -159,11 +199,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.lg,
-    backgroundColor: colors.bg,
   },
-  emptyText: { color: colors.textMuted, fontSize: 15 },
+  emptyText: { fontSize: 15 },
   backPill: {
-    backgroundColor: colors.brand,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: 999,
