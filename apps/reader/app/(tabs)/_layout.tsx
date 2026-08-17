@@ -5,6 +5,7 @@ import { useSegments } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useT } from "../../src/i18n";
+import { useTheme } from "../../src/theme-context";
 
 // NativeTabs doesn't expose a per-trigger onPress (the native tab bar
 // dispatches JUMP_TO internally) - so we approximate "tab clicked" by watching
@@ -36,14 +37,15 @@ function useTabPressHaptics() {
 // VectorIcon. Without androidSrc the Android tab bar shows no icons.
 export default function TabsLayout() {
   const { t } = useT();
+  const { colors } = useTheme();
   useTabPressHaptics();
   return (
     <NativeTabs
-      tintColor="#FF2C2C"
+      tintColor={colors.brand}
       labelVisibilityMode="labeled"
-      // Force pure white on Android (M3 otherwise tints the bar slightly
-      // purple via surfaceContainer). iOS keeps its native liquid-glass.
-      backgroundColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
+      // Force the themed surface colour on Android (M3 otherwise tints the bar
+      // slightly purple via surfaceContainer). iOS keeps its native liquid-glass.
+      backgroundColor={Platform.OS === "android" ? colors.surface : undefined}
       // Tint the M3 active-pill + ripple on-brand so the Android selection
       // animation reads as intentional red instead of a purple blink. Both
       // props are Android-only and no-ops on iOS.

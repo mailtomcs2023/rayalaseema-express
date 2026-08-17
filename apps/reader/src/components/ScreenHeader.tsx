@@ -1,51 +1,29 @@
 import React from "react";
 import { View, StyleSheet, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { LanguageToggle } from "./LanguageToggle";
+import { useTheme } from "../theme-context";
+import { spacing } from "../theme";
 
-// White-on-transparent wordmark (same asset the reporter app ships).
-const logoInverse = require("../../assets/logo-inverse.png");
+const logo = require("../../assets/logo-inverse.png");
 
-/**
- * The shared header shown at the top of every tab screen - identical to the
- * reporter app's ScreenHeader so both apps feel like one product. Brand logo
- * on the left, language toggle on the right; the native bottom tab bar already
- * indicates the current tab, so no per-screen title is needed.
- */
-export default function ScreenHeader() {
+// IG-style flat header: wordmark on the surface colour, no red bar, no border.
+export default function ScreenHeader({ right }: { right?: React.ReactNode }) {
   const insets = useSafeAreaInsets();
+  const { colors, scheme } = useTheme();
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.header, { paddingTop: insets.top + 6, backgroundColor: colors.surface }]}>
       <View style={styles.row}>
-        <Image
-          source={logoInverse}
-          // The asset is a grey wordmark; tintColor recolours every non-
-          // transparent pixel to pure white so it reads cleanly on the red bar.
-          style={styles.logo}
-          tintColor="#FFFFFF"
-          resizeMode="contain"
-          accessibilityLabel="Rayalaseema News"
-        />
-        <LanguageToggle onDark />
+        <Image source={logo} style={styles.logo} tintColor={scheme === "dark" ? "#FFFFFF" : colors.brand}
+          resizeMode="contain" accessibilityLabel="Rayalaseema News" />
+        <View style={styles.right}>{right ?? <LanguageToggle onDark={scheme === "dark"} />}</View>
       </View>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: "#FF2C2C",
-    paddingBottom: 10,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    height: 36,
-  },
-  logo: { width: 140, height: 28 },
+  header: { paddingBottom: 6, paddingHorizontal: spacing.lg },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", height: 40 },
+  logo: { width: 150, height: 30 },
+  right: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
 });

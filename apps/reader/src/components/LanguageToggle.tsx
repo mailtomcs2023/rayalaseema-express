@@ -2,8 +2,8 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useT, LANGUAGE_NAMES, type Lang } from "../i18n";
+import { useTheme } from "../theme-context";
 
-const BRAND = "#FF2C2C";
 const SEGMENTS: { code: Lang; label: string }[] = [
   { code: "en", label: "EN" },
   { code: "te", label: "తె" },
@@ -13,6 +13,7 @@ const SEGMENTS: { code: Lang; label: string }[] = [
 // coloured header (e.g. the dashboard's red bar).
 export function LanguageToggle({ onDark = false }: { onDark?: boolean }) {
   const { lang, setLang, t } = useT();
+  const { colors } = useTheme();
 
   // Tapping a language buzzes, then confirms the switch - the prompt reassures
   // the reporter the app stays bilingual and the choice can be changed anytime.
@@ -47,7 +48,7 @@ export function LanguageToggle({ onDark = false }: { onDark?: boolean }) {
             accessibilityLabel={`Switch to ${code === "en" ? "English" : "Telugu"}`}
             style={[
               styles.segment,
-              active && (onDark ? styles.segmentActiveDark : styles.segmentActiveLight),
+              active && (onDark ? styles.segmentActiveDark : { backgroundColor: colors.brand }),
             ]}
           >
             <Text
@@ -56,11 +57,11 @@ export function LanguageToggle({ onDark = false }: { onDark?: boolean }) {
                 {
                   color: active
                     ? onDark
-                      ? BRAND
+                      ? colors.brand
                       : "#fff"
                     : onDark
                       ? "#fff"
-                      : "#666",
+                      : colors.text,
                 },
               ]}
             >
@@ -78,7 +79,6 @@ const styles = StyleSheet.create({
   wrapLight: { backgroundColor: "#f3f4f6", borderWidth: 1, borderColor: "#e5e7eb" },
   wrapDark: { backgroundColor: "rgba(255,255,255,0.2)" },
   segment: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
-  segmentActiveLight: { backgroundColor: BRAND },
   segmentActiveDark: { backgroundColor: "#fff" },
   segmentText: { fontSize: 12, fontWeight: "700" },
 });
