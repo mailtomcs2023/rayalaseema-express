@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, Pressable, Share, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,9 +31,11 @@ function PostCard({ article, liked, saved, onPress, onLike, onDoubleTapLike, onT
   const accent = article.category?.color || colors.brand;
 
   const fireLike = useCallback(() => { setBurst((b) => b + 1); onDoubleTapLike(); }, [onDoubleTapLike]);
-  const doubleTap = Gesture.Tap().numberOfTaps(2).onEnd(() => runOnJS(fireLike)());
-  const singleTap = Gesture.Tap().numberOfTaps(1).onEnd(() => runOnJS(onPress)());
-  const taps = Gesture.Exclusive(doubleTap, singleTap);
+  const taps = useMemo(() => {
+    const doubleTap = Gesture.Tap().numberOfTaps(2).onEnd(() => runOnJS(fireLike)());
+    const singleTap = Gesture.Tap().numberOfTaps(1).onEnd(() => runOnJS(onPress)());
+    return Gesture.Exclusive(doubleTap, singleTap);
+  }, [fireLike, onPress]);
 
   const onShare = () => {
     const url = articleUrl(article);

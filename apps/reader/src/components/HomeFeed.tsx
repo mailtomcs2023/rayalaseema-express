@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
-import { FlatList, RefreshControl, Text, View, StyleSheet, ActivityIndicator } from "react-native";
+import { FlatList, Pressable, RefreshControl, Text, View, StyleSheet, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import type { Article } from "../api/client";
@@ -9,7 +9,7 @@ import { useLikes } from "../lib/likes";
 import { setOpenArticle } from "../lib/article-store";
 import { useT } from "../i18n";
 import { useTheme } from "../theme-context";
-import { spacing } from "../theme";
+import { radius, spacing } from "../theme";
 import PostCard from "./PostCard";
 import { PostSkeleton } from "./Skeleton";
 
@@ -44,6 +44,19 @@ const HomeFeed = forwardRef<HomeFeedHandle, Props>(function HomeFeed({ category,
       onDoubleTapLike={() => { likeOnly(item.id); }} onToggleSave={() => { toggleSave(item); }} />
   ), [isLiked, isSaved, open, toggleLike, likeOnly, toggleSave]);
 
+  // Empty state doubles as the error state: a failed first load leaves an
+  // empty list, so it needs a way back rather than a bare message.
+  const empty = (
+    <View style={styles.center}>
+      <Text style={{ color: colors.textMuted, textAlign: "center" }}>{feed.error ?? t("feed.empty")}</Text>
+      {feed.error ? (
+        <Pressable onPress={feed.retry} style={[styles.retry, { backgroundColor: colors.brand }]}>
+          <Text style={styles.retryText}>{t("feed.retry")}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+
   if (feed.loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -59,10 +72,14 @@ const HomeFeed = forwardRef<HomeFeedHandle, Props>(function HomeFeed({ category,
       renderItem={renderItem} ListHeaderComponent={ListHeaderComponent}
       onEndReached={feed.loadMore} onEndReachedThreshold={0.6}
       refreshControl={<RefreshControl refreshing={feed.refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
-      ListEmptyComponent={<View style={styles.center}><Text style={{ color: colors.textMuted }}>{feed.error ?? t("feed.empty")}</Text></View>}
+      ListEmptyComponent={empty}
       ListFooterComponent={feed.loadingMore ? <ActivityIndicator color={colors.brand} style={{ margin: spacing.lg }} /> : <View style={{ height: 96 }} />}
       removeClippedSubviews windowSize={7} />
   );
 });
 export default HomeFeed;
-const styles = StyleSheet.create({ center: { padding: spacing.xl * 2, alignItems: "center" } });
+const styles = StyleSheet.create({
+  center: { padding: spacing.xl * 2, alignItems: "center", gap: spacing.lg },
+  retry: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: radius.pill },
+  retryText: { color: "#FFFFFF", fontWeight: "700" },
+});
