@@ -3,7 +3,10 @@ import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { LanguageProvider } from "../src/i18n";
+import { AuthProvider } from "../src/lib/auth";
+import { CommentsSheetHost } from "../src/components/CommentsSheet";
 import { ThemeProvider, useTheme } from "../src/theme-context";
 
 export const unstable_settings = { initialRouteName: "(tabs)" };
@@ -30,7 +33,15 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <LanguageProvider>
-            <ThemedStack />
+            <AuthProvider>
+              {/* One comments sheet for the whole app - every 💬 affordance
+                  presents this same instance via useCommentsSheet(). */}
+              <BottomSheetModalProvider>
+                <CommentsSheetHost>
+                  <ThemedStack />
+                </CommentsSheetHost>
+              </BottomSheetModalProvider>
+            </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
       </SafeAreaProvider>

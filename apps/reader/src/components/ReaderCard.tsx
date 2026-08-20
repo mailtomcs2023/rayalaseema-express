@@ -18,10 +18,12 @@ const LOGO = require("../../assets/icon-512.png");
 const c = dark; // reels reader is always dark
 
 export default function ReaderCard({
-  article, width, height, bottomInset, saved, liked, onToggleSave, onToggleLike, onDoubleTapLike,
+  article, width, height, bottomInset, saved, liked, onToggleSave, onToggleLike, onDoubleTapLike, onComment,
 }: {
   article: Article; width: number; height: number; topInset: number; bottomInset: number;
   saved: boolean; liked: boolean; onToggleSave: () => void; onToggleLike: () => void; onDoubleTapLike: () => void;
+  // Opens the shared comments sheet for this article.
+  onComment?: () => void;
 }) {
   const { t, lang } = useT();
   const router = useRouter();
@@ -75,6 +77,9 @@ export default function ReaderCard({
       <View style={[styles.rail, { bottom: bottomInset + spacing.xl }]}>
         <Pressable onPress={onToggleLike} hitSlop={8}>
           <Ionicons name={liked ? "heart" : "heart-outline"} size={30} color={liked ? c.heart : "#FFFFFF"} />
+        </Pressable>
+        <Pressable onPress={onComment} disabled={!onComment} hitSlop={8}>
+          <Ionicons name="chatbubble-outline" size={28} color="#FFFFFF" />
         </Pressable>
         <Pressable onPress={onShare} hitSlop={8}><Ionicons name="paper-plane-outline" size={28} color="#FFFFFF" /></Pressable>
         <Pressable onPress={onToggleSave} hitSlop={8}>

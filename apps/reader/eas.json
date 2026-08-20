@@ -9,21 +9,24 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://rayalaseemanews.com"
+        "EXPO_PUBLIC_API_URL": "https://rayalaseemanews.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": ""
       }
     },
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://rayalaseemanews.com"
+        "EXPO_PUBLIC_API_URL": "https://rayalaseemanews.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": ""
       }
     },
     "production": {
       "android": { "buildType": "app-bundle" },
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://rayalaseemanews.com"
+        "EXPO_PUBLIC_API_URL": "https://rayalaseemanews.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": ""
       }
     }
   },

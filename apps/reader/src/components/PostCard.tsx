@@ -17,14 +17,16 @@ import HeartBurst from "./HeartBurst";
 interface Props {
   article: Article; liked: boolean; saved: boolean;
   onPress: () => void; onLike: () => void; onDoubleTapLike: () => void; onToggleSave: () => void;
-  // Opens the comments sheet. Optional so the icon can ship before the sheet
-  // exists (phase 2 task 7 wires it + the count badge).
+  // Opens the comments sheet for this article.
   onComment?: () => void;
+  // Badge next to the 💬 icon. Undefined (counts not loaded yet) or 0 renders
+  // nothing - an empty article should not advertise "0 comments".
+  commentCount?: number;
 }
 
 // Instagram post layout: [avatar · category · ⋯] / full-bleed media /
 // [heart comment share … bookmark] / bold 2-line headline / time.
-function PostCard({ article, liked, saved, onPress, onLike, onDoubleTapLike, onToggleSave, onComment }: Props) {
+function PostCard({ article, liked, saved, onPress, onLike, onDoubleTapLike, onToggleSave, onComment, commentCount }: Props) {
   const { t, lang } = useT();
   const { colors } = useTheme();
   const hasImage = !!article.featuredImage;
@@ -75,8 +77,11 @@ function PostCard({ article, liked, saved, onPress, onLike, onDoubleTapLike, onT
         <Pressable hitSlop={8} onPress={onLike}>
           <Ionicons name={liked ? "heart" : "heart-outline"} size={26} color={liked ? colors.heart : colors.iconMuted} />
         </Pressable>
-        <Pressable hitSlop={8} onPress={onComment} disabled={!onComment}>
+        <Pressable hitSlop={8} onPress={onComment} disabled={!onComment} style={styles.commentBtn}>
           <Ionicons name="chatbubble-outline" size={24} color={colors.iconMuted} />
+          {commentCount ? (
+            <Text style={[styles.commentCount, { color: colors.textMuted }]}>{commentCount}</Text>
+          ) : null}
         </Pressable>
         <Pressable hitSlop={8} onPress={onShare}>
           <Ionicons name="paper-plane-outline" size={24} color={colors.iconMuted} />
@@ -107,4 +112,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingTop: spacing.sm, gap: spacing.lg },
   textBlock: { paddingHorizontal: 10, paddingTop: spacing.sm, gap: 4 },
   title: { fontSize: 16, lineHeight: 23, fontWeight: "700" },
+  commentBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
+  commentCount: { fontSize: 13, lineHeight: 19, fontWeight: "600" },
 });

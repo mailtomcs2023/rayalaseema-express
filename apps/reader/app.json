@@ -30,7 +30,9 @@
     },
     "plugins": [
       "expo-router",
-      "expo-video"
+      "expo-video",
+      "@react-native-google-signin/google-signin",
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},

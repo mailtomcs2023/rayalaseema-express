@@ -18,6 +18,7 @@ import { useLikes } from "../../src/lib/likes";
 import { useTabPress } from "../../src/lib/use-tab-press";
 import { useT } from "../../src/i18n";
 import ReelVideoPage from "../../src/components/ReelVideoPage";
+import { useCommentsSheet } from "../../src/components/CommentsSheet";
 import { dark, radius, spacing } from "../../src/theme";
 
 const c = dark; // the reels tab pins the dark palette, like the reader screen
@@ -41,6 +42,7 @@ export default function ReelsScreen() {
   }, []));
   const { t } = useT();
   const { isLiked, toggle: toggleLike, likeOnly } = useLikes();
+  const { openComments } = useCommentsSheet();
   const listRef = useRef<FlatList<Reel>>(null);
 
   const [reels, setReels] = useState<Reel[]>([]);
@@ -153,11 +155,9 @@ export default function ReelsScreen() {
       liked={isLiked(item.id)}
       onToggleLike={() => { toggleLike(item.id); }}
       onDoubleTapLike={() => { likeOnly(item.id); }}
-      // Comments arrive with the sheet (phase 2 task 7); the rail icon is
-      // deliberately inert until then.
-      onComment={undefined}
+      onComment={() => openComments(item.id)}
     />
-  ), [pageWidth, pageHeight, insets.bottom, index, focused, isLiked, toggleLike, likeOnly]);
+  ), [pageWidth, pageHeight, insets.bottom, index, focused, isLiked, toggleLike, likeOnly, openComments]);
 
   const body = () => {
     if (loading) return <View style={styles.center}><ActivityIndicator color={c.brand} /></View>;

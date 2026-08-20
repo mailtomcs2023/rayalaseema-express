@@ -16,6 +16,7 @@ import { useBookmarks } from "../src/lib/bookmarks";
 import { useLikes } from "../src/lib/likes";
 import { useT } from "../src/i18n";
 import ReaderCard from "../src/components/ReaderCard";
+import { useCommentsSheet } from "../src/components/CommentsSheet";
 import ReelPager from "../src/components/ReelPager";
 import { useTheme } from "../src/theme-context";
 import { dark, spacing } from "../src/theme";
@@ -31,6 +32,7 @@ export default function ReaderScreen() {
   const { height, width } = useWindowDimensions();
   const { isSaved, toggle } = useBookmarks();
   const { isLiked, toggle: toggleLike, likeOnly } = useLikes();
+  const { openComments } = useCommentsSheet();
   const { category } = useLocalSearchParams<{ category?: string }>();
 
   // Snapshot the handed-over feed once on mount.
@@ -117,9 +119,10 @@ export default function ReaderScreen() {
         onDoubleTapLike={() => {
           likeOnly(item.id);
         }}
+        onComment={() => openComments(item.id)}
       />
     ),
-    [width, height, insets.top, insets.bottom, isSaved, toggle, isLiked, toggleLike, likeOnly],
+    [width, height, insets.top, insets.bottom, isSaved, toggle, isLiked, toggleLike, likeOnly, openComments],
   );
 
   if (loading) {

@@ -15,8 +15,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { fetchArticle, type Article, type ArticleFull } from "../../src/api/client";
+import { fetchCommentCounts } from "../../src/api/comments";
 import { takeOpenArticle } from "../../src/lib/article-store";
 import ArticleBody from "../../src/components/ArticleBody";
+import { useCommentsSheet } from "../../src/components/CommentsSheet";
 import { useT } from "../../src/i18n";
 import { useBookmarks } from "../../src/lib/bookmarks";
 import { useLikes } from "../../src/lib/likes";
@@ -38,6 +40,7 @@ export default function ArticleScreen() {
   const { colors } = useTheme();
   const { isSaved, toggle: toggleSave } = useBookmarks();
   const { isLiked, toggle: toggleLike } = useLikes();
+  const { openComments } = useCommentsSheet();
 
   const snapshot = useMemo(() => takeOpenArticle(), []);
   const [full, setFull] = useState<ArticleFull | null>(null);
@@ -46,6 +49,19 @@ export default function ArticleScreen() {
   // Hero sizes to the image's true aspect ratio so the whole photo shows
   // without odd cropping; clamped so very tall portraits don't fill the screen.
   const [aspect, setAspect] = useState(16 / 9);
+  // Null until the count lands, so the bar shows the icon alone rather than a
+  // flash of "0".
+  const [commentCount, setCommentCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCommentCounts([id])
+      .then((map) => alive && setCommentCount(map[id] ?? 0))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
   useEffect(() => {
     let alive = true;
@@ -229,6 +245,24 @@ export default function ArticleScreen() {
         </Pressable>
         <Pressable
           hitSlop={8}
+          style={[styles.action, styles.commentAction]}
+          disabled={!head}
+          onPress={() =>
+            head &&
+            openComments(head.id, (delta) =>
+              setCommentCount((n) => Math.max((n ?? 0) + delta, 0)),
+            )
+          }
+          accessibilityRole="button"
+          accessibilityLabel="comments"
+        >
+          <Ionicons name="chatbubble-outline" size={24} color={colors.iconMuted} />
+          {commentCount ? (
+            <Text style={[styles.commentCount, { color: colors.textMuted }]}>{commentCount}</Text>
+          ) : null}
+        </Pressable>
+        <Pressable
+          hitSlop={8}
           style={styles.action}
           disabled={!head}
           onPress={onShare}
@@ -316,4 +350,6 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   action: { paddingVertical: spacing.sm },
+  commentAction: { flexDirection: "row", alignItems: "center", gap: 5 },
+  commentCount: { fontSize: 13, lineHeight: 19, fontWeight: "600" },
 });
