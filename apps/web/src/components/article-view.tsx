@@ -136,6 +136,11 @@ export async function ArticleView({ article, related, trending, siteUrl }: Props
       expertise: a.author?.expertise ?? [],
       affiliations: a.author?.affiliations ?? [],
     } satisfies AuthorRef,
+    // Site-wide byline policy (2026-08): every article is desk-credited in
+    // schema; staff are sub-editors, not promoted authors. Falls back to the
+    // publication itself when no desk row is linked, so the Person path in
+    // the generator is never taken for articles.
+    desk: a.desk ?? { name: "రాయలసీమ న్యూస్", nameEn: "Rayalaseema News" },
     publisher: {
       siteUrl,
       publicationName: "Rayalaseema News",

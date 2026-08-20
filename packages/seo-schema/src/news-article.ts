@@ -37,6 +37,10 @@ type ArticleInput = {
 interface BuildArgs {
   article: ArticleInput;
   author: AuthorRef;
+  /** Editorial desk/bureau the article is credited to. When present (and as
+   *  of 2026-08 it is the site-wide policy), the desk is emitted as an
+   *  Organization author and the Person path is skipped entirely. */
+  desk?: { name: string; nameEn?: string | null } | null;
   publisher: PublisherConfig;
   locationChain?: LocationChain | null;
   /** Canonical absolute URL of the article, e.g. https://.../[d]/[c]/<slug>-<id>. */
@@ -69,6 +73,28 @@ function buildPlace(loc: LocationRef): Record<string, unknown> {
     };
   }
   return out;
+}
+
+function buildDeskAuthor(
+  desk: { name: string; nameEn?: string | null },
+  publisher: PublisherConfig,
+): Record<string, unknown> {
+  // Site-wide byline policy (2026-08): every article is credited to its
+  // editorial desk/bureau, not to individual staff - staff are sub-editors
+  // preparing agency/stringer copy, and Person bylines at this volume read
+  // as fabricated authorship to Google's entity checks. Organization
+  // authorship is the standard markup for bureau-credited news copy.
+  return {
+    "@type": "Organization",
+    name: desk.name,
+    alternateName: desk.nameEn ?? undefined,
+    url: publisher.siteUrl,
+    parentOrganization: {
+      "@type": "NewsMediaOrganization",
+      name: publisher.publicationName,
+      url: publisher.siteUrl,
+    },
+  };
 }
 
 function buildAuthor(author: AuthorRef, siteUrl: string, publisher: PublisherConfig): Record<string, unknown> {
@@ -138,9 +164,12 @@ function normalizeImages(images?: string | string[] | null, fallback?: string | 
  * - pages must keep those stable for voice-assistant pickup.
  */
 export function buildNewsArticleSchema(args: BuildArgs): JsonLd {
-  const { article, author, publisher, locationChain, canonicalUrl } = args;
+  const { article, author, desk, publisher, locationChain, canonicalUrl } = args;
   const imageArr = normalizeImages(args.images, article.featuredImage);
   const contentLoc = pickContentLocation(locationChain);
+  const authorLd = desk
+    ? buildDeskAuthor(desk, publisher)
+    : buildAuthor(author, publisher.siteUrl, publisher);
 
   return {
     "@context": "https://schema.org",
@@ -150,7 +179,7 @@ export function buildNewsArticleSchema(args: BuildArgs): JsonLd {
     image: imageArr,
     datePublished: toIso(article.publishedAt),
     dateModified: toIso(article.updatedAt ?? article.publishedAt),
-    author: buildAuthor(author, publisher.siteUrl, publisher),
+    author: authorLd,
     publisher: buildPublisher(publisher),
     mainEntityOfPage: { "@type": "WebPage", "@id": canonicalUrl },
     articleSection: article.articleSection ?? undefined,
