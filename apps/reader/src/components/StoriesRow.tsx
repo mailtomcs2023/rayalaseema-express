@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
   ringInner: { width: SIZE + 1, height: SIZE + 1, borderRadius: (SIZE + 1) / 2, alignItems: "center", justifyContent: "center" },
   thumb: { width: SIZE, height: SIZE, borderRadius: SIZE / 2 },
   initial: { color: "#FFFFFF", fontSize: 24, fontWeight: "800" },
-  label: { fontSize: 10, maxWidth: SIZE + 8 },
+  label: { fontSize: 10, lineHeight: 14, maxWidth: SIZE + 8 },
 });

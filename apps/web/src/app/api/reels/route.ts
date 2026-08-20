@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@rayalaseema/db";
-import type { Prisma } from "@prisma/client";
+import { prisma, Prisma } from "@rayalaseema/db";
 
 // GET /api/reels - public vertical-video feed for the mobile reader app.
-// Only PUBLISHED REEL rows whose payload actually carries a playable clipUrl
-// are returned; YouTube-only shorts (payload with just `videoId`) are excluded
-// in v1 because the native player can't stream them.
-//
-// The clipUrl presence test is pushed into Postgres via a Prisma JSON path
-// filter (`string_starts_with: "http"`) rather than filtered in JS, so `total`
-// and the limit/offset pagination stay consistent with the rows returned.
+// Two payload conditions, both pushed into Postgres as Prisma JSON path
+// filters so `findMany` and `count` agree and limit/offset paging stays
+// consistent:
+//   1. `clipUrl` is a real http(s) string - the native player needs a URL.
+//   2. `videoId` is absent - YouTube Shorts imported by
+//      apps/admin/scripts/import-youtube-videos.ts store the *watch page* URL
+//      in clipUrl and set videoId. That URL is a web page, not a stream, so
+//      expo-video can't play it. videoId is the discriminator: clips hosted on
+//      our own Blob storage never carry one.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "10") || 10, 1), 50);
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
     type: "REEL",
     status: "PUBLISHED",
     payload: { path: ["clipUrl"], string_starts_with: "http" },
+    NOT: { payload: { path: ["videoId"], not: Prisma.DbNull } },
   };
 
   const [rows, total] = await Promise.all([
@@ -29,10 +31,11 @@ export async function GET(req: NextRequest) {
         title: true,
         slug: true,
         publishedAt: true,
+        featuredImage: true,
         payload: true,
         category: { select: { id: true, name: true, nameEn: true, slug: true, color: true } },
       },
-      orderBy: { publishedAt: "desc" },
+      orderBy: { publishedAt: { sort: "desc", nulls: "last" } },
       take: limit,
       skip: offset,
     }),
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
       title: r.title,
       slug: r.slug,
       clipUrl: p.clipUrl ?? null,
-      thumbnailUrl: p.thumbnailUrl ?? null,
+      thumbnailUrl: p.thumbnailUrl ?? r.featuredImage ?? null,
       duration: p.duration ?? null,
       publishedAt: r.publishedAt,
       category: r.category,

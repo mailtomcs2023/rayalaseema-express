@@ -137,9 +137,14 @@ export async function fetchReels(opts: { offset?: number; limit?: number } = {})
   const data = await get<ReelsResponse>(`/api/reels?${params.toString()}`);
   // Defensive: never hand a page with an unplayable source to the player.
   const reels = (data.reels ?? []).filter((r) => !!r.clipUrl);
+  // `received` is the RAW server row count, before the client-side filter.
+  // The caller must advance its offset cursor by this - not by reels.length -
+  // or every dropped row would shift the window and re-serve rows already seen.
+  const received = data.reels?.length ?? 0;
   return {
     reels,
-    hasMore: (data.offset ?? 0) + (data.reels?.length ?? 0) < (data.total ?? 0),
+    received,
+    hasMore: (data.offset ?? 0) + received < (data.total ?? 0),
   };
 }
 
