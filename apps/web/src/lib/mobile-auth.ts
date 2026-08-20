@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SignJWT, jwtVerify } from "jose";
 import { prisma } from "@rayalaseema/db";
+import { bearerToken, encodeSecret, signAppToken, verifyAppToken } from "./mobile-jwt";
 import {
   parseClientIds,
   validateGoogleTokenInfo,
@@ -15,15 +15,15 @@ import {
 // `{ sub: appUserId }`. There is no refresh token in v1 - the app silently
 // re-runs the Google sign-in when a token expires.
 
-const TOKEN_TTL = "30d";
-const ISSUER = "rayalaseemanews";
-const AUDIENCE = "reader-app";
+// How long we wait on Google's tokeninfo endpoint before giving up, so a
+// hung upstream can't pin a serverless invocation open.
+const TOKENINFO_TIMEOUT_MS = 5000;
 
 /** Never fall back to a baked-in secret: unset env = the feature is off. */
 function jwtSecret(): Uint8Array | null {
   const raw = process.env.MOBILE_JWT_SECRET;
   if (!raw || !raw.trim()) return null;
-  return new TextEncoder().encode(raw);
+  return encodeSecret(raw);
 }
 
 export function googleClientIds(): string[] {
@@ -43,14 +43,7 @@ export function authNotConfiguredResponse() {
 export async function signMobileToken(appUserId: string): Promise<string | null> {
   const secret = jwtSecret();
   if (!secret) return null;
-  return new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(appUserId)
-    .setIssuer(ISSUER)
-    .setAudience(AUDIENCE)
-    .setIssuedAt()
-    .setExpirationTime(TOKEN_TTL)
-    .sign(secret);
+  return signAppToken(appUserId, secret);
 }
 
 /**
@@ -62,14 +55,18 @@ export async function verifyGoogleIdToken(idToken: string): Promise<TokenInfoRes
   const clientIds = googleClientIds();
   if (clientIds.length === 0) return { ok: false, error: "auth not configured" };
 
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), TOKENINFO_TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(
       `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
-      { cache: "no-store" },
+      { cache: "no-store", signal: abort.signal },
     );
   } catch {
     return { ok: false, error: "could not reach Google" };
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) return { ok: false, error: "invalid id token" };
 
@@ -119,20 +116,10 @@ export async function getAppUser(req: NextRequest): Promise<AppUserSession | nul
   const secret = jwtSecret();
   if (!secret) return null;
 
-  const header = req.headers.get("authorization") || "";
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  if (!match) return null;
+  const token = bearerToken(req.headers.get("authorization"));
+  if (!token) return null;
 
-  let sub: string | undefined;
-  try {
-    const { payload } = await jwtVerify(match[1].trim(), secret, {
-      issuer: ISSUER,
-      audience: AUDIENCE,
-    });
-    sub = typeof payload.sub === "string" ? payload.sub : undefined;
-  } catch {
-    return null;
-  }
+  const sub = await verifyAppToken(token, secret);
   if (!sub) return null;
 
   const user = await prisma.appUser.findUnique({

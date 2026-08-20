@@ -68,12 +68,15 @@ export async function GET(req: NextRequest) {
   const parentIds = tops.map((t) => t.id);
 
   // Newest N replies per parent + the full reply count. Prisma has no
-  // per-group LIMIT, so fetch replies for this page's parents and slice in JS;
-  // a page holds <=50 parents so the row count stays bounded in practice.
-  const [replies, replyCounts] = parentIds.length
-    ? await Promise.all([
+  // per-group LIMIT, so issue one small `take: REPLY_PREVIEW` query per parent
+  // (<=50 per page) instead of pulling every reply and slicing in JS - a
+  // comment with thousands of replies must not dump them all into memory.
+  // Both queries ride @@index([parentId, hidden, createdAt]).
+  const [replyPages, replyCounts] = await Promise.all([
+    Promise.all(
+      parentIds.map((parentId) =>
         prisma.appComment.findMany({
-          where: { parentId: { in: parentIds }, ...VISIBLE },
+          where: { parentId, ...VISIBLE },
           select: {
             id: true,
             body: true,
@@ -83,18 +86,26 @@ export async function GET(req: NextRequest) {
             user: { select: USER_SELECT },
           },
           orderBy: { createdAt: "desc" },
+          take: REPLY_PREVIEW,
         }),
-        prisma.appComment.groupBy({
+      ),
+    ),
+    parentIds.length
+      ? prisma.appComment.groupBy({
           by: ["parentId"],
           where: { parentId: { in: parentIds }, ...VISIBLE },
           _count: { _all: true },
-        }),
-      ])
-    : [[], []];
+        })
+      : [],
+  ]);
+
+  const repliesByParent = new Map<string, Row[]>(
+    parentIds.map((parentId, i) => [parentId, replyPages[i]]),
+  );
 
   let likedIds = new Set<string>();
   if (me) {
-    const ids = [...parentIds, ...replies.map((r) => r.id)];
+    const ids = [...parentIds, ...replyPages.flat().map((r) => r.id)];
     if (ids.length) {
       const likes = await prisma.appCommentLike.findMany({
         where: { userId: me.id, commentId: { in: ids } },
@@ -107,12 +118,6 @@ export async function GET(req: NextRequest) {
   const countByParent = new Map(
     replyCounts.map((g) => [g.parentId as string, g._count._all]),
   );
-  const repliesByParent = new Map<string, Row[]>();
-  for (const reply of replies) {
-    const bucket = repliesByParent.get(reply.parentId!) ?? [];
-    if (bucket.length < REPLY_PREVIEW) bucket.push(reply);
-    repliesByParent.set(reply.parentId!, bucket);
-  }
 
   const comments = tops.map((top) => ({
     ...serialize(top, likedIds),
