@@ -180,6 +180,8 @@ jobs:
             # serving it publicly at /.well-known/<key>.txt to prove control of
             # the host. SiteConfig.indexnow_key overrides this when set.
             INDEXNOW_KEY="489ddfa71a2accb496def1963c087f14"
+            MOBILE_JWT_SECRET="${{ secrets.MOBILE_JWT_SECRET }}"
+            GOOGLE_MOBILE_CLIENT_IDS="${{ secrets.GOOGLE_MOBILE_CLIENT_IDS }}"
             ENV
 
             cat > apps/admin/.env << 'ENV'

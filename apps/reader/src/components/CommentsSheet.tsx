@@ -362,7 +362,13 @@ function CommentsBody({
   const onSignIn = useCallback(async () => {
     const res = await signIn();
     if (!res.ok && res.reason !== "cancelled") {
-      Alert.alert(t("auth.signIn"), t("auth.error"));
+      const message =
+        res.reason === "blocked"
+          ? t("auth.blocked")
+          : res.reason === "unavailable"
+            ? t("auth.unavailable")
+            : t("auth.error");
+      Alert.alert(t("auth.signIn"), message);
     }
   }, [signIn, t]);
 

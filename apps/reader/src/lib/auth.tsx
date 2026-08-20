@@ -25,7 +25,7 @@ export interface AppUser {
 
 export type SignInResult =
   | { ok: true }
-  | { ok: false; reason: "cancelled" | "unavailable" | "error"; message?: string };
+  | { ok: false; reason: "cancelled" | "unavailable" | "blocked" | "error"; message?: string };
 
 interface AuthValue {
   user: AppUser | null;
@@ -170,6 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ idToken }),
       });
       if (!response.ok) {
+        if (response.status === 403) {
+          return { ok: false, reason: "blocked", message: `HTTP ${response.status}` };
+        }
+        if (response.status === 503) {
+          return { ok: false, reason: "unavailable", message: `HTTP ${response.status}` };
+        }
         return { ok: false, reason: "error", message: `HTTP ${response.status}` };
       }
       const data = (await response.json()) as { token?: string; user?: AppUser };

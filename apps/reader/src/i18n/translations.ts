@@ -35,6 +35,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       signOut: "సైన్ అవుట్",
       signOutConfirm: "మీరు సైన్ అవుట్ చేయాలనుకుంటున్నారా?",
       unavailable: "ఈ బిల్డ్‌లో సైన్ ఇన్ అందుబాటులో లేదు",
+      blocked: "మీ ఖాతా బ్లాక్ చేయబడింది",
       error: "సైన్ ఇన్ విఫలమైంది. మళ్ళీ ప్రయత్నించండి",
     },
     tabs: {
@@ -51,7 +52,6 @@ export const translations: Record<Lang, Record<string, any>> = {
       error: "వార్తలు తీసుకురాలేకపోయాం",
       retry: "మళ్ళీ ప్రయత్నించండి",
       end: "మీరు చివరికి చేరుకున్నారు",
-      more: "మరిన్ని",
     },
     reader: {
       readFull: "పూర్తి కథనం చదవండి",
@@ -125,6 +125,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       signOut: "Sign out",
       signOutConfirm: "Sign out of your account?",
       unavailable: "Sign-in isn't available in this build",
+      blocked: "Your account has been blocked",
       error: "Sign-in failed. Try again",
     },
     tabs: {
@@ -141,7 +142,6 @@ export const translations: Record<Lang, Record<string, any>> = {
       error: "Couldn't load news",
       retry: "Try again",
       end: "You're all caught up",
-      more: "more",
     },
     reader: {
       readFull: "Read full story",

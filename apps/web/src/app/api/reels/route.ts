@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   const where: Prisma.ContentWhereInput = {
     type: "REEL",
     status: "PUBLISHED",
+    deletedAt: null,
     payload: { path: ["clipUrl"], string_starts_with: "http" },
     NOT: { payload: { path: ["videoId"], not: Prisma.DbNull } },
   };
