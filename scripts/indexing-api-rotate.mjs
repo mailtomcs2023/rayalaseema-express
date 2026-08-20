@@ -43,15 +43,18 @@ const index = locs(await get(`${ORIGIN}/sitemap-index.xml`)).filter((u) => u.end
 const monthShards = index.filter((u) => /sitemap-\d{4}-\d{2}\.xml$/.test(u)).sort().reverse(); // newest month first
 
 const fresh = locs(await get(`${ORIGIN}/news-sitemap.xml`)); // last 48h
-const sections = locs(await get(`${ORIGIN}/sitemap-sections.xml`));
-const topics = sections.filter((u) => u.includes("/tag/") && !u.includes("/page/"));
 
 const articles = [];
 for (const shard of monthShards) {
   try { articles.push(...locs(await get(shard))); } catch { /* shard fetch failure: skip */ }
 }
 
-const universe = [...fresh, ...topics, ...articles, ...sections];
+// Articles only (2026-08-20). Tag hubs and section/pagination URLs are out:
+// the Indexing API officially covers JobPosting/Livestream, so submissions
+// only ever helped as a crawl nudge - and nudging Google toward hundreds of
+// junk tag URLs fed the exact low-quality-inventory signal that got article
+// crawling throttled (see GSC 360 audit).
+const universe = [...fresh, ...articles];
 
 // --- State ---
 let state = {};
