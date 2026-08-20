@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@rayalaseema/db";
 import { blockedResponse, getAppUser, unauthorizedResponse } from "@/lib/mobile-auth";
 import { validateCommentBody } from "@/lib/mobile-validate";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Comments for the reader app. 1-level threading: a reply's parent must
 // itself be top-level. Hidden comments and comments by blocked users never
@@ -133,6 +134,11 @@ export async function GET(req: NextRequest) {
 
 // POST /api/mobile/comments  { contentId, body, parentId? }
 export async function POST(req: NextRequest) {
+  // Comment flood control, keyed on IP. In-memory + per-process, so with more
+  // than one server instance the effective cap is 10/min *per instance*.
+  const limited = rateLimit(req, { maxRequests: 10, windowMs: 60_000, prefix: "mobile-comment" });
+  if (limited) return limited;
+
   const me = await getAppUser(req);
   if (!me) return unauthorizedResponse();
   if (me.blocked) return blockedResponse();

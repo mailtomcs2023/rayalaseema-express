@@ -32,7 +32,9 @@ interface AuthValue {
   token: string | null;
   /** False until the persisted session has been read back from SecureStore. */
   ready: boolean;
-  /** True only when an OAuth web client id was baked into this build. */
+  /** True only when this build has BOTH an OAuth web client id and the
+   *  google-signin native module - either missing means sign-in can never
+   *  succeed, so the UI must show a hint instead of a dead button. */
   available: boolean;
   /** True while a sign-in round-trip is in flight. */
   signingIn: boolean;
@@ -64,8 +66,12 @@ function extractIdToken(res: any): string | null {
 
 function isCancellation(res: any, err: any): boolean {
   if (res?.type === "cancelled") return true;
-  // SIGN_IN_CANCELLED / statusCodes are string codes on Android.
-  return err?.code === "-5" || err?.code === "SIGN_IN_CANCELLED" || err?.code === 12501;
+  if (err?.code == null) return false;
+  // The library reports cancellation as "-5" (iOS), SIGN_IN_CANCELLED, or
+  // 12501 (Android) - and the numeric ones arrive as a number on some
+  // versions and a string on others, so compare stringified.
+  const code = String(err.code);
+  return code === "-5" || code === "SIGN_IN_CANCELLED" || code === "12501";
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -73,6 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+
+  // Probed once: a build can carry the client id but not the native module
+  // (Expo Go, or a build predating the config plugin).
+  const available = useMemo(() => !!WEB_CLIENT_ID && !!loadGoogleSignin()?.GoogleSignin, []);
 
   // Restore the persisted session once on mount.
   useEffect(() => {
@@ -174,8 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persist]);
 
   const value = useMemo<AuthValue>(
-    () => ({ user, token, ready, available: !!WEB_CLIENT_ID, signingIn, signIn, signOut }),
-    [user, token, ready, signingIn, signIn, signOut],
+    () => ({ user, token, ready, available, signingIn, signIn, signOut }),
+    [user, token, ready, available, signingIn, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -21,7 +21,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       reply: "బదులివ్వండి",
       replyingTo: "{name} గారికి బదులు",
       cancelReply: "రద్దు",
-      moreReplies: "మరో {count} బదులులు",
+      moreReplies: "మరో {count} బదుళ్లు",
       delete: "తొలగించు",
       deleteConfirm: "ఈ వ్యాఖ్యను తొలగించాలా?",
       report: "ఫిర్యాదు",
@@ -35,6 +35,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       signOut: "సైన్ అవుట్",
       signOutConfirm: "మీరు సైన్ అవుట్ చేయాలనుకుంటున్నారా?",
       unavailable: "ఈ బిల్డ్‌లో సైన్ ఇన్ అందుబాటులో లేదు",
+      error: "సైన్ ఇన్ విఫలమైంది. మళ్ళీ ప్రయత్నించండి",
     },
     tabs: {
       feed: "వార్తలు",
@@ -124,6 +125,7 @@ export const translations: Record<Lang, Record<string, any>> = {
       signOut: "Sign out",
       signOutConfirm: "Sign out of your account?",
       unavailable: "Sign-in isn't available in this build",
+      error: "Sign-in failed. Try again",
     },
     tabs: {
       feed: "News",

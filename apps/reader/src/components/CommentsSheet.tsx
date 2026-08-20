@@ -307,6 +307,9 @@ function CommentsBody({
                 );
               });
               onCountChange(-removed);
+              // Keep the pagination cursor honest: the next page request is
+              // an offset into a list that just lost a row.
+              if (!node.parentId) offsetRef.current = Math.max(offsetRef.current - 1, 0);
             } catch (e: any) {
               if (!handleAuthError(e)) {
                 Alert.alert(t("comments.title"), e?.message || t("comments.error"));
@@ -353,6 +356,15 @@ function CommentsBody({
     },
     [user, onDelete, onReport],
   );
+
+  // A cancelled sign-in is a normal outcome and stays silent; a real failure
+  // must say so rather than leaving the button looking inert.
+  const onSignIn = useCallback(async () => {
+    const res = await signIn();
+    if (!res.ok && res.reason !== "cancelled") {
+      Alert.alert(t("auth.signIn"), t("auth.error"));
+    }
+  }, [signIn, t]);
 
   const onReply = useCallback((node: CommentThread) => {
     setReplyTo({ id: node.id, name: node.user.name });
@@ -520,7 +532,7 @@ function CommentsBody({
             {available ? t("comments.signInPrompt") : t("auth.unavailable")}
           </Text>
           <Pressable
-            onPress={() => signIn()}
+            onPress={onSignIn}
             disabled={!available || signingIn}
             style={[
               styles.googleBtn,

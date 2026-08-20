@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   authNotConfiguredResponse,
   isMobileAuthConfigured,
@@ -11,6 +12,12 @@ import {
 // Reader app sign-in: verify the Google ID token, upsert the AppUser by its
 // `sub` claim and hand back a 30-day HS256 session JWT.
 export async function POST(req: NextRequest) {
+  // Token verification hits Google on every call, so cap sign-in attempts per
+  // IP. In-memory + per-process: with more than one server instance the
+  // effective limit is 5/min *per instance*, which is fine as abuse control.
+  const limited = rateLimit(req, { maxRequests: 5, windowMs: 60_000, prefix: "mobile-auth" });
+  if (limited) return limited;
+
   if (!isMobileAuthConfigured()) return authNotConfiguredResponse();
 
   let body: unknown;

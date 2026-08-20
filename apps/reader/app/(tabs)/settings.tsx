@@ -22,6 +22,14 @@ export default function SettingsScreen() {
     { value: "light", label: t("settings.themeLight") },
     { value: "dark", label: t("settings.themeDark") },
   ];
+  // Cancelling Google's sheet is silent; anything else gets an alert.
+  const handleSignIn = async () => {
+    const res = await signIn();
+    if (!res.ok && res.reason !== "cancelled") {
+      Alert.alert(t("auth.signIn"), t("auth.error"));
+    }
+  };
+
   const confirmSignOut = () =>
     Alert.alert(t("auth.signOut"), t("auth.signOutConfirm"), [
       { text: t("common.cancel"), style: "cancel" },
@@ -61,7 +69,7 @@ export default function SettingsScreen() {
           ) : signingIn ? (
             <View style={styles.accountRow}><ActivityIndicator color={colors.brand} /></View>
           ) : available ? (
-            <SettingsRow label={t("auth.signIn")} icon="logo-google" onPress={() => { signIn(); }} />
+            <SettingsRow label={t("auth.signIn")} icon="logo-google" onPress={() => { handleSignIn(); }} />
           ) : (
             // No OAuth client baked into this build - show why, not a dead row.
             <SettingsRow label={t("auth.signIn")} icon="logo-google" value={t("auth.unavailable")} />
