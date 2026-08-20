@@ -386,10 +386,11 @@ export async function getCategoryTrending(categoryId: string, limit = 8) {
 }
 
 export async function incrementViewCount(contentId: string) {
-  return prisma.content.update({
-    where: { id: contentId },
-    data: { viewCount: { increment: 1 } },
-  });
+  // Raw SQL on purpose: prisma.content.update() trips @updatedAt, which feeds
+  // NewsArticle dateModified - so every page view was republishing the article
+  // with a fresh "modified just now" timestamp to Google (fake-freshness spam
+  // signal, found in the 2026-08-20 GSC audit). Views must not touch updatedAt.
+  return prisma.$executeRaw`UPDATE "contents" SET "viewCount" = "viewCount" + 1 WHERE "id" = ${contentId}`;
 }
 
 // ========== MULTIMEDIA QUERIES ==========
