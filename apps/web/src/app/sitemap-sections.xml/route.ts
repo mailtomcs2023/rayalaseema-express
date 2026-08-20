@@ -22,8 +22,8 @@ import {
   constituencyWhere,
   districtWhere,
   getHubPageCount,
-  tagWhere,
 } from "@/lib/hub-pagination";
+import { isJunkTagSlug } from "@/lib/tag-indexing";
 
 const DEFAULT_TOPIC_INDEX_THRESHOLD = 10;
 
@@ -136,24 +136,24 @@ export async function GET() {
     // identified as a real topic, stays out of the sitemap (and noindex).
     prisma.tag.findMany({
       where: { status: "APPROVED", kind: { not: "OTHER" } },
-      select: { slug: true, id: true, articleCount: true },
+      select: { slug: true, articleCount: true },
     }),
     prisma.siteConfig.findUnique({ where: { key: "topic_index_threshold" } }),
   ]);
   const parsedThreshold = thresholdConfig ? parseInt(thresholdConfig.value, 10) : NaN;
   const topicThreshold = Number.isFinite(parsedThreshold) ? parsedThreshold : DEFAULT_TOPIC_INDEX_THRESHOLD;
-  const indexableTags = approvedTags.filter((t) => t.articleCount >= topicThreshold);
+  // isJunkTagSlug: transliteration-junk slugs stay out even when APPROVED -
+  // 868 of 1,358 section URLs were tag junk before this filter (2026-08-20).
+  const indexableTags = approvedTags.filter(
+    (t) => t.articleCount >= topicThreshold && !isJunkTagSlug(t.slug),
+  );
 
   for (const t of indexableTags) {
     urls.push(`  <url><loc>${escXml(`${siteUrl}/tag/${t.slug}`)}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
   }
-  const tagPages = await Promise.all(
-    indexableTags.map(async (t) => ({
-      slug: t.slug,
-      pages: await getHubPageCount(tagWhere(t.id), HUB_PAGE_SIZE.tag),
-    })),
-  );
-  for (const t of tagPages) pushPages(`/tag/${t.slug}`, t.pages);
+  // Tag pagination pages (/tag/x/page/N) are deliberately NOT in the sitemap:
+  // they carry zero ranking intent and were 373 of the 1,358 section URLs.
+  // Crawlers still reach them via the pagination bar (follow is on).
 
   // Archive index + every month page + every pagination page. These are the
   // pages that make the back catalogue reachable, so Google needs them in the
