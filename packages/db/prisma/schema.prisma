@@ -170,6 +170,15 @@ enum ArticleStatus {
   ARCHIVED // Removed from site
 }
 
+// Definition order matters: Postgres sorts enums by declaration order, so
+// `orderBy: { indexTier: "asc" }` puts FLAGSHIP first in news-sitemap and
+// Indexing API batches.
+enum IndexTier {
+  FLAGSHIP // researched original - crawl priority
+  STANDARD // demand news - indexed normally
+  BRIEF // diary/commodity item - noindex,follow, excluded from sitemaps
+}
+
 enum Language {
   TELUGU
   ENGLISH
@@ -1246,6 +1255,13 @@ model Content {
   constituency   Constituency? @relation("ContentConstituency", fields: [constituencyId], references: [id])
 
   status    ArticleStatus @default(DRAFT)
+  // SEO index tiering (2026-08-21). Controls which articles compete for
+  // Google's index while readers see everything unchanged:
+  //   FLAGSHIP - researched originals; first in news-sitemap + Indexing API
+  //   STANDARD - demand news; indexed normally
+  //   BRIEF    - diary/commodity items; noindex,follow + out of all sitemaps
+  // Reversible by flipping the value - URLs and content never change.
+  indexTier IndexTier     @default(STANDARD)
   featured  Boolean       @default(false)
   // Owner 2026-08-12: articles tick straight into the breaking ticker (like
   // `featured`), instead of duplicating the headline as a separate
