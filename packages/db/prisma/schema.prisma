@@ -1309,6 +1309,8 @@ model Content {
   payments             ContentPayment[]
   // Spec #1 A1B (#188) - back-relations from tables whose FK moved to Content.
   comments             Comment[]
+  // Reader-app (mobile) comments - see AppComment at the end of this file.
+  appComments          AppComment[]
   socialPosts          SocialPost[]
   // Spec #4 A1 (#192) - many-to-many to District/Constituency/Mandal via the
   // polymorphic ContentLocation join. `Content.constituencyId` above remains
@@ -1341,10 +1343,10 @@ model Content {
 }
 
 model ContentTag {
-  contentId String
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  tagId     String
-  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  contentId  String
+  content    Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
   // Provenance: lets the publish hook re-run idempotently (it may only wipe
   // non-MANUAL rows) and makes the 4k backfill reversible with one DELETE.
   source     TagSource @default(MANUAL)
@@ -1778,4 +1780,87 @@ model MediaMirror {
   @@index([status, createdAt])
   @@index([spFolderPath])
   @@map("media_mirrors")
+}
+
+// ============ READER APP (mobile) - Google sign-in + threaded comments ============
+// Spec: docs/superpowers/specs/2026-08-20-reader-phase2-reels-comments-design.md §C.
+// Deliberately separate from the web `Comment` model above: that one is
+// name/email based and editor-moderated; these rows belong to a Google-
+// authenticated mobile identity and support 1-level threading, likes and
+// user reports.
+
+model AppUser {
+  id        String   @id @default(cuid())
+  /// Google `sub` claim - the stable per-account identifier we upsert on.
+  googleSub String   @unique
+  email     String?
+  name      String
+  avatarUrl String?
+  /// Moderator kill-switch. Blocked users keep their session but every
+  /// write endpoint answers 403 and their comments are hidden from reads.
+  blocked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  comments AppComment[]
+  likes    AppCommentLike[]
+  reports  AppCommentReport[]
+
+  @@index([blocked, createdAt])
+  @@map("app_users")
+}
+
+model AppComment {
+  id        String  @id @default(cuid())
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Null = top-level. Non-null = reply. Only one level deep: the API
+  /// rejects a parentId that itself has a parent.
+  parentId String?
+  parent   AppComment?  @relation("AppCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  AppComment[] @relation("AppCommentReplies")
+
+  /// Max 1000 chars, enforced in the API (trimmed before insert).
+  body      String   @db.Text
+  /// Denormalized counter kept in sync by the like toggle endpoint.
+  likeCount Int      @default(0)
+  /// Moderator hide - excluded from every read endpoint.
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  likes   AppCommentLike[]
+  reports AppCommentReport[]
+
+  @@index([contentId, hidden, createdAt])
+  @@index([parentId, hidden, createdAt])
+  @@index([userId])
+  @@map("app_comments")
+}
+
+model AppCommentLike {
+  commentId String
+  comment   AppComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      AppUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@id([commentId, userId])
+  @@index([userId])
+  @@map("app_comment_likes")
+}
+
+model AppCommentReport {
+  id        String     @id @default(cuid())
+  commentId String
+  comment   AppComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      AppUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String?
+  createdAt DateTime   @default(now())
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@map("app_comment_reports")
 }
