@@ -59,6 +59,7 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
     stories: {
       breaking: "బ్రేకింగ్",
+      more: "మరిన్ని",
     },
     toggle: {
       title: "భాష మార్చండి",
@@ -118,6 +119,7 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
     stories: {
       breaking: "Breaking",
+      more: "More",
     },
     toggle: {
       title: "Change language",
