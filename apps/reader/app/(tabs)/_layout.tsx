@@ -56,6 +56,10 @@ export default function TabsLayout() {
         <Icon sf="newspaper.fill" androidSrc={<VectorIcon family={Ionicons} name="newspaper" />} />
         <Label>{t("tabs.feed")}</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="reels">
+        <Icon sf="play.rectangle.fill" androidSrc={<VectorIcon family={Ionicons} name="play" />} />
+        <Label>{t("tabs.reels")}</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="categories">
         <Icon sf="square.grid.2x2.fill" androidSrc={<VectorIcon family={Ionicons} name="grid" />} />
         <Label>{t("tabs.categories")}</Label>

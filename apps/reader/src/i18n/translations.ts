@@ -15,6 +15,7 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
     tabs: {
       feed: "వార్తలు",
+      reels: "రీల్స్",
       categories: "విభాగాలు",
       saved: "సేవ్‌లు",
       settings: "సెట్టింగ్‌లు",
@@ -57,6 +58,10 @@ export const translations: Record<Lang, Record<string, any>> = {
     search: {
       soon: "శోధన త్వరలో…",
     },
+    reels: {
+      empty: "ఇంకా రీల్స్ లేవు",
+      error: "రీల్స్ తీసుకురాలేకపోయాం",
+    },
     stories: {
       breaking: "బ్రేకింగ్",
       more: "మరిన్ని",
@@ -75,6 +80,7 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
     tabs: {
       feed: "News",
+      reels: "Reels",
       categories: "Sections",
       saved: "Saved",
       settings: "Settings",
@@ -116,6 +122,10 @@ export const translations: Record<Lang, Record<string, any>> = {
     },
     search: {
       soon: "Search coming soon",
+    },
+    reels: {
+      empty: "No reels yet",
+      error: "Couldn't load reels",
     },
     stories: {
       breaking: "Breaking",

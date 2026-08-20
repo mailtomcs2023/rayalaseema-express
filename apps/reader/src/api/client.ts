@@ -54,6 +54,26 @@ export interface ArticleFull extends Article {
   body: string | null;
 }
 
+// A short vertical video from the CMS (Content type=REEL). `clipUrl` is always
+// present on rows the API returns - the server drops payloads without one.
+export interface Reel {
+  id: string;
+  title: string;
+  slug: string | null;
+  clipUrl: string;
+  thumbnailUrl: string | null;
+  duration: number | null;
+  publishedAt: string | null;
+  category: Category | null;
+}
+
+interface ReelsResponse {
+  reels: Reel[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 interface ArticlesResponse {
   articles: Article[];
   total: number;
@@ -106,6 +126,23 @@ export async function fetchArticles(opts: { category?: string; breaking?: boolea
   };
 }
 
+const REELS_PAGE_SIZE = 10;
+
+// One page of the reels feed, newest first.
+export async function fetchReels(opts: { offset?: number; limit?: number } = {}) {
+  const params = new URLSearchParams({
+    limit: String(opts.limit ?? REELS_PAGE_SIZE),
+    offset: String(opts.offset ?? 0),
+  });
+  const data = await get<ReelsResponse>(`/api/reels?${params.toString()}`);
+  // Defensive: never hand a page with an unplayable source to the player.
+  const reels = (data.reels ?? []).filter((r) => !!r.clipUrl);
+  return {
+    reels,
+    hasMore: (data.offset ?? 0) + (data.reels?.length ?? 0) < (data.total ?? 0),
+  };
+}
+
 export async function fetchCategories() {
   return get<Category[]>(`/api/categories`);
 }
@@ -115,4 +152,4 @@ export async function fetchArticle(idOrSlug: string) {
   return get<ArticleFull>(`/api/articles/${encodeURIComponent(idOrSlug)}`);
 }
 
-export { PAGE_SIZE };
+export { PAGE_SIZE, REELS_PAGE_SIZE };
