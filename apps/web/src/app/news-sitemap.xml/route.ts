@@ -22,13 +22,19 @@ export async function GET() {
       type: "ARTICLE",
       status: "PUBLISHED",
       publishedAt: { gte: fortyEightHoursAgo },
+      // Only index-competing tiers. BRIEF diary items are noindex and must
+      // not be pitched to Google News.
+      indexTier: { not: "BRIEF" },
     },
     select: {
       id: true, slug: true, title: true, publishedAt: true,
       category: { select: { nameEn: true, slug: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
-    orderBy: { publishedAt: "desc" },
+    // FLAGSHIP first (enum declaration order), then newest - Google News
+    // reads top-down, so the researched originals get seen even if it
+    // truncates.
+    orderBy: [{ indexTier: "asc" }, { publishedAt: "desc" }],
     // Google News sitemap spec hard-caps at 1000 entries. At our publish
     // volume the 48h window is well under that; the take is defence in
     // depth in case of a publish-burst.

@@ -33,6 +33,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ month: 
       type: "ARTICLE",
       status: "PUBLISHED",
       deletedAt: null,
+      // BRIEF-tier items are noindex - listing them in the sitemap would
+      // contradict the robots meta and re-bloat the submitted inventory.
+      indexTier: { not: "BRIEF" },
       // Mirrors the COALESCE(publishedAt, createdAt) bucketing in
       // listArticleMonths(): a published row with no publishedAt is bucketed
       // by createdAt, so it lands in exactly one shard rather than none.

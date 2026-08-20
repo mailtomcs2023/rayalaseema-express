@@ -16,6 +16,7 @@ type ArticleMeta = {
   publishedAt: Date | null;
   updatedAt: Date | null;
   author: { name: string };
+  indexTier?: string | null;
   desk?: { name: string } | null;
   constituency?: { slug: string; district: { slug: string } } | null;
   // editor-set SEO overrides - may not exist on every projected row, so we use
@@ -40,7 +41,12 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
   const ogImage =
     (article.ogImage as string) || `${siteUrl}/api/og-photo/${article.slug}`;
   const canonical = `${siteUrl}${articleHref(article)}`;
-  const noindex = article.status !== "PUBLISHED";
+  // BRIEF tier = published for readers, invisible to the index: diary items
+  // (rallies, inspections, felicitations) stay noindex,FOLLOW so link paths
+  // through them keep working while they stop counting against the site's
+  // quality profile. Flipping the tier back makes them indexable again.
+  const unpublished = article.status !== "PUBLISHED";
+  const briefTier = article.indexTier === "BRIEF";
   return {
     // absolute: metaTitle() already manages the brand suffix (adds it when it
     // fits, drops it for long Telugu headlines). Without absolute the root
@@ -53,8 +59,12 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
     // googleBot directives have to be repeated here - otherwise articles, the
     // pages that actually go to Discover, are the only ones that lose
     // max-image-preview:large.
-    robots: noindex
+    robots: unpublished
       ? { index: false, follow: false }
+      : briefTier
+      ? // noindex but FOLLOW: crawler still walks the in-body links to
+        // indexable articles; only this page stays out of the index.
+        { index: false, follow: true }
       : {
           index: true,
           follow: true,

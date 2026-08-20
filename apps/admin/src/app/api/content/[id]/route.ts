@@ -165,7 +165,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const data: any = {};
     const UPDATABLE = [
       "title", "slug", "summary", "body", "categoryId", "featuredImage",
-      "payload", "status", "featured", "breaking", "constituencyId", "deskId",
+      "payload", "status", "featured", "breaking", "indexTier", "constituencyId", "deskId",
       "sourceUrl", "needsPibApproval",
     ] as const;
     for (const key of UPDATABLE) {

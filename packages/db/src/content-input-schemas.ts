@@ -59,6 +59,7 @@ const contentCommonShape = {
   status: z.enum(STATUS_VALUES).optional(),
   featured: z.boolean().optional(),
   breaking: z.boolean().optional(),
+  indexTier: z.enum(["FLAGSHIP", "STANDARD", "BRIEF"]).optional(),
   language: z.enum(LANGUAGE_VALUES).optional(),
   sourceUrl: z.string().trim().max(URL_MAX).optional().nullable(),
   scheduledAt: z.string().datetime({ offset: true }).optional().nullable()

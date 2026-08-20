@@ -8,7 +8,7 @@
  * in lockstep across providers.
  */
 
-import { prisma } from "@rayalaseema/db";
+import { prisma, deriveIndexTier } from "@rayalaseema/db";
 import { buildSlugFromTitle, uniqueSlug } from "./slug";
 import { uploadImageFromUrlWithMeta } from "./blob";
 import { queueMirror } from "./sharepoint";
@@ -109,6 +109,11 @@ export async function importOneArticle(
   const heroImg = article.image_url ? await uploadImageFromUrlWithMeta(article.image_url) : null;
   const hostedImage = heroImg && (heroImg.width === 0 || heroImg.width >= 800) ? heroImg.url : null;
 
+  // Auto index tier from the translated Telugu title + category. Editors can
+  // override in the content editor; FLAGSHIP is editor-only.
+  const cat = await prisma.category.findUnique({ where: { id: categoryId }, select: { slug: true } });
+  const indexTier = deriveIndexTier(translated.title, cat?.slug);
+
   let finalSlug = slug;
   let created = false;
   let createdId: string | null = null;
@@ -126,6 +131,7 @@ export async function importOneArticle(
           featuredImage: hostedImage,
           sourceUrl: article.link || null,
           status: "DRAFT",
+          indexTier,
           featured: false,
           language: "TELUGU",
           publishedAt: null,

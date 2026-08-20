@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -124,6 +125,9 @@ export default function ContentEditorPage() {
   const isDirtyRef = useRef(false);
   const [featured, setFeatured] = useState(false);
   const [breaking, setBreaking] = useState(false);
+  // SEO index tier: FLAGSHIP (crawl priority) / STANDARD / BRIEF (noindex,
+  // out of sitemaps - diary items). Auto-set on ingest; editors override here.
+  const [indexTier, setIndexTier] = useState<"FLAGSHIP" | "STANDARD" | "BRIEF">("STANDARD");
   const [language, setLanguage] = useState("TELUGU");
   const [tagsInput, setTagsInput] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -561,6 +565,7 @@ export default function ContentEditorPage() {
       setStatus(row.status || "DRAFT");
       setFeatured(!!row.featured);
       setBreaking(!!(row as any).breaking);
+      setIndexTier(((row as any).indexTier as "FLAGSHIP" | "STANDARD" | "BRIEF") || "STANDARD");
       setLanguage(row.language || "TELUGU");
       setSourceUrl(row.sourceUrl || "");
       const initialScheduledAt = formatScheduledForInput(row.scheduledAt);
@@ -601,6 +606,7 @@ export default function ContentEditorPage() {
         status: row.status || "DRAFT",
         featured: !!row.featured,
         breaking: !!(row as any).breaking,
+        indexTier: ((row as any).indexTier as string) || "STANDARD",
         language: row.language || "TELUGU",
         sourceUrl: row.sourceUrl || "",
         scheduledAt: initialScheduledAt,
@@ -744,6 +750,7 @@ export default function ContentEditorPage() {
       status: finalStatus,
       featured,
       breaking,
+      indexTier,
       language,
       sourceUrl: sourceUrl || null,
       payload,
@@ -880,6 +887,7 @@ export default function ContentEditorPage() {
     status,
     featured,
     breaking,
+    indexTier,
     language,
     sourceUrl,
     scheduledAt,
@@ -1386,6 +1394,22 @@ export default function ContentEditorPage() {
                   ⚡ Breaking <span className="text-xs text-muted-foreground">(ticker, 24h)</span>
                 </Label>
               </div>
+
+              {type === "ARTICLE" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="index-tier">Google index tier</Label>
+                  <Select value={indexTier} onValueChange={(v) => setIndexTier(v as "FLAGSHIP" | "STANDARD" | "BRIEF")}>
+                    <SelectTrigger id="index-tier">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FLAGSHIP">🏆 Flagship — researched original, crawl priority</SelectItem>
+                      <SelectItem value="STANDARD">Standard — indexed normally</SelectItem>
+                      <SelectItem value="BRIEF">Brief — readers only, hidden from Google</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </Section>
 
             {/* Payment panel - only meaningful for ARTICLE type. Shows the
