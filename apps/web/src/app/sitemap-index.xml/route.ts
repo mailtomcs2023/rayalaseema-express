@@ -34,6 +34,7 @@ export async function GET() {
     // Newest month first so a crawler reading top-down hits fresh content first.
     ...months.map((m) => ({ loc: `${siteUrl}/sitemap-${m.month}.xml`, lastmod: m.lastmod })),
     { loc: `${siteUrl}/news-sitemap.xml`, lastmod: now },
+    { loc: `${siteUrl}/story-sitemap.xml`, lastmod: now },
     { loc: `${siteUrl}/video-sitemap.xml`, lastmod: now },
     { loc: `${siteUrl}/rss/all.xml`, lastmod: now },
   ];
