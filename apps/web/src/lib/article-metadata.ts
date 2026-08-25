@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { articleHref } from "./article-href";
 import { metaTitle, metaDescription } from "./meta-text";
+import { FEED_ALTERNATE_TYPES } from "./feed-alternates";
 
 type ArticleMeta = {
   id: string;
@@ -54,7 +55,9 @@ export function buildArticleMetadata(article: ArticleMeta, siteUrl: string): Met
     // article title back over the SERP window - the exact defect being fixed.
     title: { absolute: pageTitle },
     description: pageDescription,
-    alternates: { canonical },
+    // types re-declared: page-level alternates replaces the root layout's
+    // (shallow merge), which was silently dropping RSS autodiscovery.
+    alternates: { canonical, types: FEED_ALTERNATE_TYPES },
     // A page-level `robots` REPLACES the root layout's default, so the
     // googleBot directives have to be repeated here - otherwise articles, the
     // pages that actually go to Discover, are the only ones that lose

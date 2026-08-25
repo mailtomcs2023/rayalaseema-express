@@ -14,11 +14,17 @@
 export const revalidate = 30;
 
 import type { Metadata } from "next";
+import { FEED_ALTERNATE_TYPES } from "@/lib/feed-alternates";
 
 // Self-referencing canonical on the homepage - dedupes any query-string /
 // tracking-parameter variants (?utm_*, ?fbclid) Google may crawl.
+// types: re-declared because this alternates object REPLACES the root
+// layout's (shallow merge) - see lib/feed-alternates.ts.
 export const metadata: Metadata = {
-  alternates: { canonical: process.env.SITE_URL || "https://rayalaseemanews.com" },
+  alternates: {
+    canonical: process.env.SITE_URL || "https://rayalaseemanews.com",
+    types: FEED_ALTERNATE_TYPES,
+  },
 };
 
 import { Header } from "@/components/header";
