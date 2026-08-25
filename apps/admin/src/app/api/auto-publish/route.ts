@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@rayalaseema/db";
+import { prisma, deriveIndexTier } from "@rayalaseema/db";
+import { pingWebSub } from "@/lib/indexnow";
 import { requireAuth, isAuthError, apiError } from "@/lib/api-utils";
 import { buildSlugFromTitle, sanitizeSlug } from "@/lib/slug";
 import { uploadImageFromUrl } from "@/lib/blob";
@@ -243,6 +244,8 @@ export async function POST(req: NextRequest) {
             sourceUrl: news.link || null,
             language: "TELUGU",
             status: articleStatus,
+            // Wire copy classifies at ingest, same as news-import.ts.
+            indexTier: deriveIndexTier(translated.title || news.title, cat.slug),
             featured: false,
             authorId: admin.id,
             categoryId: cat.id,
@@ -258,6 +261,11 @@ export async function POST(req: NextRequest) {
     }
 
     results.push({ category: cat.nameEn, slug: cat.slug, existing, needed, created, status: "done" });
+  }
+
+  // One WebSub ping for the whole batch - the hub re-fetches the feed once.
+  if (articleStatus === "PUBLISHED" && results.some((r) => r.status === "published")) {
+    void pingWebSub();
   }
 
   return NextResponse.json({

@@ -23,7 +23,10 @@ function cdata(s: string): string {
 export async function GET() {
   const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
   const articles = await prisma.content.findMany({
-    where: { type: "ARTICLE", status: "PUBLISHED" },
+    // BRIEF tier stays out: sitemap-index.xml references this feed as a
+    // sitemap, so listing noindex diary items here would re-enter them into
+    // the submitted inventory the tiering work just removed.
+    where: { type: "ARTICLE", status: "PUBLISHED", indexTier: { not: "BRIEF" } },
     select: {
       id: true, slug: true, title: true, summary: true, publishedAt: true,
       // category keeps articleHref() canonical for non-geo articles (without
@@ -54,6 +57,7 @@ export async function GET() {
     <title>Rayalaseema News - All news</title>
     <link>${siteUrl}</link>
     <atom:link href="${siteUrl}/rss/all.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://pubsubhubbub.appspot.com/" rel="hub" />
     <description>Latest news from across the 8 districts of the Rayalaseema region.</description>
     <language>te</language>
     <lastBuildDate>${now}</lastBuildDate>

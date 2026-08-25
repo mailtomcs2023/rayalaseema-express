@@ -18,7 +18,7 @@ import { logAudit, diffSummary } from "@/lib/audit";
 import { buildSlugFromTitle, isPlaceholderSlug, sanitizeSlug } from "@/lib/slug";
 import { resolveDeskId } from "@/lib/desk-resolver";
 import { pickLeastLoadedReviewer } from "@/lib/reviewer-assignment";
-import { pingIndexNow } from "@/lib/indexnow";
+import { pingIndexNow, pingWebSub } from "@/lib/indexnow";
 import { pingWebRevalidate } from "@/lib/revalidate-web";
 import { tagContentLocations } from "@/lib/location-ner-hook";
 import { tagContentEntities } from "@/lib/tag-ner-hook";
@@ -83,6 +83,10 @@ async function pingArticlePublish(contentId: string, slug: string) {
     paths.push(`/archive/${month}`);
 
     await pingIndexNow([...paths.map((p) => `${siteUrl}${p === "/" ? "" : p}`), `${siteUrl}/news-sitemap.xml`]);
+
+    // WebSub push so Google fetches the RSS feed now instead of on its next
+    // poll - the only push channel Google honors for content freshness.
+    void pingWebSub();
 
     // Bust apps/web's ISR page cache for the pages that surface this article so
     // it appears immediately rather than after the page's TTL.
