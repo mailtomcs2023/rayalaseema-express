@@ -100,14 +100,14 @@ export function AboveFold({
                     <>
                       <Link href={articleHref(top)} className="af-dist-lead">
                         {top.featuredImage ? (
-                          /* alt-decorative: the <h3> directly below carries the
-                             same headline, so repeating it in alt makes a screen
-                             reader announce the story twice (Lighthouse flags it
-                             as image-redundant-alt). The link takes its
-                             accessible name from that heading. */
+                          /* alt carries the headline for Google Images
+                             attribution (owner call 2026-08-25). Lighthouse
+                             may flag image-redundant-alt vs the <h3> below -
+                             image-search traffic outweighs that advisory nit
+                             for a news site. */
                           <Image
                             src={top.featuredImage}
-                            alt=""
+                            alt={top.title}
                             width={400}
                             height={250}
                             sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, 240px"

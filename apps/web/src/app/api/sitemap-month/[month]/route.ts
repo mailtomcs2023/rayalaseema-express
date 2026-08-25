@@ -47,6 +47,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ month: 
     select: {
       id: true,
       slug: true,
+      title: true,
+      featuredImage: true,
       updatedAt: true,
       // Required: articleHref() without a category emits the /telugu-news/<slug>
       // fallback, which 301s to the real URL. A sitemap of redirecting URLs is
@@ -61,13 +63,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ month: 
     // An article with neither category nor constituency has no canonical home -
     // its fallback URL 404s. Skip rather than ship a dead URL.
     .filter((a) => a.slug && (a.category?.slug || a.constituency?.slug))
-    .map(
-      (a) =>
-        `  <url><loc>${escXml(siteUrl + articleHref(a))}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><priority>0.6</priority></url>`,
-    );
+    .map((a) => {
+      // Image extension: explicit image->article mapping. Without it Google
+      // Images attributed every hero to the homepage - the only indexed URL
+      // where it saw them (owner report 2026-08-25).
+      const img = a.featuredImage
+        ? `<image:image><image:loc>${escXml(a.featuredImage)}</image:loc><image:title>${escXml(a.title)}</image:title></image:image>`
+        : "";
+      return `  <url><loc>${escXml(siteUrl + articleHref(a))}</loc><lastmod>${a.updatedAt.toISOString()}</lastmod><priority>0.6</priority>${img}</url>`;
+    });
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${urls.join("\n")}
 </urlset>`;
 
