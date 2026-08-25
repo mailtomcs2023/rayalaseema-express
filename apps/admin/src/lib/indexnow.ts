@@ -83,3 +83,33 @@ export async function pingIndexNow(urls: string[]): Promise<void> {
     console.warn("[indexnow] network error (non-fatal):", (err as Error).message);
   }
 }
+
+/**
+ * WebSub (PubSubHubbub) publish ping - tells Google's public hub that the RSS
+ * feed changed, so subscribers (Google's crawler among them) fetch it
+ * immediately instead of waiting for a poll. The feed itself declares the hub
+ * via <atom:link rel="hub"> in apps/web/src/app/rss/all.xml.
+ *
+ * Fire on every article publish. Degrades silently - never throws.
+ */
+const WEBSUB_HUB = "https://pubsubhubbub.appspot.com/";
+
+export async function pingWebSub(): Promise<void> {
+  const siteUrl = process.env.SITE_URL || "https://rayalaseemanews.com";
+  try {
+    const res = await fetch(WEBSUB_HUB, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        "hub.mode": "publish",
+        "hub.url": `${siteUrl}/rss/all.xml`,
+      }),
+    });
+    // Hub returns 204 on accepted ping.
+    if (!res.ok && res.status !== 204) {
+      console.warn(`[websub] hub responded ${res.status}`);
+    }
+  } catch (err) {
+    console.warn("[websub] network error (non-fatal):", (err as Error).message);
+  }
+}
