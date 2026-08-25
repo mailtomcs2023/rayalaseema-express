@@ -54,6 +54,7 @@ export default async function ExamResultsPage({ params }: { params: Params }) {
     where: { slug, type: "ARTICLE", status: "PUBLISHED" },
     include: {
       author: { select: { name: true, publicProfileSlug: true, avatar: true, bio: true, role: true, twitterHandle: true, linkedinUrl: true, facebookUrl: true, expertise: true, affiliations: true } },
+      desk: { select: { name: true } },
       liveBlog: true,
     },
   });
@@ -112,7 +113,7 @@ export default async function ExamResultsPage({ params }: { params: Params }) {
         <h1 style={{ fontSize: 32, fontWeight: 900, color: "#111", marginTop: 8 }}>{content.title}</h1>
         {content.summary && <p style={{ fontSize: 16, color: "#444", marginTop: 8, lineHeight: 1.7 }}>{content.summary}</p>}
         <p style={{ fontSize: 12, color: "#888", marginTop: 8 }}>
-          {content.author.name} · {content.publishedAt ? new Date(content.publishedAt).toLocaleString("en-IN") : ""}
+          {content.desk?.name ?? content.author.name} · {content.publishedAt ? new Date(content.publishedAt).toLocaleString("en-IN") : ""}
         </p>
 
         {content.featuredImage && (

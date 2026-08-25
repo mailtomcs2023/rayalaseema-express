@@ -70,6 +70,7 @@ export async function ConstituencyView({ districtSlug, constituencySlug }: { dis
     include: {
       category: { select: { name: true, slug: true, color: true } },
       author: { select: { name: true } },
+      desk: { select: { name: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
     orderBy: { publishedAt: "desc" },
@@ -123,7 +124,9 @@ export async function ConstituencyView({ districtSlug, constituencySlug }: { dis
                     </div>
                     <h3 style={{ fontSize: 15, fontWeight: 800, color: "#000", lineHeight: 1.5 }}>{article.title}</h3>
                     <p style={{ fontSize: 12, color: "#888", marginTop: 6 }}>
-                      {article.author.name} | {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString("te-IN") : ""}
+                      {/* Desk byline, never the individual sub-editor - same
+                          site-wide policy as article pages (2026-08). */}
+                      {(article as any).desk?.name ?? article.author.name} | {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString("te-IN") : ""}
                     </p>
                   </div>
                 </div>

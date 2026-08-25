@@ -125,6 +125,7 @@ async function fetchItems(source: string, category: string, count: number, featu
       viewCount: true,
       category: { select: { name: true, slug: true, color: true } },
       author: { select: { name: true } },
+      desk: { select: { name: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
   });
@@ -136,7 +137,8 @@ async function fetchItems(source: string, category: string, count: number, featu
     publishedAt: r.publishedAt,
     viewCount: r.viewCount,
     category: r.category,
-    author: r.author,
+    // Desk byline, never the individual sub-editor (site-wide policy 2026-08).
+    author: (r as any).desk ?? r.author,
     href: articleHref(r),
   }));
 }
