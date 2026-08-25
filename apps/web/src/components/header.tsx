@@ -371,7 +371,7 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
               <img
                 src="/_next/image?url=%2Flogo-horizontal-red.webp&w=640&q=80"
                 alt="రాయలసీమ న్యూస్ - మన గళం మన కలం"
-                width={248}
+                width={348}
                 height={96}
                 loading="lazy"
                 decoding="async"
