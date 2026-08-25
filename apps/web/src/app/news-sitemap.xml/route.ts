@@ -27,7 +27,7 @@ export async function GET() {
       indexTier: { not: "BRIEF" },
     },
     select: {
-      id: true, slug: true, title: true, publishedAt: true,
+      id: true, slug: true, title: true, publishedAt: true, featuredImage: true,
       category: { select: { nameEn: true, slug: true } },
       constituency: { select: { slug: true, district: { select: { slug: true } } } },
     },
@@ -45,7 +45,8 @@ export async function GET() {
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${articles.map((a) => `  <url>
     <loc>${siteUrl}${articleHref(a)}</loc>
     <news:news>
@@ -56,7 +57,8 @@ ${articles.map((a) => `  <url>
       <news:publication_date>${(a.publishedAt || new Date()).toISOString()}</news:publication_date>
       <news:title>${escXml(a.title)}</news:title>
       <news:keywords>${escXml(a.category?.nameEn || "")}</news:keywords>
-    </news:news>
+    </news:news>${a.featuredImage ? `
+    <image:image><image:loc>${escXml(a.featuredImage)}</image:loc><image:title>${escXml(a.title)}</image:title></image:image>` : ""}
   </url>`).join("\n")}
 </urlset>`;
 
