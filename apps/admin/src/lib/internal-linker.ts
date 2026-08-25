@@ -135,11 +135,52 @@ export async function injectInternalLinks(contentId: string, currentBody: string
     select: { tag: { select: { slug: true, name: true, nameEn: true, articleCount: true } } },
     orderBy: { tag: { articleCount: "desc" } },
   });
-  const tagTargets: LinkTarget[] = tagRows
-    .map((r) => r.tag)
-    .filter((t) => !isJunkTagSlug(t.slug))
-    .slice(0, MAX_TAG_LINKS)
-    .map((t) => ({ name: t.name, nameEn: t.nameEn ?? "", href: `/tag/${t.slug}` }));
+  // Natural article-to-article links (owner request 2026-08-25): the entity
+  // name mentioned in the text becomes the anchor and points at the NEWEST
+  // other article on that entity - the "as reported earlier" pattern real
+  // newsrooms use, and the strongest internal-link signal Google reads. The
+  // tag relation is only the retrieval index; the reader never sees a tag.
+  // Falls back to the topic hub when no related article exists yet. Only
+  // index-competing (non-BRIEF) targets so link equity never lands on a
+  // noindex page.
+  const cleanTags = tagRows.map((r) => r.tag).filter((t) => !isJunkTagSlug(t.slug)).slice(0, MAX_TAG_LINKS);
+  const tagTargets: LinkTarget[] = [];
+  for (const t of cleanTags) {
+    const related = await prisma.content.findFirst({
+      where: {
+        id: { not: contentId },
+        type: "ARTICLE",
+        status: "PUBLISHED",
+        deletedAt: null,
+        indexTier: { not: "BRIEF" },
+        slug: { not: null },
+        tags: { some: { tag: { slug: t.slug } } },
+      },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        slug: true,
+        category: { select: { slug: true } },
+        constituency: { select: { slug: true, district: { select: { slug: true } } } },
+      },
+    });
+    if (related?.slug) {
+      // Mirrors apps/web articleHref(), including the eponymous district-HQ
+      // collapse (constituency slug === district slug -> one segment).
+      const cd = related.constituency;
+      const href = cd?.district
+        ? cd.slug === cd.district.slug
+          ? `/telugu-news/${cd.district.slug}/${related.slug}`
+          : `/telugu-news/${cd.district.slug}/${cd.slug}/${related.slug}`
+        : related.category
+        ? `/telugu-news/${related.category.slug}/${related.slug}`
+        : null;
+      if (href) {
+        tagTargets.push({ name: t.name, nameEn: t.nameEn ?? "", href });
+        continue;
+      }
+    }
+    tagTargets.push({ name: t.name, nameEn: t.nameEn ?? "", href: `/tag/${t.slug}` });
+  }
 
   let body = currentBody;
   let inserted = 0;
