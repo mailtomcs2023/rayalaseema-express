@@ -201,7 +201,16 @@ export default async function RootLayout({
       ? { email: config.contact_email, phone: config.contact_phone, contactType: "editorial" }
       : undefined,
     address: config.contact_address
-      ? { streetAddress: config.contact_address, country: "IN", region: "Andhra Pradesh" }
+      ? {
+          streetAddress: config.contact_address,
+          // Rich Results test flagged these as missing (2026-08-25). Values
+          // are constants for the registered office - the DB field holds the
+          // full one-line address for the footer.
+          locality: "Proddatur",
+          postalCode: "516360",
+          country: "IN",
+          region: "Andhra Pradesh",
+        }
       : undefined,
     foundingDate: config.founding_date || undefined,
     policies: {
