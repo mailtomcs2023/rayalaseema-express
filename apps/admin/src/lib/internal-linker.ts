@@ -13,9 +13,13 @@
 // Spec doc Section 6 - internal linking is the cheap, structural way to
 // move PageRank from heavy hubs to long-tail articles.
 
-import { prisma } from "@rayalaseema/db";
+import { prisma, isJunkTagSlug } from "@rayalaseema/db";
 
-const MAX_INSERTIONS = 2;
+// 2 geo hub links + up to 2 topic anchor links (2026-08-25 - articles had
+// no contextual anchor-text links beyond the geo pair; owner report).
+const MAX_INSERTIONS = 4;
+const MAX_TAG_LINKS = 2;
+const TOPIC_INDEX_THRESHOLD = 10;
 
 interface LinkTarget {
   name: string;
@@ -92,8 +96,11 @@ export async function injectInternalLinks(contentId: string, currentBody: string
       select: { slug: true, name: true, nameEn: true, district: { select: { slug: true, name: true, nameEn: true } } },
     });
     if (c) {
-      targets.push({ name: c.name, nameEn: c.nameEn.replace(/\s*\(.+\)\s*$/, "").trim(), href: `/constituency/${c.slug}` });
-      targets.push({ name: c.district.name, nameEn: c.district.nameEn, href: `/district/${c.district.slug}` });
+      // Canonical hub URLs (2026-08-25): /district/<slug> and
+      // /constituency/<slug> both 301 now - injecting them made every
+      // in-body internal link a redirect hop.
+      targets.push({ name: c.name, nameEn: c.nameEn.replace(/\s*\(.+\)\s*$/, "").trim(), href: `/${c.district.slug}/${c.slug}` });
+      targets.push({ name: c.district.name, nameEn: c.district.nameEn, href: `/${c.district.slug}` });
     }
   } else if (primary.locationType === "MANDAL") {
     const m = await prisma.mandal.findUnique({
@@ -104,8 +111,8 @@ export async function injectInternalLinks(contentId: string, currentBody: string
       },
     });
     if (m) {
-      targets.push({ name: m.constituency.name, nameEn: m.constituency.nameEn.replace(/\s*\(.+\)\s*$/, "").trim(), href: `/constituency/${m.constituency.slug}` });
-      targets.push({ name: m.constituency.district.name, nameEn: m.constituency.district.nameEn, href: `/district/${m.constituency.district.slug}` });
+      targets.push({ name: m.constituency.name, nameEn: m.constituency.nameEn.replace(/\s*\(.+\)\s*$/, "").trim(), href: `/${m.constituency.district.slug}/${m.constituency.slug}` });
+      targets.push({ name: m.constituency.district.name, nameEn: m.constituency.district.nameEn, href: `/${m.constituency.district.slug}` });
     }
   } else if (primary.locationType === "DISTRICT") {
     const d = await prisma.district.findUnique({
@@ -113,13 +120,30 @@ export async function injectInternalLinks(contentId: string, currentBody: string
       select: { slug: true, name: true, nameEn: true },
     });
     if (d) {
-      targets.push({ name: d.name, nameEn: d.nameEn, href: `/district/${d.slug}` });
+      targets.push({ name: d.name, nameEn: d.nameEn, href: `/${d.slug}` });
     }
   }
 
+  // Topic anchor links: the article's own approved, index-worthy tags,
+  // most-covered first. Same gates as isTagIndexable (approved, real kind,
+  // clean slug, past threshold) so a body link never points at a noindex hub.
+  const tagRows = await prisma.contentTag.findMany({
+    where: {
+      contentId,
+      tag: { status: "APPROVED", kind: { not: "OTHER" }, articleCount: { gte: TOPIC_INDEX_THRESHOLD } },
+    },
+    select: { tag: { select: { slug: true, name: true, nameEn: true, articleCount: true } } },
+    orderBy: { tag: { articleCount: "desc" } },
+  });
+  const tagTargets: LinkTarget[] = tagRows
+    .map((r) => r.tag)
+    .filter((t) => !isJunkTagSlug(t.slug))
+    .slice(0, MAX_TAG_LINKS)
+    .map((t) => ({ name: t.name, nameEn: t.nameEn ?? "", href: `/tag/${t.slug}` }));
+
   let body = currentBody;
   let inserted = 0;
-  for (const t of targets) {
+  for (const t of [...targets, ...tagTargets]) {
     if (inserted >= MAX_INSERTIONS) break;
     const r = insertFirstLink(body, t);
     if (r.changed) {

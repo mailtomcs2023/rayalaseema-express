@@ -13,55 +13,15 @@
 //      pattern. OTHER tags still work for tagging and stay noindex,follow.
 //   3. articleCount >= SiteConfig "topic_index_threshold" (default 10)
 
-import { prisma } from "@rayalaseema/db";
+import { prisma, isJunkTagSlug } from "@rayalaseema/db";
 import type { TagKind, TagStatus } from "@prisma/client";
 
+// Canonical implementation moved to packages/db/src/index-tier.ts
+// (2026-08-25) so the admin internal-linker shares the same junk test.
+// Re-exported to keep existing "@/lib/tag-indexing" importers working.
+export { isJunkTagSlug };
+
 const DEFAULT_TOPIC_INDEX_THRESHOLD = 10;
-
-// English tokens that legitimately contain a doubled vowel and must not be
-// mistaken for Telugu-transliteration slugs.
-const DOUBLED_VOWEL_ALLOWLIST = new Set([
-  "bollywood", "tollywood", "hollywood", "kollywood",
-  "food", "school", "schools", "google", "free", "book", "books",
-  "career", "careers", "football", "weekend", "coffee", "committee",
-  "engineering", "employee", "employees", "street", "green", "screen",
-]);
-
-// Real vowelless abbreviations used as tags (parties, bodies, leaders).
-const ACRONYM_ALLOWLIST = new Set([
-  "ycp", "tdp", "cbi", "bjp", "dmk", "trs", "brs", "cpm", "cpi",
-  "ttd", "ntr", "ysr", "kcr", "ktr", "mla", "mlc", "gst", "drdo", "bsnl",
-]);
-
-/**
- * Auto-transliterated Telugu tag slugs ("nreemdrmoodii", "bemgluuruloo",
- * "khmmm"…) are unreadable to both users and Google, duplicate real topics,
- * and made up the bulk of the 868 tag URLs polluting sitemap-sections.xml
- * (GSC 360 audit, 2026-08-20). A slug is treated as junk when it:
- *   - contains Telugu script characters,
- *   - ends in a numeric dedup suffix ("-1"),
- *   - has a doubled vowel outside the English allowlist (aa/ii/uu/ee/oo is
- *     the transliterator's long-vowel signature), or
- *   - has a vowelless token of 4+ letters (vowel-stripped transliterations
- *     like "shrm", "vrmgl"; 3-letter acronyms like TDP/YCP/CBI stay legit).
- */
-export function isJunkTagSlug(slug: string): boolean {
-  if (/[ఀ-౿]/.test(slug)) return true;
-  if (/-\d+$/.test(slug)) return true;
-  const tokens = slug.split("-");
-  for (const t of tokens) {
-    if (DOUBLED_VOWEL_ALLOWLIST.has(t)) continue;
-    if (/(aa|ii|uu|ee|oo)/.test(t)) return true;
-    if (!/[aeiou]/.test(t) && t.length >= 3 && !ACRONYM_ALLOWLIST.has(t)) return true;
-    // Vowel-stripped transliterations ("shubhmn", "jlvnrul"): 6+ letters with
-    // at most one vowel (y counted as a vowel so "nifty"-style words survive).
-    // Kept deliberately narrow - a wider vowel-ratio rule false-positived on
-    // "stock", "news", "jobs", "congress".
-    const vowels = (t.match(/[aeiouy]/g) ?? []).length;
-    if (t.length >= 6 && vowels <= 1) return true;
-  }
-  return false;
-}
 
 export async function isTagIndexable(tag: {
   slug: string;

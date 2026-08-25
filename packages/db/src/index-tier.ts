@@ -12,6 +12,39 @@
 
 export type DerivedIndexTier = "STANDARD" | "BRIEF";
 
+// ---------------------------------------------------------------------------
+// Tag slug quality gate. Moved here from apps/web/src/lib/tag-indexing.ts
+// (2026-08-25) so the admin internal-linker can use the same junk test when
+// choosing tag anchor-link targets. See that file's comments for history.
+
+const DOUBLED_VOWEL_ALLOWLIST = new Set([
+  "bollywood", "tollywood", "hollywood", "kollywood",
+  "food", "school", "schools", "google", "free", "book", "books",
+  "career", "careers", "football", "weekend", "coffee", "committee",
+  "engineering", "employee", "employees", "street", "green", "screen",
+]);
+
+const ACRONYM_ALLOWLIST = new Set([
+  "ycp", "tdp", "cbi", "bjp", "dmk", "trs", "brs", "cpm", "cpi",
+  "ttd", "ntr", "ysr", "kcr", "ktr", "mla", "mlc", "gst", "drdo", "bsnl",
+]);
+
+/** Auto-transliterated Telugu tag slugs are unreadable junk - see the
+ *  2026-08-20 GSC audit. Kept in sync with isTagIndexable via re-export. */
+export function isJunkTagSlug(slug: string): boolean {
+  if (/[ఀ-౿]/.test(slug)) return true;
+  if (/-\d+$/.test(slug)) return true;
+  const tokens = slug.split("-");
+  for (const t of tokens) {
+    if (DOUBLED_VOWEL_ALLOWLIST.has(t)) continue;
+    if (/(aa|ii|uu|ee|oo)/.test(t)) return true;
+    if (!/[aeiou]/.test(t) && t.length >= 3 && !ACRONYM_ALLOWLIST.has(t)) return true;
+    const vowels = (t.match(/[aeiouy]/g) ?? []).length;
+    if (t.length >= 6 && vowels <= 1) return true;
+  }
+  return false;
+}
+
 // Category slugs whose content is commodity coverage: the same story exists
 // on dozens of higher-authority sites, so a standalone URL here never wins.
 const BRIEF_CATEGORY_SLUGS = new Set([
