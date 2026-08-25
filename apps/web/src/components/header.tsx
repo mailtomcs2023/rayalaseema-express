@@ -371,12 +371,14 @@ export function Header({ config: initialConfig = {}, breakingNews: initialBreaki
               <img
                 src="/_next/image?url=%2Flogo-horizontal-red.webp&w=640&q=80"
                 alt="రాయలసీమ న్యూస్ - మన గళం మన కలం"
-                width={320}
-                height={64}
+                width={217}
+                height={84}
                 loading="lazy"
                 decoding="async"
-                className="hidden md:block h-16 w-auto"
-                style={{ height: 64, width: "auto" }}
+                // 2026-08 masthead is squarer (2.6:1) than the old wordmark
+                // (5:1); at the old 64px it rendered postage-stamp small.
+                className="hidden md:block h-[84px] w-auto"
+                style={{ height: 84, width: "auto" }}
               />
             </Link>
             {/* Day + date on ONE line, aligned under the wordmark's first
