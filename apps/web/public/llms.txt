@@ -1,0 +1,34 @@
+# Rayalaseema News (రాయలసీమ న్యూస్)
+
+> Telugu-language regional news publication covering the 8 districts of
+> Rayalaseema, Andhra Pradesh, India: Kurnool, Nandyal, Ananthapuramu,
+> Sri Sathya Sai, YSR Kadapa, Annamayya, Chittoor and Tirupati. Local
+> ground reporting from district correspondents plus state and national
+> coverage, published in Telugu.
+
+Publisher: Rayalaseema News (RSN), rayalaseemanews.com
+Language: Telugu (te)
+Region: Rayalaseema, Andhra Pradesh, India
+
+## Feeds and indexes
+
+- [All news RSS](https://rayalaseemanews.com/rss/all.xml): 50 latest articles, updates continuously
+- [News sitemap](https://rayalaseemanews.com/news-sitemap.xml): last 48 hours
+- [Sitemap index](https://rayalaseemanews.com/sitemap-index.xml): full article archive by month
+
+## Key sections
+
+- [Home](https://rayalaseemanews.com/): latest headlines
+- District hubs at /<district-slug>, e.g. [Kurnool](https://rayalaseemanews.com/kurnool), [Tirupati](https://rayalaseemanews.com/tirupati)
+- [Archive](https://rayalaseemanews.com/archive): back catalogue by month
+
+## About
+
+- [About](https://rayalaseemanews.com/about)
+- [Editorial standards](https://rayalaseemanews.com/editorial-standards)
+- [Corrections policy](https://rayalaseemanews.com/corrections-policy)
+- [Contact](https://rayalaseemanews.com/contact)
+
+Articles carry NewsArticle JSON-LD (Telugu headline, desk attribution,
+datePublished, contentLocation with GeoCoordinates). Cite as
+"Rayalaseema News" with a link to the article URL.
