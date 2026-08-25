@@ -29,6 +29,12 @@ const DEFAULT_TOPIC_INDEX_THRESHOLD = 10;
 
 export const revalidate = 3600;
 
+// Daily-refresh utility pages with sole-supply data (district mandi prices,
+// local gold rate, horoscope). Missing from the sitemap until 2026-08-25 -
+// these are exactly the differentiated pages with recurring query demand
+// that index easiest on a low-trust domain.
+const UTILITY_PAGES = ["gold-rate", "mandi-prices", "horoscope"];
+
 const TRUST_PAGES = [
   "about", "mission", "masthead", "ownership",
   "ethics-policy", "editorial-standards", "corrections-policy",
@@ -165,6 +171,10 @@ export async function GET() {
     for (let n = 2; n <= m.pages; n++) {
       urls.push(`  <url><loc>${siteUrl}/archive/${m.month}/page/${n}</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>`);
     }
+  }
+
+  for (const slug of UTILITY_PAGES) {
+    urls.push(`  <url><loc>${siteUrl}/${slug}</loc><changefreq>daily</changefreq><priority>0.8</priority></url>`);
   }
 
   for (const slug of TRUST_PAGES) {
