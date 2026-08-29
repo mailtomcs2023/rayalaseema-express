@@ -79,9 +79,26 @@ export async function middleware(req: NextRequest) {
     // base unset (no subdomain configured) -> fall through, /epaper serves locally.
   }
 
+  // ---- legacy URL formats (2026-08-29 crawl-stats audit) -------------------
+  // Oldest article format /article/<slug> had NO redirect and 404ed - and
+  // several such URLs are still indexed on the old domain (equity leak).
+  // /telugu-news/<slug> resolves any live slug to its canonical URL.
+  if (pathname.startsWith("/article/")) {
+    const slug = pathname.slice("/article/".length);
+    if (slug) {
+      return NextResponse.redirect(new URL(`/telugu-news/${slug}`, origin), perma ? 308 : 307);
+    }
+  }
+  // Pre-rename constituency slugs carried an AC-number suffix
+  // (/constituency/nandyal-139). Strip it so the DB redirect map's clean
+  // entry (/constituency/nandyal -> /nandyal/nandyal) can match below.
+  let lookupPath = pathname;
+  const acMatch = pathname.match(/^\/constituency\/([a-z0-9-]+?)-\d{1,3}$/);
+  if (acMatch) lookupPath = `/constituency/${acMatch[1]}`;
+
   // ---- existing DB-backed redirect map ------------------------------------
   const map = await getRedirectMap(origin);
-  const hit = map[pathname];
+  const hit = map[lookupPath];
   if (hit && hit.to && hit.to !== pathname) {
     return NextResponse.redirect(new URL(hit.to, origin), hit.status === 307 ? 307 : 308);
   }
