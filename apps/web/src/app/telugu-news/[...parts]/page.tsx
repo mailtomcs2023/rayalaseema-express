@@ -24,7 +24,19 @@ async function resolve(parts: string[]) {
   // category or district/constituency, used only for the canonical check.
   const slug = parts?.[parts.length - 1];
   if (!slug) return null;
-  const article = await getArticleBySlug(slug);
+  let article = await getArticleBySlug(slug);
+  // Truncated legacy slugs: the pre-rename /article/ system cut slugs at
+  // ~60 chars in some surfaces and Google still crawls those exact strings
+  // (crawl-stats audit 2026-08-29). A long unmatched slug falls back to a
+  // prefix match; the canonical-path check below then 301s to the real URL.
+  if (!article && slug.length >= 30) {
+    const { prisma } = await import("@rayalaseema/db");
+    const row = await prisma.content.findFirst({
+      where: { type: "ARTICLE", status: "PUBLISHED", deletedAt: null, slug: { startsWith: slug } },
+      select: { slug: true },
+    });
+    if (row?.slug) article = await getArticleBySlug(row.slug);
+  }
   if (!article || !article.slug) return null;
   const canonical = articleHref(article); // e.g. /telugu-news/andhra-pradesh/<slug>
   const requested = `/telugu-news/${parts.join("/")}`;
