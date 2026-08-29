@@ -37,24 +37,15 @@ const PUBLIC_DISALLOW = [
 // site fighting to be seen at all, being quotable in an AI Overview is
 // visibility we cannot afford to refuse.
 //
-// The pure training scrapers below stay blocked: they ingest the archive for
-// model training and send back no traffic and no citation.
-const AI_TRAINING_BOTS = [
-  "GPTBot",
-  "anthropic-ai",
-  "CCBot",
-  "Bytespider",
-  "Applebot-Extended",
-  "Meta-ExternalAgent",
-  "Meta-ExternalFetcher",
-  "FacebookBot",
-  "Diffbot",
-  "Omgilibot",
-  "Omgili",
-  "Cohere-ai",
-  "ImagesiftBot",
-  "YouBot",
-];
+// 2026-08-29 (owner decision): AI training crawlers UNBLOCKED. For a
+// publication fighting for any visibility, content in training corpora means
+// future models natively know the brand - worth more than the scraped-text
+// protection. The former block list is kept here for a one-line revert once
+// the site has standing to negotiate licensing instead:
+// GPTBot, anthropic-ai, CCBot, Bytespider, Applebot-Extended,
+// Meta-ExternalAgent, Meta-ExternalFetcher, FacebookBot, Diffbot,
+// Omgilibot, Omgili, Cohere-ai, ImagesiftBot, YouBot
+const AI_TRAINING_BOTS: string[] = [];
 
 // AI search / citation bots: explicitly allowed. These index or fetch pages
 // to answer user queries WITH source links - visibility we want. Kept as an
